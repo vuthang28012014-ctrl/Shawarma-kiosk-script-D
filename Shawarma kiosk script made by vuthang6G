@@ -1,0 +1,304 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+Rayfield:Notify({
+   Title = "Running exploit",
+   Content = "Made by vuthang",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+local Window = Rayfield:CreateWindow({
+   Name = "Shawarma kiosk exploit made by vuthangtuyenquang",
+   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   LoadingTitle = "Loading...",
+   LoadingSubtitle = "by vuthangtuyenquang",
+   ShowText = "Shawarma kiosk exploit", -- for mobile users to unhide rayfield, change if you'd like
+   Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+
+   ToggleUIKeybind = "K", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
+
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
+
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil, -- Create a custom folder for your hub/game
+      FileName = "Some boost"
+   },
+
+   Discord = {
+      Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
+      Invite = "noinvitelink", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ ABCD would be ABCD
+      RememberJoins = false -- Set this to false to make them join the discord every time they load it up
+   },
+
+   KeySystem = true, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Shawarma kiosk key system",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
+      FileName = "Key", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
+      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = {"vuthangdeptrai"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
+   }
+})
+local Tab = Window:CreateTab("Some boost", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Some boost")
+Section:Set("Some boost")
+Section:Set("Some boost")
+local Divider = Tab:CreateDivider()
+Divider:Set(true) -- Whether the divider's visibility is to be set to true or false.
+local Button = Tab:CreateButton({
+   Name = "Scare a friend",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Running boost!",
+   Content = "Running Scare A Friend boost!",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	"ScreamPlayer"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Scare a friend")
+local Button = Tab:CreateButton({
+   Name = "Dance for friends",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Running boost!",
+   Content = "Running Dance For Friends boost!",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	"Scream"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Dance for friends")
+local Button = Tab:CreateButton({
+   Name = "Show anomaly",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Running boost!",
+   Content = "Running Show Anomaly boost!",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	"ShowAnomaly"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Show anomaly")
+local Button = Tab:CreateButton({
+   Name = "Summon Anomaly",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Running boost!",
+   Content = "Running Summon Anomaly boost!",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	"SummonAnomaly"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Summon Anomaly")
+local Button = Tab:CreateButton({
+   Name = "Internal Control",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Running boost!",
+   Content = "Running Internal Control boost!",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	"InternalC"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Internal Control")
+local Button = Tab:CreateButton({
+   Name = "Tips",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Running boost!",
+   Content = "Running tips boost!",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	"Tips"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Tips")
+local Button = Tab:CreateButton({
+   Name = "Corruption Deal",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Running boost!",
+   Content = "Running Corruption Deal boost!",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	"Ticket"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Corruption Deal")
+local Section = Tab:CreateSection("Skip tutorial")
+Section:Set("Skip tutorial")
+local Button = Tab:CreateButton({
+   Name = "Skip the tutorial",
+   Callback = function()
+   game:GetService("ReplicatedStorage"):WaitForChild("SkipTutorial"):FireServer()
+   Rayfield:Notify({
+   Title = "Running code!",
+   Content = "Skipping the tutorial...",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   end,
+})
+Button:Set("Skip the tutorial")
+local Section = Tab:CreateSection("Buying boost")
+Section:Set("Buying boost")
+local Button = Tab:CreateButton({
+   Name = "Buy Internal Control boost",
+   Callback = function()
+  Rayfield:Notify({
+   Title = "Running code!",
+   Content = "Running buying Internal Control boost!",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+  local args = {
+	{
+		action = "internalc"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("ShopCurrencyBuy"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Buy Internal Control boost")
+local Button = Tab:CreateButton({
+   Name = "Buy Dance For Friends boost",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Running code!",
+   Content = "Running buy Dance For Friends boost!",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	{
+		action = "Scream"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("ShopCurrencyBuy"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Buy Dance For Friends boost")
+local Button = Tab:CreateButton({
+   Name = "Buy Scare A Friend boost",
+   Callback = function()
+  Rayfield:Notify({
+   Title = "Running code!",
+   Content = "Running buy Scare A Friend boost!",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+  local args = {
+	{
+		action = "ScreamPlayer"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("ShopCurrencyBuy"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Buy Scare A Friend boost")
+local Button = Tab:CreateButton({
+   Name = "Buy Corruption Deal boost",
+   Callback = function()
+  Rayfield:Notify({
+   Title = "Running code!",
+   Content = "Running buy Corruption Deal boost!",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+  local args = {
+	{
+		action = "corruption"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("ShopCurrencyBuy"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Buy Corruption Deal boost")
+local Button = Tab:CreateButton({
+   Name = "Buy Show Anomaly boost",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Running code!",
+   Content = "Running buy Show Anomaly boost!",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	{
+		action = "show"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("ShopCurrencyBuy"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Buy Show Anomaly boost")
+local Button = Tab:CreateButton({
+   Name = "Buy Summon Anomaly boost",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Running code!",
+   Content = "Running buy Summon Anomaly boost!",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	{
+		action = "summon"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("ShopCurrencyBuy"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Buy Summon Anomaly boost")
+local Tab = Window:CreateTab("Some Badges", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Some Badges")
+Section:Set("Some Badges")
+local Button = Tab:CreateButton({
+   Name = "Erased from reality Badge",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Collecting Badges!",
+   Content = "Collecting Erased from reality Badge",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	3859530300923014
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RequestBadge"):FireServer(unpack(args))
+   end,
+})
