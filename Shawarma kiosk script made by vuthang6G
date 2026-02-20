@@ -302,3 +302,19 @@ local Button = Tab:CreateButton({
 game:GetService("ReplicatedStorage"):WaitForChild("RequestBadge"):FireServer(unpack(args))
    end,
 })
+local Tab = Window:CreateTab("Teleport", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Teleport")
+Section:Set("Teleport")
+local Button = Tab:CreateButton({
+   Name = "Teleport to the bus stop",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Teleporting!",
+   Content = "Teleporting to the bus stop...",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   game:GetService("ReplicatedStorage"):WaitForChild("RestoreMorph"):FireServer()
+   end,
+})
+Button:Set("Teleport to the bus stop")
