@@ -302,6 +302,22 @@ local Button = Tab:CreateButton({
 game:GetService("ReplicatedStorage"):WaitForChild("RequestBadge"):FireServer(unpack(args))
    end,
 })
+local Button = Tab:CreateButton({
+   Name = "The Other Reality Badge",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Collecting Badges!",
+   Content = "Collecting The Other Reality Badge",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	2310543252637783
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RequestBadge"):FireServer(unpack(args))
+   end,
+})
+Button:Set("The Other Reality Badge")
 local Tab = Window:CreateTab("Teleport", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Teleport")
 Section:Set("Teleport")
