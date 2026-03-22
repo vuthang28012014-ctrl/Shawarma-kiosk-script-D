@@ -334,3 +334,36 @@ local Button = Tab:CreateButton({
    end,
 })
 Button:Set("Teleport to the bus stop")
+local Button = Tab:CreateButton({
+   Name = "Teleport to the dial",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Teleporting!",
+   Content = "Teleporting to the dial...",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	true
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("HandleCallEvent"):FireServer(unpack(args))
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("HandleCallEvent"):FireServer()
+	end,
+})
+Button:Set("Teleport to the dial")
+local Tab = Window:CreateTab("Menu delivery", 4483362458) -- Title, Image
+local Button = Tab:CreateButton({
+   Name = "Open the menu",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Openning!",
+   Content = "Openning the menu...",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("HandleCallEvent"):FireServer(unpack(args))
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("HandleCallEvent"):FireServer()
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("OpenDeliveryMenuEvent"):FireServer()
+	end,
+})
+Button:Set("Open the menu")
