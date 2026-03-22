@@ -348,7 +348,7 @@ local Button = Tab:CreateButton({
 }
 game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("HandleCallEvent"):FireServer(unpack(args))
 game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("HandleCallEvent"):FireServer()
-	end,
+  end,
 })
 Button:Set("Teleport to the dial")
 local Tab = Window:CreateTab("Menu delivery", 4483362458) -- Title, Image
@@ -366,6 +366,6 @@ local args = {
 }
 game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("HandleCallEvent"):FireServer(unpack(args))
 game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("OpenDeliveryMenuEvent"):FireServer()
-	end,
+  end,
 })
 Button:Set("Open the menu")
