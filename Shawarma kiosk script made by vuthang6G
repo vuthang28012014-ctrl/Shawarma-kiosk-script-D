@@ -371,8 +371,6 @@ game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("OpenD
 Button:Set("Open the menu")
 local Section = Tab:CreateSection("Order")
 Section:Set("Order")
-local Section = Tab:CreateSection("Order")
-Section:Set("Order")
 local Button = Tab:CreateButton({
    Name = "Order a bell",
    Callback = function()
