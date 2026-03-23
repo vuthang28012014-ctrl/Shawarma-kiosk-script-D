@@ -371,14 +371,77 @@ game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("OpenD
 Button:Set("Open the menu")
 local Section = Tab:CreateSection("Order")
 Section:Set("Order")
-local Dropdown = Tab:CreateDropdown({
-   Name = "Order",
-   Options = {"Option 1", "Option 2"},
-   CurrentOption = {"Option 1"},
-   MultipleOptions = true,
-   Flag = "Dropdown1", -- A flag is the identifier for the configuration file; make sure every element has a different flag if you're using configuration saving to ensure no overlaps
-   Callback = function(Options)
-   -- The function that takes place when the selected option is changed
-   -- The variable (Options) is a table of strings for the current selected options
+local Section = Tab:CreateSection("Order")
+Section:Set("Order")
+local Button = Tab:CreateButton({
+   Name = "Order a bell",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Ordering!",
+   Content = "Ordering a bell...",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	{
+		"Bell"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
    end,
 })
+Button:Set("Order a bell")
+local Button = Tab:CreateButton({
+   Name = "Order decorations",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Ordering!",
+   Content = "Ordering decorations...",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	{
+		"Decorations"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Order decorations")
+local Button = Tab:CreateButton({
+   Name = "Order camera",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Ordering!",
+   Content = "Ordering camera...",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	{
+		"Camera"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Order camera")
+local Button = Tab:CreateButton({
+   Name = "Order kebab",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Ordering!",
+   Content = "Ordering kebab...",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	{
+		"Kebab"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Order kebab")
