@@ -35,43 +35,6 @@ local Window = Rayfield:CreateWindow({
       Key = {"vuthangdeptrai"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
    }
 })
-
-
-getgenv().SelectedOption = nil
-
-function doStuff()
-    getgenv().SelectedOption == "Bell" then
-    local args = {
-	{
-		"Bell"
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
-  elseif getgenv().SelectedOption == "Decorations" then
-    local args = {
-	{
-		"Decorations"
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
-elseif getgenv().SelectedOption == "Camera" then
-  local args = {
-	{
-		"Camera"
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
-elseif gengenv().SelectedOption == "Kebab" then
-  local args = {
-	{
-		"Kebab"
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
-  end
-end
-
-
 local Tab = Window:CreateTab("Some boost", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Some boost")
 Section:Set("Some boost")
@@ -402,6 +365,43 @@ game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("OpenD
 Button:Set("Open the menu")
 local Section = Tab:CreateSection("Order")
 Section:Set("Order")
+
+
+getgenv().SelectedOption = nil
+
+function doStuff()
+    getgenv().SelectedOption == "Bell" then
+    local args = {
+	{
+		"Bell"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
+  elseif getgenv().SelectedOption == "Decorations" then
+    local args = {
+	{
+		"Decorations"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
+elseif getgenv().SelectedOption == "Camera" then
+  local args = {
+	{
+		"Camera"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
+elseif gengenv().SelectedOption == "Kebab" then
+  local args = {
+	{
+		"Kebab"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
+  end
+end
+
+
 local Dropdown = Tab:CreateDropdown({
    Name = "Dropdown Example",
    Options = {"Bell", "Decorations", "Camera", "Kebab"},
