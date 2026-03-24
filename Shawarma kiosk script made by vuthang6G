@@ -1,4 +1,10 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+Rayfield:Notify({
+   Title = "Loading!",
+   Content = "Script made by vuthang28012014",
+   Duration = 6.5,
+   Image = 4483362458,
+})
 local Window = Rayfield:CreateWindow({
    Name = "Shawarma kiosk exploit made by vuthangtuyenquang",
    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
