@@ -1,4 +1,40 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+getgenv().SelectedOption = nil
+
+function doStuff()
+    getgenv().SelectedOption == "Bell" then
+    local args = {
+	{
+		"Bell"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
+  elseif getgenv().SelectedOption == "Decorations" then
+    local args = {
+	{
+		"Decorations"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
+elseif getgenv().SelectedOption == "Camera" then
+  local args = {
+	{
+		"Camera"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
+elseif gengenv().SelectedOption == "Kebab" then
+  local args = {
+	{
+		"Kebab"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
+  end
+end
+
+
 Rayfield:Notify({
    Title = "Running exploit",
    Content = "Made by vuthang",
@@ -371,75 +407,14 @@ game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("OpenD
 Button:Set("Open the menu")
 local Section = Tab:CreateSection("Order")
 Section:Set("Order")
-local Button = Tab:CreateButton({
-   Name = "Order a bell",
-   Callback = function()
-   Rayfield:Notify({
-   Title = "Ordering!",
-   Content = "Ordering a bell...",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-   local args = {
-	{
-		"Bell"
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
+local Dropdown = Tab:CreateDropdown({
+   Name = "Dropdown Example",
+   Options = {"Bell", "Decorations", "Camera", "Kebab"},
+   CurrentOption = {"None"},
+   MultipleOptions = true,
+   Flag = "Dropdown1", -- A flag is the identifier for the configuration file; make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Options)
+      getgenv().SelectedOption = Options
+      doStuff()
    end,
 })
-Button:Set("Order a bell")
-local Button = Tab:CreateButton({
-   Name = "Order decorations",
-   Callback = function()
-   Rayfield:Notify({
-   Title = "Ordering!",
-   Content = "Ordering decorations...",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-   local args = {
-	{
-		"Decorations"
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
-   end,
-})
-Button:Set("Order decorations")
-local Button = Tab:CreateButton({
-   Name = "Order camera",
-   Callback = function()
-   Rayfield:Notify({
-   Title = "Ordering!",
-   Content = "Ordering camera...",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-   local args = {
-	{
-		"Camera"
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
-   end,
-})
-Button:Set("Order camera")
-local Button = Tab:CreateButton({
-   Name = "Order kebab",
-   Callback = function()
-   Rayfield:Notify({
-   Title = "Ordering!",
-   Content = "Ordering kebab...",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-   local args = {
-	{
-		"Kebab"
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
-   end,
-})
-Button:Set("Order kebab")
