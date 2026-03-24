@@ -35,12 +35,6 @@ game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Confi
 end
 
 
-Rayfield:Notify({
-   Title = "Running exploit",
-   Content = "Made by vuthang",
-   Duration = 6.5,
-   Image = 4483362458,
-})
 local Window = Rayfield:CreateWindow({
    Name = "Shawarma kiosk exploit made by vuthangtuyenquang",
    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
