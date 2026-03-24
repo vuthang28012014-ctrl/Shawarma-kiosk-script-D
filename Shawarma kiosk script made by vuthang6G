@@ -386,7 +386,7 @@ function doStuff()
     end
 end
 local Dropdown = Tab:CreateDropdown({
-   Name = "Dropdown Example",
+   Name = "Order menu",
    Options = {"Bell", "Decorations", "Camera", "Kebab"},
    CurrentOption = {"None"},
    MultipleOptions = true,
