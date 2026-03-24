@@ -1,40 +1,4 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
-getgenv().SelectedOption = nil
-
-function doStuff()
-    getgenv().SelectedOption == "Bell" then
-    local args = {
-	{
-		"Bell"
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
-  elseif getgenv().SelectedOption == "Decorations" then
-    local args = {
-	{
-		"Decorations"
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
-elseif getgenv().SelectedOption == "Camera" then
-  local args = {
-	{
-		"Camera"
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
-elseif gengenv().SelectedOption == "Kebab" then
-  local args = {
-	{
-		"Kebab"
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
-  end
-end
-
-
 local Window = Rayfield:CreateWindow({
    Name = "Shawarma kiosk exploit made by vuthangtuyenquang",
    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
@@ -71,6 +35,43 @@ local Window = Rayfield:CreateWindow({
       Key = {"vuthangdeptrai"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
    }
 })
+
+
+getgenv().SelectedOption = nil
+
+function doStuff()
+    getgenv().SelectedOption == "Bell" then
+    local args = {
+	{
+		"Bell"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
+  elseif getgenv().SelectedOption == "Decorations" then
+    local args = {
+	{
+		"Decorations"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
+elseif getgenv().SelectedOption == "Camera" then
+  local args = {
+	{
+		"Camera"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
+elseif gengenv().SelectedOption == "Kebab" then
+  local args = {
+	{
+		"Kebab"
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ConfirmDeliveryOrderEvent"):FireServer(unpack(args))
+  end
+end
+
+
 local Tab = Window:CreateTab("Some boost", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Some boost")
 Section:Set("Some boost")
