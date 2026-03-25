@@ -318,6 +318,22 @@ game:GetService("ReplicatedStorage"):WaitForChild("RequestBadge"):FireServer(unp
    end,
 })
 Button:Set("The Other Reality Badge")
+local Button = Tab:CreateButton({
+   Name = "Yes, I am a human! Badge",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Collecting Badges!",
+   Content = "Collecting Yes, I am a human! Badge",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+local args = {
+	3925239037360973
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RequestBadge"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Yes, I am a human! Badge")
 local Tab = Window:CreateTab("Teleport", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Teleport")
 Section:Set("Teleport")
@@ -394,5 +410,27 @@ local Dropdown = Tab:CreateDropdown({
    Callback = function(Options)
       getgenv().SelectedOption = Options
       doStuff()
+   end,
+})
+local Tab = Window:CreateTab("Chat", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Shawarma's Text chat service")
+Section:Set("Shawarma's Text chat service")
+local Input = Tab:CreateInput({
+   Name = "Chat",
+   CurrentValue = "",
+   PlaceholderText = "Type here to chat",
+   RemoveTextAfterFocusLost = true,
+   Flag = "Input1",
+   Callback = function(Text)
+Rayfield:Notify({
+   Title = "Sending text to the shawarma's text chat service",
+   Content = "Sending", Text,
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	Text
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("QuickChatEvent"):FireServer(unpack(args))
    end,
 })
