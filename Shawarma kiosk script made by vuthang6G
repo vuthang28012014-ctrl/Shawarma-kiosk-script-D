@@ -334,6 +334,118 @@ game:GetService("ReplicatedStorage"):WaitForChild("RequestBadge"):FireServer(unp
    end,
 })
 Button:Set("Yes, I am a human! Badge")
+local Button = Tab:CreateButton({
+   Name = "Accepted by the deep Badge",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Collecting Badges!",
+   Content = "Collecting Accepted by the deep Badge",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+local args = {
+	3431327816967957 -- Accepted by the deep
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RequestBadge"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Accepted by the deep Badge")
+local Button = Tab:CreateButton({
+   Name = "Heartless Badge",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Collecting Badges!",
+   Content = "Collecting Heartless Badge",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+local args = {
+	792904025880360 -- Heartless
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RequestBadge"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Heartless Badge")
+local Button = Tab:CreateButton({
+   Name = "Obedience Badge",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Collecting Badges!",
+   Content = "Collecting Obedience Badge",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+local args = {
+	1996341215013965 -- Obedience
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RequestBadge"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Obedience Badge")
+local Button = Tab:CreateButton({
+   Name = "Open the door Badge",
+   Callback = function()
+    Rayfield:Notify({
+   Title = "Collecting Badges!",
+   Content = "Collecting Open the door Badge",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+local args = {
+	3446636560307654 -- Open the door
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RequestBadge"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Open the door Badge")
+local Button = Tab:CreateButton({
+   Name = "Unstable shift Badge",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Collecting Badges!",
+   Content = "Collecting Unstable shift Badge",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+local args = {
+	1548943367795853 -- unstable shift
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RequestBadge"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Unstable shift Badge")
+local Button = Tab:CreateButton({
+   Name = "The Inspector Badge",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Collecting Badges!",
+   Content = "Collecting The Inspector Badge",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+local args = {
+	675811825688661 -- The Inspector
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RequestBadge"):FireServer(unpack(args))
+   end,
+})
+Button:Set("The Inspector Badge")
+local Button = Tab:CreateButton({
+   Name = "Perfect shift Badge",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Collecting Badges!",
+   Content = "Collecting Perfect shift Badge",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+local args = {
+	2335580643689682 -- Perfect shift
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RequestBadge"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Perfect shift Badge")
 local Tab = Window:CreateTab("Teleport", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Teleport")
 Section:Set("Teleport")
