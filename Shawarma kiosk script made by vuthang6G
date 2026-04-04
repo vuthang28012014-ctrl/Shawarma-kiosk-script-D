@@ -41,6 +41,72 @@ local Window = Rayfield:CreateWindow({
       Key = {"vuthangdeptrai"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
    }
 })
+local Tab = Window:CreateTab("Farm", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Farm")
+Section:Set("Farm")
+local AutoFarm = false
+
+local stations = {
+    Vector3.new(-47,5,-555), -- refill meat
+    Vector3.new(-48,5,-550), -- lavash
+    Vector3.new(-44,5,-554), -- soda
+    Vector3.new(-42,5,-548)  -- make / give
+}
+
+local allowed = {
+    ["take"] = true,
+    ["put"] = true,
+    ["roll"] = true,
+    ["give"] = true,
+    ["give soda"] = true,
+    ["restock"] = true
+}
+
+local function interactNearby()
+    for _,v in pairs(workspace:GetDescendants()) do
+        if v:IsA("ProximityPrompt") and v.Enabled then
+            
+            local action = (v.ActionText or ""):lower()
+            
+            if allowed[action] then
+                fireproximityprompt(v)
+                task.wait(0.4)
+            end
+        end
+    end
+end
+
+local Toggle = Tab:CreateToggle({
+   Name = "Autofarm v1",
+   CurrentValue = false,
+   Flag = "autofarmv1",
+
+   Callback = function(Value)
+        AutoFarm = Value
+
+        if Value then
+            task.spawn(function()
+
+                local player = game.Players.LocalPlayer
+                local root = player.Character.HumanoidRootPart
+
+                while AutoFarm do
+                    for _,pos in ipairs(stations) do
+                        if not AutoFarm then break end
+                        
+                        root.CFrame = CFrame.new(pos)
+                        task.wait(0.25)
+
+                        interactNearby()
+                    end
+                    
+                    task.wait(0.2)
+                end
+
+            end)
+        end
+   end,
+})
 local Tab = Window:CreateTab("Some boost", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Some boost")
 Section:Set("Some boost")
