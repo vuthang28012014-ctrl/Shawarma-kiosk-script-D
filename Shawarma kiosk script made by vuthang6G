@@ -166,114 +166,45 @@ local Button = Tab:CreateButton({
 Button:Set("Skip the tutorial")
 local Section = Tab:CreateSection("Buying boost")
 Section:Set("Buying boost")
-local Button = Tab:CreateButton({
-   Name = "Buy Internal Control boost",
-   Callback = function()
-  Rayfield:Notify({
-   Title = "Running code!",
-   Content = "Running buying Internal Control boost!",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-  local args = {
-	{
-		action = "internalc"
-	}
+-- Buy boost mapping
+local BuyBoosts = {
+    ["Internal Control"] = "internalc",
+    ["Dance For Friends"] = "Scream",
+    ["Scare A Friend"] = "ScreamPlayer",
+    ["Corruption Deal"] = "corruption",
+    ["Show Anomaly"] = "show",
+    ["Summon Anomaly"] = "summon"
 }
-game:GetService("ReplicatedStorage"):WaitForChild("ShopCurrencyBuy"):FireServer(unpack(args))
+
+-- Dropdown options
+local BuyOptions = {}
+for name,_ in pairs(BuyBoosts) do
+    table.insert(BuyOptions, name)
+end
+
+-- DROPDOWN MENU
+local BuyDropdown = Tab:CreateDropdown({
+   Name = "Buy Boost",
+   Options = BuyOptions,
+   CurrentOption = {"Internal Control"},
+   MultipleOptions = false,
+   Flag = "BuyBoostDropdown",
+
+   Callback = function(Selected)
+       local displayName = Selected[1]
+       local actionName = BuyBoosts[displayName]
+
+       local args = {
+           {
+               action = actionName
+           }
+       }
+
+       game:GetService("ReplicatedStorage")
+           :WaitForChild("ShopCurrencyBuy")
+           :FireServer(unpack(args))
    end,
 })
-Button:Set("Buy Internal Control boost")
-local Button = Tab:CreateButton({
-   Name = "Buy Dance For Friends boost",
-   Callback = function()
-   Rayfield:Notify({
-   Title = "Running code!",
-   Content = "Running buy Dance For Friends boost!",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-   local args = {
-	{
-		action = "Scream"
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("ShopCurrencyBuy"):FireServer(unpack(args))
-   end,
-})
-Button:Set("Buy Dance For Friends boost")
-local Button = Tab:CreateButton({
-   Name = "Buy Scare A Friend boost",
-   Callback = function()
-  Rayfield:Notify({
-   Title = "Running code!",
-   Content = "Running buy Scare A Friend boost!",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-  local args = {
-	{
-		action = "ScreamPlayer"
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("ShopCurrencyBuy"):FireServer(unpack(args))
-   end,
-})
-Button:Set("Buy Scare A Friend boost")
-local Button = Tab:CreateButton({
-   Name = "Buy Corruption Deal boost",
-   Callback = function()
-  Rayfield:Notify({
-   Title = "Running code!",
-   Content = "Running buy Corruption Deal boost!",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-  local args = {
-	{
-		action = "corruption"
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("ShopCurrencyBuy"):FireServer(unpack(args))
-   end,
-})
-Button:Set("Buy Corruption Deal boost")
-local Button = Tab:CreateButton({
-   Name = "Buy Show Anomaly boost",
-   Callback = function()
-   Rayfield:Notify({
-   Title = "Running code!",
-   Content = "Running buy Show Anomaly boost!",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-   local args = {
-	{
-		action = "show"
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("ShopCurrencyBuy"):FireServer(unpack(args))
-   end,
-})
-Button:Set("Buy Show Anomaly boost")
-local Button = Tab:CreateButton({
-   Name = "Buy Summon Anomaly boost",
-   Callback = function()
-   Rayfield:Notify({
-   Title = "Running code!",
-   Content = "Running buy Summon Anomaly boost!",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-   local args = {
-	{
-		action = "summon"
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("ShopCurrencyBuy"):FireServer(unpack(args))
-   end,
-})
-Button:Set("Buy Summon Anomaly boost")
 local Tab = Window:CreateTab("Some Badges", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Some Badges")
 Section:Set("Some Badges")
