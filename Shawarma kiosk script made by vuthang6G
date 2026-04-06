@@ -114,6 +114,22 @@ Section:Set("Some boost")
 local Divider = Tab:CreateDivider()
 Divider:Set(true) -- Whether the divider's visibility is to be set to true or false.
 local Button = Tab:CreateButton({
+   Name = "Endless Meat",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Running ticket!",
+   Content = "Running Endless Meat ticket!",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+local args = {
+	"MeatTicket"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
+   end,
+})
+Button:Set("Endless Meat")
+local Button = Tab:CreateButton({
    Name = "Scare a friend",
    Callback = function()
    Rayfield:Notify({
