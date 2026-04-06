@@ -130,6 +130,22 @@ game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(
 })
 Button:Set("Endless Meat")
 local Button = Tab:CreateButton({
+   Name = "2xEarn",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Running boost!",
+   Content = "Running 2xEarn boost!",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+local args = {
+	"2xEarn"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
+   end,
+})
+Button:Set("2xEarn")
+local Button = Tab:CreateButton({
    Name = "Scare a friend",
    Callback = function()
    Rayfield:Notify({
