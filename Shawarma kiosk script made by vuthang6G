@@ -113,150 +113,42 @@ Section:Set("Some boost")
 Section:Set("Some boost")
 local Divider = Tab:CreateDivider()
 Divider:Set(true) -- Whether the divider's visibility is to be set to true or false.
-local Button = Tab:CreateButton({
-   Name = "Endless Meat",
-   Callback = function()
-   Rayfield:Notify({
-   Title = "Running ticket!",
-   Content = "Running Endless Meat ticket!",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-local args = {
-	"MeatTicket"
+-- Boost name mapping
+local Boosts = {
+    ["Meat Ticket"] = "MeatTicket",
+    ["2x Earn"] = "2xEarn",
+    ["Scare a Friend"] = "ScreamPlayer",
+    ["Dance for Friends"] = "Scream",
+    ["Show Anomaly"] = "ShowAnomaly",
+    ["Summon Anomaly"] = "SummonAnomaly",
+    ["Internal Control"] = "InternalC",
+    ["Tips"] = "Tips",
+    ["Corruption Deal"] = "Ticket"
 }
-game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
+
+-- Dropdown display list
+local Options = {}
+for name,_ in pairs(Boosts) do
+    table.insert(Options,name)
+end
+
+-- DROPDOWN MENU
+local Dropdown = Tab:CreateDropdown({
+   Name = "Boost Menu",
+   Options = Options,
+   CurrentOption = {"Meat Ticket"},
+   MultipleOptions = false,
+   Flag = "BoostDropdown",
+
+   Callback = function(Selected)
+       local displayName = Selected[1]
+       local boostName = Boosts[displayName]
+
+       game:GetService("ReplicatedStorage")
+           :WaitForChild("UseBoost")
+           :FireServer(boostName)
    end,
 })
-Button:Set("Endless Meat")
-local Button = Tab:CreateButton({
-   Name = "2xEarn",
-   Callback = function()
-   Rayfield:Notify({
-   Title = "Running boost!",
-   Content = "Running 2xEarn boost!",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-local args = {
-	"2xEarn"
-}
-game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
-   end,
-})
-Button:Set("2xEarn")
-local Button = Tab:CreateButton({
-   Name = "Scare a friend",
-   Callback = function()
-   Rayfield:Notify({
-   Title = "Running boost!",
-   Content = "Running Scare A Friend boost!",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-   local args = {
-	"ScreamPlayer"
-}
-game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
-   end,
-})
-Button:Set("Scare a friend")
-local Button = Tab:CreateButton({
-   Name = "Dance for friends",
-   Callback = function()
-   Rayfield:Notify({
-   Title = "Running boost!",
-   Content = "Running Dance For Friends boost!",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-   local args = {
-	"Scream"
-}
-game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
-   end,
-})
-Button:Set("Dance for friends")
-local Button = Tab:CreateButton({
-   Name = "Show anomaly",
-   Callback = function()
-   Rayfield:Notify({
-   Title = "Running boost!",
-   Content = "Running Show Anomaly boost!",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-   local args = {
-	"ShowAnomaly"
-}
-game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
-   end,
-})
-Button:Set("Show anomaly")
-local Button = Tab:CreateButton({
-   Name = "Summon Anomaly",
-   Callback = function()
-   Rayfield:Notify({
-   Title = "Running boost!",
-   Content = "Running Summon Anomaly boost!",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-   local args = {
-	"SummonAnomaly"
-}
-game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
-   end,
-})
-Button:Set("Summon Anomaly")
-local Button = Tab:CreateButton({
-   Name = "Internal Control",
-   Callback = function()
-   Rayfield:Notify({
-   Title = "Running boost!",
-   Content = "Running Internal Control boost!",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-   local args = {
-	"InternalC"
-}
-game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
-   end,
-})
-Button:Set("Internal Control")
-local Button = Tab:CreateButton({
-   Name = "Tips",
-   Callback = function()
-   Rayfield:Notify({
-   Title = "Running boost!",
-   Content = "Running tips boost!",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-   local args = {
-	"Tips"
-}
-game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
-   end,
-})
-Button:Set("Tips")
-local Button = Tab:CreateButton({
-   Name = "Corruption Deal",
-   Callback = function()
-   Rayfield:Notify({
-   Title = "Running boost!",
-   Content = "Running Corruption Deal boost!",
-   Duration = 6.5,
-   Image = 4483362458,
-})
-   local args = {
-	"Ticket"
-}
-game:GetService("ReplicatedStorage"):WaitForChild("UseBoost"):FireServer(unpack(args))
-   end,
-})
-Button:Set("Corruption Deal")
 local Section = Tab:CreateSection("Skip tutorial")
 Section:Set("Skip tutorial")
 local Button = Tab:CreateButton({
