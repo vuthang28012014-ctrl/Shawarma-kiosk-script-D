@@ -416,3 +416,19 @@ local Slider = Tab:CreateSlider({
       end
    end,
 })
+-- Lighting
+local Lighting = game:GetService("Lighting")
+
+-- Brightness Slider
+local Slider = Tab:CreateSlider({
+   Name = "Brightness",
+   Range = {0, 100}, -- change max if you want
+   Increment = 0.1,
+   Suffix = "Light",
+   CurrentValue = Lighting.Brightness,
+   Flag = "BrightnessSlider",
+
+   Callback = function(Value)
+      Lighting.Brightness = Value
+   end,
+})
