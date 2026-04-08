@@ -355,3 +355,64 @@ Rayfield:Notify({
 game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("QuickChatEvent"):FireServer(unpack(args))
    end,
 })
+local Tab = Window:CreateTab("LocalPlayer", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("FPS")
+-- Brightness
+local Thunder = game:GetService("Lighting").Thunder
+local Brightness = Thunder.Brightness
+
+-- Toggle
+local Toggle = Tab:CreateToggle({
+   Name = "White Screen",
+   CurrentValue = false,
+   Flag = "Brightness",
+   Callback = function(Value)
+      if Value then
+         Thunder.Brightness = 1
+      else
+         Thunder.Brightness = 0
+      end
+   end,
+})
+local Section = Tab:CreateSection("WalkSpeed & JumpPower")
+-- Player
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+
+-- Slider
+local Slider = Tab:CreateSlider({
+   Name = "WalkSpeed",
+   Range = {0, 1000},
+   Increment = 1,
+   Suffix = "Speed",
+   CurrentValue = 6,
+   Flag = "WalkSpeedSlider",
+
+   Callback = function(Value)
+      local Character = Player.Character or Player.CharacterAdded:Wait()
+      local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+
+      if Humanoid then
+         Humanoid.WalkSpeed = Value
+      end
+   end,
+})
+
+-- JumpPower Slider
+local Slider = Tab:CreateSlider({
+   Name = "JumpPower",
+   Range = {0, 200},
+   Increment = 5,
+   Suffix = "Jump",
+   CurrentValue = 50,
+   Flag = "JumpPowerSlider",
+
+   Callback = function(Value)
+      local Character = Player.Character or Player.CharacterAdded:Wait()
+      local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+
+      if Humanoid then
+         Humanoid.JumpPower = Value
+      end
+   end,
+})
