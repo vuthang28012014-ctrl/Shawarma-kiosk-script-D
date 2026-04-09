@@ -1,3 +1,5 @@
+local ContentToKick = "Kicked because script is currently down (outage)"
+local Kick = false -- (IMPORTANT): CHANGE TO TRUE IF WANT TO KICK
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 Rayfield:Notify({
    Title = "Loading!",
@@ -5,6 +7,20 @@ Rayfield:Notify({
    Duration = 6.5,
    Image = 4483362458,
 })
+
+if Kick == true then
+    Rayfield:Notify({
+        Title = "Script Error",
+        Content = ContentToKick,
+        Duration = 4
+    })
+
+    task.wait()
+
+    game.Players.LocalPlayer:Kick(ContentToKick)
+else
+    print("Kick system disabled")
+end
 local Window = Rayfield:CreateWindow({
    Name = "Shawarma kiosk exploit made by vuthangtuyenquang",
    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
@@ -41,6 +57,9 @@ local Window = Rayfield:CreateWindow({
       Key = {"vuthangdeptrai"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
    }
 })
+if Kick == true then
+    Rayfield:Destroy()
+end
 local Tab = Window:CreateTab("Farm", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Farm")
 Section:Set("Farm")
