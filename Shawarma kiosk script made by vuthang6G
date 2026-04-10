@@ -2,7 +2,7 @@ local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
 local player = Players.LocalPlayer
-local config = require("config")
+local config = require("./config")
 local webhook = config.webhook
 -- thử nhận diện executor
 local executor = "Unknown"
