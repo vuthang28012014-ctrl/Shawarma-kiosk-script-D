@@ -2,8 +2,8 @@ local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
 local player = Players.LocalPlayer
-local webhook = "https://discordapp.com/api/webhooks/1491724295850823760/lGR9bYx2Tc50rvS7BHnyYZPERi07vdPTALhWTG6-hddsX9e8p9Ojiy8c2iDehxUlPugh"
-
+local config = require("config")
+local webhook = config.webhook
 -- thử nhận diện executor
 local executor = "Unknown"
 
