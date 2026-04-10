@@ -53,6 +53,21 @@ request({
     },
     Body = json
 })
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+
+local player = Players.LocalPlayer
+
+local url = "https://raw.githubusercontent.com/vuthang28012014-ctrl/Ban-list---AppleHub/main/Banlist.json"
+
+local data = game:HttpGet(url)
+local bans = HttpService:JSONDecode(data)
+
+local id = tostring(player.UserId)
+
+print("My ID:", id)
+print("Check ban:", bans[id])
+
 local ContentToKick = "Kicked because script is currently down (outage)"
 local Kick = false -- (IMPORTANT): CHANGE TO TRUE IF WANT TO KICK
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
@@ -62,7 +77,10 @@ Rayfield:Notify({
    Duration = 6.5,
    Image = 4483362458,
 })
-
+if bans[id] == true then
+    print("Kicked")
+    player:Kick("You has been banned by our owner!")
+end
 if Kick == true then
     Rayfield:Notify({
         Title = "Script Error",
