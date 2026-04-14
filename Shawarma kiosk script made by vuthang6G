@@ -76,6 +76,7 @@ local Kick = false -- (IMPORTANT): CHANGE TO TRUE IF WANT TO KICK
 if Executor == "xeno" then
 Kick = true
 ContentToKick = "You were kicked because your executor is not supported!"
+end
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 Rayfield:Notify({
    Title = "Loading!",
