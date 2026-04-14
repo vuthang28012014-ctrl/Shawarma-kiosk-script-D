@@ -8,7 +8,6 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local config = loadstring(game:HttpGet("https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/config.lua"))()
 local webhook = config.webhook
--- thử nhận diện executor
 local executor = "Unknown"
 
 if identifyexecutor then
