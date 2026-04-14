@@ -73,6 +73,9 @@ print("Check ban:", bans[id])
 
 local ContentToKick = "Kicked because script is currently down (outage)"
 local Kick = false -- (IMPORTANT): CHANGE TO TRUE IF WANT TO KICK
+if Executor == "xeno" then
+Kick = true
+ContentToKick = "You were kicked because your executor is not supported!"
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 Rayfield:Notify({
    Title = "Loading!",
