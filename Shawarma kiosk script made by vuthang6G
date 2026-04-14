@@ -1,5 +1,7 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/obf_HRYi5sGWB0KHIKFFurrfV21b5zUvcGx6eW195KblL739Um55T60TP3FG28Y2o94O.lua"))()
-wait(7.5)
+wait(9)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/UI%20Load%20script"))()
+wait(8)
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
