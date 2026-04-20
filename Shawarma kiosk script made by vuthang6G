@@ -82,7 +82,7 @@ Rayfield:Notify({
    Title = "Loading!",
    Content = "Script made by vuthang28012014",
    Duration = 6.5,
-   Image = 4483362458,
+   Image = 132863234944847,
 })
 if bans[id] == true then
     print("Kicked")
@@ -103,7 +103,7 @@ else
 end
 local Window = Rayfield:CreateWindow({
    Name = "Shawarma kiosk exploit made by vuthangtuyenquang",
-   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   Icon = 132863234944847, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Loading...",
    LoadingSubtitle = "by vuthangtuyenquang",
    ShowText = "Shawarma kiosk exploit", -- for mobile users to unhide rayfield, change if you'd like
