@@ -562,6 +562,29 @@ RunService.Stepped:Connect(function()
       end
    end
 end)
+local Players = game:GetService("Players")
+local plr = Players.LocalPlayer
+
+-- đảm bảo luôn ở third person
+plr.CameraMode = Enum.CameraMode.Classic
+
+local Slider = Tab:CreateSlider({
+   Name = "Third Person Distance",
+   Range = {0, 200},
+   Increment = 5,
+   Suffix = " studs",
+   CurrentValue = 50,
+   Flag = "ThirdPersonZoom",
+
+   Callback = function(Value)
+
+       plr.CameraMode = Enum.CameraMode.Classic
+       
+       plr.CameraMaxZoomDistance = Value
+       
+       plr.CameraMinZoomDistance = math.min(Value, 1)
+   end,
+})
 local Tab = Window:CreateTab("Other", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Tools")
 local Button = Tab:CreateButton({
