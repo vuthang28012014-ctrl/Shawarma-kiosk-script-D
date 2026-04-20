@@ -562,3 +562,92 @@ RunService.Stepped:Connect(function()
       end
    end
 end)
+local Tab = Window:CreateTab("Other", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Tools")
+local Button = Tab:CreateButton({
+   Name = "Jerk off tool",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Giving tool",
+   Content = "Giving Jerk off tool",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local function setupCharacter(char)
+
+	local humanoid = char:WaitForChild("Humanoid")
+	local backpack = player:WaitForChild("Backpack")
+
+	-- CREATE TOOL
+	local tool = Instance.new("Tool")
+	tool.Name = "Jerk off (lọ)"
+	tool.ToolTip = "Troll your friend!"
+	tool.RequiresHandle = false
+	tool.Parent = backpack
+
+	local playing = false
+	local track = nil
+
+	local function isR15(c)
+		return c:FindFirstChild("UpperTorso") ~= nil
+	end
+
+	local function stopAnim()
+		playing = false
+		if track then
+			track:Stop()
+			track = nil
+		end
+	end
+
+	tool.Equipped:Connect(function()
+		playing = true
+	end)
+
+	tool.Unequipped:Connect(stopAnim)
+	humanoid.Died:Connect(stopAnim)
+
+	-- LOOP
+	task.spawn(function()
+		while tool.Parent do
+			task.wait()
+
+			if not playing then continue end
+
+			local r15 = isR15(char)
+
+			if not track then
+				local anim = Instance.new("Animation")
+				anim.AnimationId = r15 and "rbxassetid://698251653" or "rbxassetid://72042024"
+				track = humanoid:LoadAnimation(anim)
+			end
+
+			track:Play()
+			track:AdjustSpeed(1)
+			track.TimePosition = 0.45
+
+			task.wait(0.06)
+
+			while track and track.TimePosition < 0.6 do
+				task.wait(0.1)
+			end
+
+			if track then
+				track:Stop()
+				track = nil
+			end
+		end
+	end)
+end
+
+-- RUN WHEN CHARACTER LOAD
+if player.Character then
+	setupCharacter(player.Character)
+end
+
+player.CharacterAdded:Connect(setupCharacter)
+   end,
+})
