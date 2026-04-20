@@ -627,9 +627,9 @@ local function setupCharacter(char)
 
 			track:Play()
 			track:AdjustSpeed(1)
-			track.TimePosition = 0.45
+			track.TimePosition = 0.57
 
-			task.wait(0.06)
+			task.wait(0.1)
 
 			while track and track.TimePosition < 0.6 do
 				task.wait(0.1)
