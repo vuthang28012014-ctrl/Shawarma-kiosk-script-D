@@ -206,6 +206,200 @@ local Toggle = Tab:CreateToggle({
         end
    end,
 })
+---------------------------------------------------------------------------------------------------------------------------------
+local AutoFarmV2 = false
+
+local stations = {
+    Vector3.new(-47,5,-555),
+    Vector3.new(-48,5,-550),
+    Vector3.new(-44,5,-554),
+    Vector3.new(-42,5,-548)
+}
+
+local allowed = {
+    ["take"] = true,
+    ["put"] = true,
+    ["roll"] = true,
+    ["give"] = true,
+    ["give soda"] = true,
+    ["restock"] = true
+}
+
+local served = {}
+local boostUsed = false
+
+local player = game.Players.LocalPlayer
+local root = player.Character:WaitForChild("HumanoidRootPart")
+
+local promptDoor = workspace.Kit.Garge.Button.ProximityPrompt
+local doorPos = Vector3.new(-44,5,-544)
+
+-------------------------------------------------
+-- BOOST (chạy 1 lần)
+-------------------------------------------------
+
+local function useBoosts()
+    local rs = game:GetService("ReplicatedStorage")
+    local remote = rs:WaitForChild("UseBoost")
+
+    remote:FireServer("Tips")
+    task.wait(0.2)
+
+    remote:FireServer("2xEarn")
+end
+
+-------------------------------------------------
+-- interact (làm shawarma)
+-------------------------------------------------
+
+local function interactNearby()
+
+    for _,v in ipairs(workspace:GetDescendants()) do
+        
+        if v:IsA("ProximityPrompt") and v.Enabled then
+
+            local action = (v.ActionText or ""):lower()
+
+            if allowed[action] then
+                fireproximityprompt(v)
+                task.wait(0.35)
+            end
+
+        end
+
+    end
+end
+
+-------------------------------------------------
+-- tìm HRP thật
+-------------------------------------------------
+
+local function getHRP(model)
+
+    for _,v in ipairs(model:GetDescendants()) do
+        if v:IsA("BasePart") and v.Name == "HumanoidRootPart" then
+            return v
+        end
+    end
+
+end
+
+-------------------------------------------------
+-- tìm anomaly
+-------------------------------------------------
+
+local function findAnomaly()
+
+    local hum = workspace:FindFirstChild("Hum")
+    if not hum then return nil end
+
+    for _,model in ipairs(hum:GetChildren()) do
+        
+        if not served[model]
+        and not string.find(model.Name,"Man")
+        and not string.find(model.Name,"Scream") then
+            return model
+        end
+        
+    end
+
+end
+
+-------------------------------------------------
+-- xử lý anomaly
+-------------------------------------------------
+
+local function handleAnomaly(model)
+
+    local hrp = getHRP(model)
+    if not hrp then return end
+
+    repeat
+        task.wait(0.1)
+    until not model.Parent or (hrp.Position - doorPos).Magnitude < 5
+
+    if not model.Parent then return end
+
+    served[model] = true
+
+    task.wait(1.5)
+
+    root.CFrame = CFrame.new(-44,5,-548)
+    task.wait(0.2)
+
+    root.CFrame = CFrame.new(-38,5,-548)
+
+    task.wait(10)
+
+    -- đóng cửa
+    fireproximityprompt(promptDoor)
+
+    -- đợi nó đi xa cửa
+    repeat
+        task.wait(0.3)
+    until not model.Parent or (hrp.Position - doorPos).Magnitude > 15
+
+    -- mở cửa lại
+    fireproximityprompt(promptDoor)
+
+end
+
+-------------------------------------------------
+-- toggle
+-------------------------------------------------
+
+local Toggle = Tab:CreateToggle({
+   Name = "Autofarm v2",
+   CurrentValue = false,
+   Flag = "autofarmv2",
+
+   Callback = function(Value)
+
+        AutoFarmV2 = Value
+
+        if Value then
+
+            
+            if not boostUsed then
+                boostUsed = true
+                task.spawn(useBoosts)
+            end
+
+            task.spawn(function()
+
+                while AutoFarmV2 do
+
+                    local anomaly = findAnomaly()
+
+                    if anomaly then
+                        handleAnomaly(anomaly)
+
+                    else
+                        for _,pos in ipairs(stations) do
+
+                            if not AutoFarmV2 then break end
+                            
+                            root.CFrame = CFrame.new(pos)
+                            task.wait(0.3)
+
+                            interactNearby()
+
+                        end
+                    end
+
+                    task.wait(0.2)
+
+                end
+
+            end)
+
+        else
+           
+            boostUsed = false
+        end
+   end,
+})
+--------------------------------------------------------------------------------------------------------------------------------
 local Tab = Window:CreateTab("Some boost", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Some boost")
 Section:Set("Some boost")
