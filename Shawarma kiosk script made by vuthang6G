@@ -234,9 +234,7 @@ local root = player.Character:WaitForChild("HumanoidRootPart")
 local promptDoor = workspace.Kit.Garge.Button.ProximityPrompt
 local doorPos = Vector3.new(-44,5,-544)
 
--------------------------------------------------
--- BOOST (chạy 1 lần)
--------------------------------------------------
+
 
 local function useBoosts()
     local rs = game:GetService("ReplicatedStorage")
@@ -248,9 +246,7 @@ local function useBoosts()
     remote:FireServer("2xEarn")
 end
 
--------------------------------------------------
--- interact (làm shawarma)
--------------------------------------------------
+
 
 local function interactNearby()
 
@@ -270,9 +266,7 @@ local function interactNearby()
     end
 end
 
--------------------------------------------------
--- tìm HRP thật
--------------------------------------------------
+
 
 local function getHRP(model)
 
@@ -284,9 +278,6 @@ local function getHRP(model)
 
 end
 
--------------------------------------------------
--- tìm anomaly
--------------------------------------------------
 
 local function findAnomaly()
 
@@ -305,9 +296,7 @@ local function findAnomaly()
 
 end
 
--------------------------------------------------
--- xử lý anomaly
--------------------------------------------------
+
 
 local function handleAnomaly(model)
 
@@ -331,22 +320,19 @@ local function handleAnomaly(model)
 
     task.wait(10)
 
-    -- đóng cửa
+    
     fireproximityprompt(promptDoor)
 
-    -- đợi nó đi xa cửa
+   
     repeat
         task.wait(0.3)
     until not model.Parent or (hrp.Position - doorPos).Magnitude > 15
 
-    -- mở cửa lại
+   
     fireproximityprompt(promptDoor)
 
 end
 
--------------------------------------------------
--- toggle
--------------------------------------------------
 
 local Toggle = Tab:CreateToggle({
    Name = "Autofarm v2",
