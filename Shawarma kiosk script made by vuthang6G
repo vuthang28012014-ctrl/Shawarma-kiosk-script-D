@@ -102,10 +102,10 @@ else
     print("Kick system disabled")
 end
 local Window = Rayfield:CreateWindow({
-   Name = "Shawarma kiosk exploit made by HACKERISSOMUCH-VUTHANG",
+   Name = "Shawarma kiosk exploit made by Hackerissomuch",
    Icon = 132863234944847, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Loading...",
-   LoadingSubtitle = "by HACKERISSOMUCH-VUTHANG",
+   LoadingSubtitle = "by Hackerissomuch",
    ShowText = "Shawarma kiosk exploit", -- for mobile users to unhide rayfield, change if you'd like
    Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
 
