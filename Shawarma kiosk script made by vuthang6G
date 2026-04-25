@@ -247,8 +247,6 @@ local function useBoosts()
 
     remote:FireServer("Tips")
     task.wait(0.2)
-    remote:FireServer("MeatTicket")
-    task.wait(0.2)
     remote:FireServer("2xEarn")
 end
 
