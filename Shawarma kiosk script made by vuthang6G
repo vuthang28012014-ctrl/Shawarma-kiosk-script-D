@@ -216,6 +216,8 @@ local stations = {
     Vector3.new(-42,5,-548)
 }
 
+local coffeePos = Vector3.new(-47,5,-548)
+
 local allowed = {
     ["take"] = true,
     ["put"] = true,
@@ -227,6 +229,7 @@ local allowed = {
 
 local served = {}
 local boostUsed = false
+local coffeeDone = false
 
 local player = game.Players.LocalPlayer
 local root = player.Character:WaitForChild("HumanoidRootPart")
@@ -234,7 +237,9 @@ local root = player.Character:WaitForChild("HumanoidRootPart")
 local promptDoor = workspace.Kit.Garge.Button.ProximityPrompt
 local doorPos = Vector3.new(-44,5,-544)
 
-
+-------------------------------------------------
+-- BOOST
+-------------------------------------------------
 
 local function useBoosts()
     local rs = game:GetService("ReplicatedStorage")
@@ -242,13 +247,40 @@ local function useBoosts()
 
     remote:FireServer("Tips")
     task.wait(0.2)
-
+    remote:FireServer("MeatTicket")
+    task.wait(0.2)
     remote:FireServer("2xEarn")
 end
 
+-------------------------------------------------
+-- INTERACT (coffee + shawarma)
+-------------------------------------------------
 
+local function interactNearby(currentPos)
 
-local function interactNearby()
+    local coffeePrompt = workspace.Cans.Coffee:FindFirstChildOfClass("ProximityPrompt")
+
+    if coffeePrompt and coffeePrompt.Enabled then
+        
+        if not coffeeDone then
+
+            local savedPos = currentPos
+
+            root.CFrame = CFrame.new(coffeePos)
+            task.wait(0.3)
+
+            fireproximityprompt(coffeePrompt)
+            coffeeDone = true
+
+            task.wait(0.5)
+
+            root.CFrame = CFrame.new(savedPos)
+            task.wait(0.2)
+        end
+
+    else
+        coffeeDone = false
+    end
 
     for _,v in ipairs(workspace:GetDescendants()) do
         
@@ -266,18 +298,21 @@ local function interactNearby()
     end
 end
 
-
+-------------------------------------------------
+-- HRP
+-------------------------------------------------
 
 local function getHRP(model)
-
     for _,v in ipairs(model:GetDescendants()) do
         if v:IsA("BasePart") and v.Name == "HumanoidRootPart" then
             return v
         end
     end
-
 end
 
+-------------------------------------------------
+-- ANOMALY
+-------------------------------------------------
 
 local function findAnomaly()
 
@@ -293,10 +328,7 @@ local function findAnomaly()
         end
         
     end
-
 end
-
-
 
 local function handleAnomaly(model)
 
@@ -315,24 +347,22 @@ local function handleAnomaly(model)
 
     root.CFrame = CFrame.new(-44,5,-548)
     task.wait(0.2)
-
     root.CFrame = CFrame.new(-38,5,-548)
 
     task.wait(10)
 
-    
     fireproximityprompt(promptDoor)
 
-   
     repeat
         task.wait(0.3)
     until not model.Parent or (hrp.Position - doorPos).Magnitude > 15
 
-   
     fireproximityprompt(promptDoor)
-
 end
 
+-------------------------------------------------
+-- TOGGLE
+-------------------------------------------------
 
 local Toggle = Tab:CreateToggle({
    Name = "Autofarm v2",
@@ -345,7 +375,6 @@ local Toggle = Tab:CreateToggle({
 
         if Value then
 
-            
             if not boostUsed then
                 boostUsed = true
                 task.spawn(useBoosts)
@@ -368,7 +397,7 @@ local Toggle = Tab:CreateToggle({
                             root.CFrame = CFrame.new(pos)
                             task.wait(0.3)
 
-                            interactNearby()
+                            interactNearby(pos)
 
                         end
                     end
@@ -380,7 +409,6 @@ local Toggle = Tab:CreateToggle({
             end)
 
         else
-           
             boostUsed = false
         end
    end,
