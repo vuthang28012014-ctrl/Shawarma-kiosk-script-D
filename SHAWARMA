@@ -1,9 +1,3 @@
-Rayfield:Notify({
-   Title = "Loading!",
-   Content = "Script made by vuthang28012014",
-   Duration = 6.5,
-   Image = 132863234944847,
-})
 local Tab = Window:CreateTab("Farm", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Farm")
 Section:Set("Farm")
