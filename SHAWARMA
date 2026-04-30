@@ -1,0 +1,773 @@
+Rayfield:Notify({
+   Title = "Loading!",
+   Content = "Script made by vuthang28012014",
+   Duration = 6.5,
+   Image = 132863234944847,
+})
+local Tab = Window:CreateTab("Farm", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Farm")
+Section:Set("Farm")
+local AutoFarm = false
+
+local stations = {
+    Vector3.new(-47,5,-555), -- refill meat
+    Vector3.new(-48,5,-550), -- lavash
+    Vector3.new(-44,5,-554), -- soda
+    Vector3.new(-42,5,-548)  -- make / give
+}
+
+local allowed = {
+    ["take"] = true,
+    ["put"] = true,
+    ["roll"] = true,
+    ["give"] = true,
+    ["give soda"] = true,
+    ["restock"] = true
+}
+
+local function interactNearby()
+    for _,v in pairs(workspace:GetDescendants()) do
+        if v:IsA("ProximityPrompt") and v.Enabled then
+            
+            local action = (v.ActionText or ""):lower()
+            
+            if allowed[action] then
+                fireproximityprompt(v)
+                task.wait(0.4)
+            end
+        end
+    end
+end
+
+local Toggle = Tab:CreateToggle({
+   Name = "Autofarm v1",
+   CurrentValue = false,
+   Flag = "autofarmv1",
+
+   Callback = function(Value)
+        AutoFarm = Value
+
+        if Value then
+            task.spawn(function()
+
+                local player = game.Players.LocalPlayer
+                local root = player.Character.HumanoidRootPart
+
+                while AutoFarm do
+                    for _,pos in ipairs(stations) do
+                        if not AutoFarm then break end
+                        
+                        root.CFrame = CFrame.new(pos)
+                        task.wait(0.25)
+
+                        interactNearby()
+                    end
+                    
+                    task.wait(0.2)
+                end
+
+            end)
+        end
+   end,
+})
+------------------------------------------------------------------------------------------
+local AutoFarmV2 = false
+
+local stations = {
+    Vector3.new(-47,5,-555),
+    Vector3.new(-48,5,-550),
+    Vector3.new(-44,5,-554),
+    Vector3.new(-42,5,-548)
+}
+
+local coffeePos = Vector3.new(-47,5,-548)
+
+local allowed = {
+    ["take"] = true,
+    ["put"] = true,
+    ["roll"] = true,
+    ["give"] = true,
+    ["give soda"] = true,
+    ["restock"] = true
+}
+
+local served = {}
+local boostUsed = false
+local coffeeDone = false
+
+local player = game.Players.LocalPlayer
+local root = player.Character:WaitForChild("HumanoidRootPart")
+
+local promptDoor = workspace.Kit.Garge.Button.ProximityPrompt
+local doorPos = Vector3.new(-44,5,-544)
+
+-------------------------------------------------
+-- BOOST
+-------------------------------------------------
+
+local function useBoosts()
+    local rs = game:GetService("ReplicatedStorage")
+    local remote = rs:WaitForChild("UseBoost")
+
+    remote:FireServer("Tips")
+    task.wait(0.2)
+    remote:FireServer("2xEarn")
+end
+
+-------------------------------------------------
+-- INTERACT (coffee + shawarma)
+-------------------------------------------------
+
+local function interactNearby(currentPos)
+
+    local coffeePrompt = workspace.Cans.Coffee:FindFirstChildOfClass("ProximityPrompt")
+
+    if coffeePrompt and coffeePrompt.Enabled then
+        
+        if not coffeeDone then
+
+            local savedPos = currentPos
+
+            root.CFrame = CFrame.new(coffeePos)
+            task.wait(0.3)
+
+            fireproximityprompt(coffeePrompt)
+            coffeeDone = true
+
+            task.wait(0.5)
+
+            root.CFrame = CFrame.new(savedPos)
+            task.wait(0.2)
+        end
+
+    else
+        coffeeDone = false
+    end
+
+    for _,v in ipairs(workspace:GetDescendants()) do
+        
+        if v:IsA("ProximityPrompt") and v.Enabled then
+
+            local action = (v.ActionText or ""):lower()
+
+            if allowed[action] then
+                fireproximityprompt(v)
+                task.wait(0.35)
+            end
+
+        end
+
+    end
+end
+
+-------------------------------------------------
+-- HRP
+-------------------------------------------------
+
+local function getHRP(model)
+    for _,v in ipairs(model:GetDescendants()) do
+        if v:IsA("BasePart") and v.Name == "HumanoidRootPart" then
+            return v
+        end
+    end
+end
+
+-------------------------------------------------
+-- ANOMALY
+-------------------------------------------------
+
+local function findAnomaly()
+
+    local hum = workspace:FindFirstChild("Hum")
+    if not hum then return nil end
+
+    for _,model in ipairs(hum:GetChildren()) do
+        
+        if not served[model]
+        and not string.find(model.Name,"Man")
+        and not string.find(model.Name,"Scream") then
+            return model
+        end
+        
+    end
+end
+
+local function handleAnomaly(model)
+
+    local hrp = getHRP(model)
+    if not hrp then return end
+
+    repeat
+        task.wait(0.1)
+    until not model.Parent or (hrp.Position - doorPos).Magnitude < 5
+
+    if not model.Parent then return end
+
+    served[model] = true
+
+    task.wait(1.5)
+
+    root.CFrame = CFrame.new(-44,5,-548)
+    task.wait(0.2)
+    root.CFrame = CFrame.new(-38,5,-548)
+
+    task.wait(10)
+
+    fireproximityprompt(promptDoor)
+
+    repeat
+        task.wait(0.3)
+    until not model.Parent or (hrp.Position - doorPos).Magnitude > 15
+
+    fireproximityprompt(promptDoor)
+end
+
+-------------------------------------------------
+-- TOGGLE
+-------------------------------------------------
+
+local Toggle = Tab:CreateToggle({
+   Name = "Autofarm v2",
+   CurrentValue = false,
+   Flag = "autofarmv2",
+
+   Callback = function(Value)
+
+        AutoFarmV2 = Value
+
+        if Value then
+
+            if not boostUsed then
+                boostUsed = true
+                task.spawn(useBoosts)
+            end
+
+            task.spawn(function()
+
+                while AutoFarmV2 do
+
+                    local anomaly = findAnomaly()
+
+                    if anomaly then
+                        handleAnomaly(anomaly)
+
+                    else
+                        for _,pos in ipairs(stations) do
+
+                            if not AutoFarmV2 then break end
+                            
+                            root.CFrame = CFrame.new(pos)
+                            task.wait(0.3)
+
+                            interactNearby(pos)
+
+                        end
+                    end
+
+                    task.wait(0.2)
+
+                end
+
+            end)
+
+        else
+            boostUsed = false
+        end
+   end,
+})
+-----------------------------------------------------------------------------------------
+local Tab = Window:CreateTab("Some boost", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Some boost")
+Section:Set("Some boost")
+Section:Set("Some boost")
+local Divider = Tab:CreateDivider()
+Divider:Set(true) -- Whether the divider's visibility is to be set to true or false.
+-- Boost name mapping
+local Boosts = {
+    ["Meat Ticket"] = "MeatTicket",
+    ["2x Earn"] = "2xEarn",
+    ["Scare a Friend"] = "ScreamPlayer",
+    ["Dance for Friends"] = "Scream",
+    ["Show Anomaly"] = "ShowAnomaly",
+    ["Summon Anomaly"] = "SummonAnomaly",
+    ["Internal Control"] = "InternalC",
+    ["Tips"] = "Tips",
+    ["Corruption Deal"] = "Ticket"
+}
+
+-- Dropdown display list
+local Options = {}
+for name,_ in pairs(Boosts) do
+    table.insert(Options,name)
+end
+
+-- DROPDOWN MENU
+local Dropdown = Tab:CreateDropdown({
+   Name = "Boost Menu",
+   Options = Options,
+   CurrentOption = {"Meat Ticket"},
+   MultipleOptions = false,
+   Flag = "BoostDropdown",
+
+   Callback = function(Selected)
+       local displayName = Selected[1]
+       local boostName = Boosts[displayName]
+
+       game:GetService("ReplicatedStorage")
+           :WaitForChild("UseBoost")
+           :FireServer(boostName)
+   end,
+})
+local Section = Tab:CreateSection("Skip tutorial")
+Section:Set("Skip tutorial")
+local Button = Tab:CreateButton({
+   Name = "Skip the tutorial",
+   Callback = function()
+   game:GetService("ReplicatedStorage"):WaitForChild("SkipTutorial"):FireServer()
+   Rayfield:Notify({
+   Title = "Running code!",
+   Content = "Skipping the tutorial...",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   end,
+})
+Button:Set("Skip the tutorial")
+local Section = Tab:CreateSection("Buying boost")
+Section:Set("Buying boost")
+-- Buy boost mapping
+local BuyBoosts = {
+    ["Internal Control"] = "internalc",
+    ["Dance For Friends"] = "Scream",
+    ["Scare A Friend"] = "ScreamPlayer",
+    ["Corruption Deal"] = "corruption",
+    ["Show Anomaly"] = "show",
+    ["Summon Anomaly"] = "summon"
+}
+
+-- Dropdown options
+local BuyOptions = {}
+for name,_ in pairs(BuyBoosts) do
+    table.insert(BuyOptions, name)
+end
+
+-- DROPDOWN MENU
+local BuyDropdown = Tab:CreateDropdown({
+   Name = "Buy Boost",
+   Options = BuyOptions,
+   CurrentOption = {},
+   MultipleOptions = false,
+   Flag = "BuyBoostDropdown",
+
+   Callback = function(Selected)
+       local displayName = Selected[1]
+       local actionName = BuyBoosts[displayName]
+
+       local args = {
+           {
+               action = actionName
+           }
+       }
+
+       game:GetService("ReplicatedStorage")
+           :WaitForChild("ShopCurrencyBuy")
+           :FireServer(unpack(args))
+   end,
+})
+local Tab = Window:CreateTab("Some Badges", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Some Badges")
+Section:Set("Some Badges")
+-- Badge ID mapping
+local BadgeMap = {
+    ["Perfect shift"] = 2335580643689682,
+    ["The Inspector"] = 675811825688661,
+    ["Unstable shift"] = 1548943367795853,
+    ["Open the door"] = 3446636560307654,
+    ["Obedience"] = 1996341215013965,
+    ["Heartless"] = 792904025880360,
+    ["Accepted by the deep"] = 3431327816967957,
+    ["Yes I am a human"] = 3925239037360973,
+    ["The Other Reality"] = 2310543252637783,
+    ["Erased from the reality"] = 3859530300923014
+}
+
+-- Dropdown menu
+local Dropdown = Tab:CreateDropdown({
+   Name = "Select Badge",
+   Options = {
+       "Perfect shift",
+       "The Inspector",
+       "Unstable shift",
+       "Open the door",
+       "Obedience",
+       "Heartless",
+       "Accepted by the deep",
+       "Yes I am a human",
+       "The Other Reality",
+       "Erased from the reality"
+   },
+   CurrentOption = {"Perfect shift"},
+   MultipleOptions = false,
+   Flag = "BadgeDropdown",
+
+   Callback = function(Options)
+       local selected = Options[1] -- since MultipleOptions = false
+       local badgeId = BadgeMap[selected]
+
+       if badgeId then
+           local args = {badgeId}
+           game:GetService("ReplicatedStorage")
+               :WaitForChild("RequestBadge")
+               :FireServer(unpack(args))
+       else
+           warn("Invalid selection:", selected)
+       end
+   end,
+})
+local Tab = Window:CreateTab("Teleport", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Teleport")
+Section:Set("Teleport")
+local Button = Tab:CreateButton({
+   Name = "Teleport to the bus stop",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Teleporting!",
+   Content = "Teleporting to the bus stop...",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   game:GetService("ReplicatedStorage"):WaitForChild("RestoreMorph"):FireServer()
+   end,
+})
+Button:Set("Teleport to the bus stop")
+local Button = Tab:CreateButton({
+   Name = "Teleport to the dial",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Teleporting!",
+   Content = "Teleporting to the dial...",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	true
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("HandleCallEvent"):FireServer(unpack(args))
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("HandleCallEvent"):FireServer()
+  end,
+})
+Button:Set("Teleport to the dial")
+local Tab = Window:CreateTab("Menu delivery", 4483362458) -- Title, Image
+local Button = Tab:CreateButton({
+   Name = "Open the menu",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Openning!",
+   Content = "Openning the menu...",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+local args = {
+	true
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("HandleCallEvent"):FireServer(unpack(args))
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("OpenDeliveryMenuEvent"):FireServer()
+  end,
+})
+Button:Set("Open the menu")
+local Section = Tab:CreateSection("Order")
+Section:Set("Order")
+function doStuff()
+    local options = getgenv().SelectedOption
+
+    for _, option in pairs(options) do
+        local args = {
+            { option }
+        }
+
+        game:GetService("ReplicatedStorage")
+            :WaitForChild("Remotes")
+            :WaitForChild("ConfirmDeliveryOrderEvent")
+            :FireServer(unpack(args))
+    end
+end
+local Dropdown = Tab:CreateDropdown({
+   Name = "Order menu",
+   Options = {"Bell", "Decorations", "Camera", "Kebab"},
+   CurrentOption = {"None"},
+   MultipleOptions = true,
+   Flag = "Dropdown1", -- A flag is the identifier for the configuration file; make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Options)
+      getgenv().SelectedOption = Options
+      doStuff()
+   end,
+})
+local Tab = Window:CreateTab("Chat", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Shawarma's Text chat service")
+Section:Set("Shawarma's Text chat service")
+local Input = Tab:CreateInput({
+   Name = "Chat",
+   CurrentValue = "",
+   PlaceholderText = "Type here to chat",
+   RemoveTextAfterFocusLost = true,
+   Flag = "Input1",
+   Callback = function(Text)
+Rayfield:Notify({
+   Title = "Sending text to the shawarma's text chat service",
+   Content = "Sending", Text,
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local args = {
+	Text
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("QuickChatEvent"):FireServer(unpack(args))
+   end,
+})
+local Tab = Window:CreateTab("LocalPlayer", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("FPS")
+-- Brightness
+local Thunder = game:GetService("Lighting").Thunder
+local Brightness = Thunder.Brightness
+
+-- Toggle
+local Toggle = Tab:CreateToggle({
+   Name = "White Screen",
+   CurrentValue = false,
+   Flag = "Brightness",
+   Callback = function(Value)
+      if Value then
+         Thunder.Brightness = 1
+      else
+         Thunder.Brightness = 0
+      end
+   end,
+})
+local Section = Tab:CreateSection("WalkSpeed & JumpPower")
+-- Player
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+
+-- Slider
+local Slider = Tab:CreateSlider({
+   Name = "WalkSpeed",
+   Range = {0, 1000},
+   Increment = 1,
+   Suffix = "Speed",
+   CurrentValue = 6,
+   Flag = "WalkSpeedSlider",
+
+   Callback = function(Value)
+      local Character = Player.Character or Player.CharacterAdded:Wait()
+      local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+
+      if Humanoid then
+         Humanoid.WalkSpeed = Value
+      end
+   end,
+})
+
+-- JumpPower Slider
+local Slider = Tab:CreateSlider({
+   Name = "JumpPower",
+   Range = {0, 200},
+   Increment = 5,
+   Suffix = "Jump",
+   CurrentValue = 50,
+   Flag = "JumpPowerSlider",
+
+   Callback = function(Value)
+      local Character = Player.Character or Player.CharacterAdded:Wait()
+      local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+
+      if Humanoid then
+         Humanoid.JumpPower = Value
+      end
+   end,
+})
+-- Lighting
+local Lighting = game:GetService("Lighting")
+
+-- Brightness Slider
+local Slider = Tab:CreateSlider({
+   Name = "Brightness",
+   Range = {0, 100}, -- change max if you want
+   Increment = 0.1,
+   Suffix = "Light",
+   CurrentValue = Lighting.Brightness,
+   Flag = "BrightnessSlider",
+
+   Callback = function(Value)
+      Lighting.Brightness = Value
+   end,
+})
+
+-- Get player and RunService
+local RunService = game:GetService("RunService")
+local player = game:GetService("Players").LocalPlayer
+
+local noclip = false
+
+-- Toggle
+local Toggle = Tab:CreateToggle({
+   Name = "Noclip",
+   CurrentValue = false,
+   Flag = "NoclipToggle",
+
+   Callback = function(Value)
+      noclip = Value
+   end,
+})
+
+-- Noclip
+RunService.Stepped:Connect(function()
+   if not noclip then return end
+
+   local character = player.Character
+   if not character then return end
+
+   for _, part in ipairs(character:GetDescendants()) do
+      if part:IsA("BasePart") then
+         part.CanCollide = false
+      end
+   end
+end)
+local Players = game:GetService("Players")
+local plr = Players.LocalPlayer
+
+-- đảm bảo luôn ở third person
+plr.CameraMode = Enum.CameraMode.Classic
+
+local Slider = Tab:CreateSlider({
+   Name = "Third Person Distance",
+   Range = {0, 200},
+   Increment = 5,
+   Suffix = " studs",
+   CurrentValue = 50,
+   Flag = "ThirdPersonZoom",
+
+   Callback = function(Value)
+
+       plr.CameraMode = Enum.CameraMode.Classic
+       
+
+       plr.CameraMaxZoomDistance = Value
+       
+
+       plr.CameraMinZoomDistance = math.min(Value, 1)
+   end,
+})
+local Tab = Window:CreateTab("Other", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Tools")
+local Button = Tab:CreateButton({
+   Name = "Jerk off tool",
+   Callback = function()
+   Rayfield:Notify({
+   Title = "Giving tool",
+   Content = "Giving Jerk off tool",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+   local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local function setupCharacter(char)
+
+	local humanoid = char:WaitForChild("Humanoid")
+	local backpack = player:WaitForChild("Backpack")
+
+	-- CREATE TOOL
+	local tool = Instance.new("Tool")
+	tool.Name = "Jerk off (lọ)"
+	tool.ToolTip = "Troll your friend!"
+	tool.RequiresHandle = false
+	tool.Parent = backpack
+
+	local playing = false
+	local track = nil
+
+	local function isR15(c)
+		return c:FindFirstChild("UpperTorso") ~= nil
+	end
+
+	local function stopAnim()
+		playing = false
+		if track then
+			track:Stop()
+			track = nil
+		end
+	end
+
+	tool.Equipped:Connect(function()
+		playing = true
+	end)
+
+	tool.Unequipped:Connect(stopAnim)
+	humanoid.Died:Connect(stopAnim)
+
+	-- LOOP
+	task.spawn(function()
+		while tool.Parent do
+			task.wait()
+
+			if not playing then continue end
+
+			local r15 = isR15(char)
+
+			if not track then
+				local anim = Instance.new("Animation")
+				anim.AnimationId = r15 and "rbxassetid://698251653" or "rbxassetid://72042024"
+				track = humanoid:LoadAnimation(anim)
+			end
+
+			track:Play()
+			track:AdjustSpeed(1)
+			track.TimePosition = 0.47
+
+			task.wait(0.06)
+
+			while track and track.TimePosition < 0.6 do
+				task.wait(0.1)
+			end
+
+			if track then
+				track:Stop()
+				track = nil
+			end
+		end
+	end)
+end
+
+-- RUN WHEN CHARACTER LOAD
+if player.Character then
+	setupCharacter(player.Character)
+end
+
+player.CharacterAdded:Connect(setupCharacter)
+   end,
+})
+local Paragraph = Tab:CreateParagraph({
+    Title = "Paragraph Example",
+    Content = "Loading..."
+})
+
+local text = "Contributors: + Owner-Developer-Scripter-Tester: Hackerissomuch\n                                                  + Tester: Byebye_ghgh"
+
+task.spawn(function()
+    while true do
+        for i = 0, 1, 0.01 do
+            local r = math.floor(math.sin(i * math.pi * 2) * 127 + 128)
+            local g = math.floor(math.sin(i * math.pi * 2 + 2) * 127 + 128)
+            local b = math.floor(math.sin(i * math.pi * 2 + 4) * 127 + 128)
+
+            local color = string.format("rgb(%d,%d,%d)", r, g, b)
+
+            Paragraph:Set({
+                Title = "",
+                Content = '<font color="'..color..'">'..text..'</font>'
+            })
+
+            task.wait(0.05)
+        end
+    end
+end)
