@@ -103,6 +103,7 @@ else
 end
 local Window = Rayfield:CreateWindow({
    Name = "Shawarma kiosk exploit made by Hackerissomuch",
+   ScriptID = "sid_9b25nn0jf85w",
    Icon = 132863234944847, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Loading...",
    LoadingSubtitle = "by Hackerissomuch",
