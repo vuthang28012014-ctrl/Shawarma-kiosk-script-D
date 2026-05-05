@@ -573,7 +573,7 @@ local Button = Tab:CreateButton({
    Duration = 6.5,
    Image = 4483362458,
 })
-   game:GetService("ReplicatedStorage"):WaitForChild("RestoreMorph"):FireServer()
+   game:GetService("ReplicatedStorage"):WaitForChild("Revstor"):WaitForChild("FreeReviveRequest"):FireServer()
    end,
 })
 Button:Set("Teleport to the bus stop")
