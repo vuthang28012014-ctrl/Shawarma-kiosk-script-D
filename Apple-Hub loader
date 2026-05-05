@@ -1,0 +1,34 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+    Name = "Apple-Hub loader",
+    ScriptID = "sid_yilnd0avx1ef",
+})
+Rayfield:Notify({
+   Title = "Please wait for a moment!",
+   Content = "Please wait while we are preparing things!",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+local Tab = Window:CreateTab("Info", 4483362458) -- Title, Image
+local Label = Tab:CreateLabel("PlaceId: "..tostring(game.PlaceId), 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local Scripts = {
+    [128001665358186] = "https://gate.sirius.menu/gateway?id=sid_9b25nn0jf85w" -- Type place id here
+}
+
+local url = Scripts[game.PlaceId]
+
+if url then
+    local ok, res = pcall(function()
+    Rayfield:Destroy()
+        return loadstring(game:HttpGet(url))()
+    end)
+    
+    if not ok then
+        warn("Detected errors when loading script:", res)
+    end
+else
+    warn("No script available for this game")
+    player:Kick("No script available for this game!")
+end
