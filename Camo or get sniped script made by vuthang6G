@@ -259,3 +259,65 @@ task.spawn(function()
         task.wait() -- teleport speed
     end
 end)
+local Tab = Window:CreateTab("Buying", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Crate")
+local selectedCrate = nil
+
+local Dropdown = Tab:CreateDropdown({
+   Name = "Select Crate",
+   Options = {"Elemental Crate", "Common Crate"},
+   CurrentOption = {},
+   MultipleOptions = false,
+   Flag = "CrateDropdown",
+   Callback = function(Options)
+       local choice = Options[1]
+
+       if choice == "Elemental Crate" then
+           selectedCrate = "Elemental_1"
+       elseif choice == "Common Crate" then
+           selectedCrate = "Common_1"
+       end
+   end,
+})
+local Button = Tab:CreateButton({
+   Name = "Buy crate",
+   Callback = function()
+   local args = {
+	    selectedCrate
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_net@0.2.0"):WaitForChild("net"):WaitForChild("RE/BuyCrate"):FireServer(unpack(args))
+   end,
+})
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local remote = ReplicatedStorage
+    :WaitForChild("Packages")
+    :WaitForChild("_Index")
+    :WaitForChild("sleitnick_net@0.2.0")
+    :WaitForChild("net")
+    :WaitForChild("RE/BuyCrate")
+
+local toggleEnabled = false
+
+local Toggle = Tab:CreateToggle({
+   Name = "Auto Open Selected Crate",
+   CurrentValue = false,
+   Flag = "AutoSelectedCrate",
+   Callback = function(Value)
+       toggleEnabled = Value
+   end,
+})
+
+task.spawn(function()
+    while true do
+        if toggleEnabled and selectedCrate then
+            
+            local args = {
+                selectedCrate
+            }
+            remote:FireServer(unpack(args))
+        end
+
+        task.wait(1) -- delay 1s
+    end
+end)
