@@ -128,7 +128,7 @@ local Window = Rayfield:CreateWindow({
 
    KeySystem = true, -- Set this to true to use our key system
    KeySettings = {
-      Title = "Key system",
+      Title = "Camo or get sniped key system",
       Subtitle = "Key System",
       Note = "Get key here: https://discord.gg/SDj4QwYE", -- Use this to tell the user how to get a key
       FileName = "Key_2", -- It is recommended to use something unique, as other scripts using Rayfield may overwrite your key file
@@ -137,6 +137,9 @@ local Window = Rayfield:CreateWindow({
       Key = {"vuthangdeptrai"} -- List of keys that the system will accept, can be RAW file links (pastebin, github, etc.) or simple strings ("hello", "key22")
    }
 })
+if Kick == true then
+    Rayfield:Destroy()
+end
 local Tab = Window:CreateTab("Sniper", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Kill")
 local Players = game:GetService("Players")
