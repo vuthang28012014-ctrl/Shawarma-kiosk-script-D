@@ -1,0 +1,261 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+   Name = "Camo or get sniped script",
+   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   LoadingTitle = "Loading...",
+   LoadingSubtitle = "by Hackerissomuch",
+   ShowText = "Camo or get sniped script", -- for mobile users to unhide Rayfield, change if you'd like
+   Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+
+   ToggleUIKeybind = "K", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
+
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false, -- Prevents Rayfield from emitting warnings when the script has a version mismatch with the interface.
+
+   -- ScriptID = "sid_xxxxxxxxxxxx", -- Your Script ID from developer.sirius.menu — enables analytics, managed keys, and script hosting
+
+   ConfigurationSaving = {
+      Enabled = false,
+      FolderName = nil, -- Create a custom folder for your hub/game
+      FileName = "Big Hub"
+   },
+
+   Discord = {
+      Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
+      Invite = "noinvitelink", -- The Discord invite code, do not include Discord.gg/. E.g. Discord.gg/ABCD would be ABCD
+      RememberJoins = true -- Set this to false to make them join the Discord every time they load it up
+   },
+
+   KeySystem = true, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Key system",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
+      FileName = "Key", -- It is recommended to use something unique, as other scripts using Rayfield may overwrite your key file
+      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = {"Hello"} -- List of keys that the system will accept, can be RAW file links (pastebin, github, etc.) or simple strings ("hello", "key22")
+   }
+})
+local Tab = Window:CreateTab("Sniper", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Kill")
+local Players = game:GetService("Players")
+
+local function getPlayerList()
+    local list = {}
+    
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= Players.LocalPlayer then
+            table.insert(list, plr.Name)
+        end
+    end
+    
+    return list
+end
+
+local selectedPlayer = nil
+
+local Dropdown = Tab:CreateDropdown({
+   Name = "Select Player",
+   Options = getPlayerList(),
+   CurrentOption = {},
+   MultipleOptions = false,
+   Flag = "PlayerDropdown",
+   Callback = function(Options)
+       selectedPlayer = Options[1]
+       local args = {
+	   game:GetService("Players"):WaitForChild(selectedPlayer).Character 
+       }
+       game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_net@0.2.0"):WaitForChild("net"):WaitForChild("RE/ShootSniper"):FireServer(unpack(args))
+   end,
+})
+
+-- Update when players changing
+Players.PlayerAdded:Connect(function()
+    Dropdown:Refresh(getPlayerList())
+end)
+
+Players.PlayerRemoving:Connect(function()
+    Dropdown:Refresh(getPlayerList())
+end)
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local remote = ReplicatedStorage
+    :WaitForChild("Packages")
+    :WaitForChild("_Index")
+    :WaitForChild("sleitnick_net@0.2.0")
+    :WaitForChild("net")
+    :WaitForChild("RE/ShootSniper")
+
+local Button = Tab:CreateButton({
+   Name = "Kill all",
+   Callback = function()
+       
+       task.spawn(function() -- prevent freeze UI
+           
+           for _, plr in ipairs(Players:GetPlayers()) do
+               if plr ~= Players.LocalPlayer and plr.Character then
+                   
+                   local args = {plr.Character}
+                   remote:FireServer(unpack(args))
+                   
+                   print("Sent to:", plr.Name)
+                   
+                   task.wait(1) -- delay 1s each player
+               end
+           end
+           
+       end)
+       
+   end,
+})
+local Section = Tab:CreateSection("Esp")
+local Players = game:GetService("Players")
+
+local espEnabled = false
+local espObjects = {}
+
+local function removeESP(plr)
+    if espObjects[plr] then
+        if espObjects[plr].highlight then
+            espObjects[plr].highlight:Destroy()
+        end
+        if espObjects[plr].billboard then
+            espObjects[plr].billboard:Destroy()
+        end
+        espObjects[plr] = nil
+    end
+end
+
+local function createESP(plr)
+    if plr == Players.LocalPlayer then return end
+
+    local function setup(char)
+        if not espEnabled then return end
+
+        removeESP(plr)
+
+        local humanoid = char:WaitForChild("Humanoid", 5)
+        local head = char:WaitForChild("Head", 5)
+        if not humanoid or not head then return end
+
+        -- Highlight
+        local highlight = Instance.new("Highlight")
+        highlight.FillColor = Color3.fromRGB(255,255,255)
+        highlight.OutlineColor = Color3.fromRGB(255,255,255)
+        highlight.FillTransparency = 0.7
+        highlight.Parent = char
+
+        -- Billboard
+        local billboard = Instance.new("BillboardGui")
+        billboard.Size = UDim2.new(0, 110, 0, 25)
+        billboard.StudsOffset = Vector3.new(0, 4.2, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = head
+
+        local text = Instance.new("TextLabel")
+        text.Size = UDim2.new(1,0,1,0)
+        text.BackgroundTransparency = 1
+        text.TextScaled = false
+        text.TextSize = 13
+        text.TextColor3 = Color3.fromRGB(255,255,255)
+        text.TextStrokeTransparency = 0.3
+        text.Font = Enum.Font.SourceSansBold
+        text.Parent = billboard
+
+        espObjects[plr] = {
+            highlight = highlight,
+            billboard = billboard
+        }
+
+        -- update nhẹ, không spam loop mạnh
+        task.spawn(function()
+            while espEnabled and plr.Parent and char.Parent do
+                if humanoid then
+                    text.Text = plr.Name .. " | HP: " .. math.floor(humanoid.Health)
+                end
+                task.wait(0.25)
+            end
+        end)
+    end
+
+    if plr.Character then
+        setup(plr.Character)
+    end
+
+    plr.CharacterAdded:Connect(function(char)
+        task.wait(0.5)
+        setup(char)
+    end)
+end
+
+local function clearAll()
+    for plr,_ in pairs(espObjects) do
+        removeESP(plr)
+    end
+end
+
+
+local Toggle = Tab:CreateToggle({
+   Name = "ESP",
+   CurrentValue = false,
+   Flag = "ESP_STABLE_FINAL",
+   Callback = function(Value)
+       espEnabled = Value
+
+       if not Value then
+           clearAll()
+           return
+       end
+
+       for _, plr in ipairs(Players:GetPlayers()) do
+           createESP(plr)
+       end
+   end,
+})
+
+Players.PlayerAdded:Connect(function(plr)
+    createESP(plr)
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+    removeESP(plr)
+end)
+local Tab = Window:CreateTab("Hider", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Teleport")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local teleportEnabled = false
+
+local function getHRP()
+    local char = player.Character
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart")
+end
+
+local Toggle = Tab:CreateToggle({
+   Name = "Teleport to safe area",
+   CurrentValue = false,
+   Flag = "LoopTeleSpawn",
+   Callback = function(Value)
+       teleportEnabled = Value
+   end,
+})
+
+task.spawn(function()
+    while true do
+        if teleportEnabled then
+            local hrp = getHRP()
+            local spawn = workspace:FindFirstChild("Lobby")
+                and workspace.Lobby:FindFirstChild("SpawnLocation")
+
+            if hrp and spawn then
+                hrp.CFrame = spawn.CFrame + Vector3.new(0, 3, 0)
+            end
+        end
+
+        task.wait() -- teleport speed
+    end
+end)
