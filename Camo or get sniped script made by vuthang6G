@@ -424,3 +424,110 @@ task.spawn(function()
         task.wait(1) -- delay 1s
     end
 end)
+local Section = Tab:CreateSection("Lucky spin")
+local Button = Tab:CreateButton({
+   Name = "Spin the lucky spin",
+   Callback = function()
+   game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_net@0.2.0"):WaitForChild("net"):WaitForChild("RF/DoSpin"):InvokeServer()
+   end,
+})
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local remote = ReplicatedStorage
+    :WaitForChild("Packages")
+    :WaitForChild("_Index")
+    :WaitForChild("sleitnick_net@0.2.0")
+    :WaitForChild("net")
+    :WaitForChild("RF/DoSpin")
+
+local autoSpin = false
+
+local Toggle = Tab:CreateToggle({
+   Name = "Toggle lucky spin",
+   CurrentValue = false,
+   Flag = "AutoLuckySpin",
+   Callback = function(Value)
+       autoSpin = Value
+   end,
+})
+
+task.spawn(function()
+    while true do
+        if autoSpin then
+            pcall(function()
+                remote:InvokeServer()
+            end)
+        end
+
+        task.wait(1) -- delay 1 giây
+    end
+end)
+local Section = Tab:CreateSection("Buy boost")
+local selectedSkillOption = nil
+
+local Dropdown = Tab:CreateDropdown({
+   Name = "Select skill to buy",
+   Options = {"Clone", "Speed"},
+   CurrentOption = {},
+   MultipleOptions = false,
+   Flag = "CloneSpeedDropdown",
+   Callback = function(Options)
+       selectedSkillOption = Options[1]
+
+       local args = {
+	        selectedSkillOption
+       }
+       game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_net@0.2.0"):WaitForChild("net"):WaitForChild("RE/BuyAbility"):FireServer(unpack(args))
+   end,
+})
+local Tab = Window:CreateTab("Do", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Revive")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local remote = ReplicatedStorage
+    :WaitForChild("Packages")
+    :WaitForChild("_Index")
+    :WaitForChild("sleitnick_net@0.2.0")
+    :WaitForChild("net")
+    :WaitForChild("RE/RequestRevive")
+
+local autoRevive = false
+
+local Toggle = Tab:CreateToggle({
+   Name = "Auto Revive",
+   CurrentValue = false,
+   Flag = "AutoReviveToggle",
+   Callback = function(Value)
+       autoRevive = Value
+   end,
+})
+
+task.spawn(function()
+    while true do
+        if autoRevive then
+            pcall(function()
+                remote:FireServer()
+            end)
+        end
+
+        task.wait() -- delay 1 giây
+    end
+end)
+local Section = Tab:CreateSection("Ability")
+local selectedAbilityType = nil
+
+local Dropdown = Tab:CreateDropdown({
+   Name = "Change ability",
+   Options = {"Speed", "Clone"},
+   CurrentOption = {},
+   MultipleOptions = false,
+   Flag = "AbilityTypeDropdown",
+   Callback = function(Options)
+       selectedAbilityType = Options[1]
+
+       local args = {
+	        selectedAbilityType
+       }
+       game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_net@0.2.0"):WaitForChild("net"):WaitForChild("RE/InteractAbility"):FireServer(unpack(args))
+   end,
+})
