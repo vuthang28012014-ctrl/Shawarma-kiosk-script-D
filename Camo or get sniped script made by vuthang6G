@@ -536,7 +536,7 @@ local Dropdown = Tab:CreateDropdown({
        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_net@0.2.0"):WaitForChild("net"):WaitForChild("RE/BuyAbility"):FireServer(unpack(args))
    end,
 })
-local Tab = Window:CreateTab("Do", 4483362458) -- Title, Image
+local Tab = Window:CreateTab("In/Out match", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Revive")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
