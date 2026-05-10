@@ -381,43 +381,6 @@ local Button = Tab:CreateButton({
    Apply()
    end,
 })
-local Tab = Window:CreateTab("Hider", 4483362458) -- Title, Image
-local Section = Tab:CreateSection("Teleport")
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
-local teleportEnabled = false
-
-local function getHRP()
-    local char = player.Character
-    if not char then return nil end
-    return char:FindFirstChild("HumanoidRootPart")
-end
-
-local Toggle = Tab:CreateToggle({
-   Name = "Teleport to safe area",
-   CurrentValue = false,
-   Flag = "LoopTeleSpawn",
-   Callback = function(Value)
-       teleportEnabled = Value
-   end,
-})
-
-task.spawn(function()
-    while true do
-        if teleportEnabled then
-            local hrp = getHRP()
-            local spawn = workspace:FindFirstChild("Lobby")
-                and workspace.Lobby:FindFirstChild("SpawnLocation")
-
-            if hrp and spawn then
-                hrp.CFrame = spawn.CFrame + Vector3.new(0, 3, 0)
-            end
-        end
-
-        task.wait() -- teleport speed
-    end
-end)
 local Section = Tab:CreateSection("Aim")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -472,6 +435,43 @@ end)
 
 Players.PlayerRemoving:Connect(function()
     Dropdown:Refresh(getPlayerList())
+end)
+local Tab = Window:CreateTab("Hider", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Teleport")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local teleportEnabled = false
+
+local function getHRP()
+    local char = player.Character
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart")
+end
+
+local Toggle = Tab:CreateToggle({
+   Name = "Teleport to safe area",
+   CurrentValue = false,
+   Flag = "LoopTeleSpawn",
+   Callback = function(Value)
+       teleportEnabled = Value
+   end,
+})
+
+task.spawn(function()
+    while true do
+        if teleportEnabled then
+            local hrp = getHRP()
+            local spawn = workspace:FindFirstChild("Lobby")
+                and workspace.Lobby:FindFirstChild("SpawnLocation")
+
+            if hrp and spawn then
+                hrp.CFrame = spawn.CFrame + Vector3.new(0, 3, 0)
+            end
+        end
+
+        task.wait() -- teleport speed
+    end
 end)
 local Tab = Window:CreateTab("Buying", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Crate")
