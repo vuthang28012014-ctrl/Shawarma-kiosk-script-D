@@ -4,6 +4,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/vuthang28012014-ctrl/
 wait(2)
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
 
 local player = Players.LocalPlayer
 local config = loadstring(game:HttpGet("https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/config.lua"))()
@@ -15,6 +16,11 @@ if identifyexecutor then
 elseif getexecutorname then
     executor = getexecutorname()
 end
+
+local gameName = "Unknown"
+pcall(function()
+    gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
+end)
 
 local data = {
     ["content"] = "",
@@ -40,6 +46,11 @@ local data = {
             {
                 ["name"] = "PlaceId",
                 ["value"] = tostring(game.PlaceId),
+                ["inline"] = true
+            },
+			{
+                ["name"] = "Game Name",
+                ["value"] = gameName,
                 ["inline"] = true
             }
         }
