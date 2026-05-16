@@ -15,7 +15,8 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local Scripts = {
     [128001665358186] = "https://gate.sirius.menu/gateway?id=sid_9b25nn0jf85w", -- Type place id here
-    [125700405216363] = "https://gate.sirius.menu/gateway?id=sid_xgsuaw3oknia"  -- Type place id here
+    [125700405216363] = "https://gate.sirius.menu/gateway?id=sid_xgsuaw3oknia",  -- Type place id here
+    [14486123914] = "https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/Protect%20the%20president%20script%20made%20by%20vuthang6G" -- Type place id here
 }
 
 local url = Scripts[game.PlaceId]
