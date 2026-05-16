@@ -1,0 +1,627 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/UI%20Load%20script"))()
+wait(0.5)
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local player = Players.LocalPlayer
+local config = loadstring(game:HttpGet("https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/config.lua"))()
+local webhook = config.webhook
+local executor = "Unknown"
+
+if identifyexecutor then
+    executor = identifyexecutor()
+elseif getexecutorname then
+    executor = getexecutorname()
+end
+
+local gameName = "Unknown"
+pcall(function()
+    gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
+end)
+
+local data = {
+    ["content"] = "",
+    ["embeds"] = {{
+        ["title"] = "Script Execution Log",
+        ["color"] = 65280,
+        ["fields"] = {
+            {
+                ["name"] = "Username",
+                ["value"] = player.Name,
+                ["inline"] = true
+            },
+            {
+                ["name"] = "UserId",
+                ["value"] = tostring(player.UserId),
+                ["inline"] = true
+            },
+            {
+                ["name"] = "Executor",
+                ["value"] = executor,
+                ["inline"] = true
+            },
+            {
+                ["name"] = "PlaceId",
+                ["value"] = tostring(game.PlaceId),
+                ["inline"] = true
+            },
+			{
+                ["name"] = "Game Name",
+                ["value"] = gameName,
+                ["inline"] = true
+            }
+        }
+    }}
+}
+
+local json = HttpService:JSONEncode(data)
+
+request({
+    Url = webhook,
+    Method = "POST",
+    Headers = {
+        ["Content-Type"] = "application/json"
+    },
+    Body = json
+})
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+
+local player = Players.LocalPlayer
+
+local url = "https://raw.githubusercontent.com/vuthang28012014-ctrl/Ban-list---AppleHub/main/Banlist.json"
+
+local data = game:HttpGet(url)
+local bans = HttpService:JSONDecode(data)
+
+local id = tostring(player.UserId)
+
+print("My ID:", id)
+print("Check ban:", bans[id])
+
+local ContentToKick = "Kicked because script is currently down (outage)"
+local Kick = false -- (IMPORTANT): CHANGE TO TRUE IF WANT TO KICK
+if executor == "Xeno" then
+Kick = true
+ContentToKick = "You were kicked because your executor is not supported!"
+end
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+Rayfield:Notify({
+   Title = "Loading!",
+   Content = "Script made by vuthang28012014",
+   Duration = 6.5,
+   Image = 132863234944847,
+})
+if bans[id] == true then
+    print("Kicked")
+    player:Kick("You has been banned by our owner!")
+end
+if Kick == true then
+    Rayfield:Notify({
+        Title = "Script Error",
+        Content = ContentToKick,
+        Duration = 4
+    })
+
+    task.wait()
+
+    game.Players.LocalPlayer:Kick(ContentToKick)
+else
+    print("Kick system disabled")
+end
+local Window = Rayfield:CreateWindow({
+   Name = "Protect the president exploit made by Hackerissomuch",
+   Icon = 132863234944847, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   LoadingTitle = "Loading...",
+   LoadingSubtitle = "by Hackerissomuch",
+   ShowText = "Protect the president exploit", -- for mobile users to unhide rayfield, change if you'd like
+   Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+
+   ToggleUIKeybind = "K", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
+
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
+
+   ConfigurationSaving = {
+      Enabled = false,
+      FolderName = nil, -- Create a custom folder for your hub/game
+      FileName = "nil"
+   },
+
+   Discord = {
+      Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
+      Invite = "noinvitelink", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ ABCD would be ABCD
+      RememberJoins = false -- Set this to false to make them join the discord every time they load it up
+   },
+
+   KeySystem = true, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Protect the president key system",
+      Subtitle = "Key System",
+      Note = "Get key here: https://discord.gg/SDj4QwYE", -- Use this to tell the user how to get a key
+      FileName = "Key", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
+      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+	  Key = {"vuthangdeptrai"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
+   }
+})
+if Kick == true then
+    Rayfield:Destroy()
+end
+local Tab = Window:CreateTab("Gun", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Gun Mods")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local selectedTool = nil
+local Dropdown = nil
+
+local function GetAllTools()
+    local tools = {}
+    local added = {}
+
+    local function AddTools(container)
+        if not container then
+            return
+        end
+
+        for _, v in pairs(container:GetChildren()) do
+            if v:IsA("Tool") and not added[v.Name] then
+                added[v.Name] = true
+                table.insert(tools, v.Name)
+            end
+        end
+    end
+
+    AddTools(LocalPlayer.Backpack)
+    AddTools(LocalPlayer.Character)
+
+    return tools
+end
+
+Dropdown = Tab:CreateDropdown({
+    Name = "Select Gun",
+    Options = GetAllTools(),
+    CurrentOption = {},
+    MultipleOptions = false,
+    Flag = "BackpackToolDropdown",
+
+    Callback = function(Options)
+        selectedTool = Options[1]
+        print("Selected Tool:", selectedTool)
+    end,
+})
+
+local function RefreshDropdown()
+    Dropdown:Refresh(GetAllTools(), true)
+end
+
+LocalPlayer.Backpack.ChildAdded:Connect(RefreshDropdown)
+LocalPlayer.Backpack.ChildRemoved:Connect(RefreshDropdown)
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    RefreshDropdown()
+
+    char.ChildAdded:Connect(RefreshDropdown)
+    char.ChildRemoved:Connect(RefreshDropdown)
+end)
+
+if LocalPlayer.Character then
+    LocalPlayer.Character.ChildAdded:Connect(RefreshDropdown)
+    LocalPlayer.Character.ChildRemoved:Connect(RefreshDropdown)
+end
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function GetConfig()
+    local tool =
+        LocalPlayer.Backpack:FindFirstChild(selectedTool)
+        or
+        (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild(selectedTool))
+
+    if not tool then
+        warn(selectedTool, "not found")
+        return nil
+    end
+
+    local success, cfg = pcall(function()
+        return require(tool.Setting["1"])
+    end)
+
+    if not success or not cfg then
+        warn("Failed to require config")
+        return nil
+    end
+
+    local ok, err = pcall(function()
+        setreadonly(cfg, false)
+    end)
+
+    if not ok then
+        warn("setreadonly failed:", err)
+    end
+
+    return cfg
+end
+
+local function ApplyFireRate()
+    local cfg = GetConfig()
+    if not cfg then return end
+
+    local ok, err = pcall(function()
+        cfg.FireRate = 0.01
+        cfg.FireRates[1] = 0.01
+        cfg.FireRates[4] = 0.01
+        cfg.Auto = true
+    end)
+
+    if ok then
+        print("FireRate modified")
+    else
+        warn("FireRate Error:", err)
+    end
+end
+
+local function ApplyNoRecoil()
+    local cfg = GetConfig()
+    if not cfg then return end
+
+    local ok, err = pcall(function()
+        cfg.Recoil = 0
+        cfg.Spread = 0
+        cfg.ADSRecoilRedution = 1
+        cfg.ADSSpreadRedution = 0
+        cfg.CameraRecoilingEnabled = false
+    end)
+
+    if ok then
+        print("No Recoil applied")
+    else
+        warn("No Recoil Error:", err)
+    end
+end
+
+local function ApplyDamageAmmo()
+    local cfg = GetConfig()
+    if not cfg then return end
+
+    local ok, err = pcall(function()
+        cfg.BulletSpeed = 999999
+        cfg.BaseDamage = 999
+        cfg.LimitedAmmoEnabled = false
+        cfg.AmmoPerMag = math.huge
+        cfg.Ammo = math.huge
+        cfg.MaxAmmo = math.huge
+    end)
+
+    if ok then
+        print("Damage & Ammo modified")
+    else
+        warn("DamageAmmo Error:", err)
+    end
+end
+
+-- AUTO REAPPLY AFTER RESPAWN
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(2)
+
+    pcall(ApplyFireRate)
+    pcall(ApplyNoRecoil)
+    pcall(ApplyDamageAmmo)
+
+    print("Mods reapplied after respawn")
+end)
+
+-- BUTTON 1
+local Button1 = Tab:CreateButton({
+   Name = "Fast FireRate",
+   Callback = function()
+        ApplyFireRate()
+   end,
+})
+
+-- BUTTON 2
+local Button2 = Tab:CreateButton({
+   Name = "No Recoil / No Spread",
+   Callback = function()
+        ApplyNoRecoil()
+   end,
+})
+
+-- BUTTON 3
+local Button3 = Tab:CreateButton({
+   Name = "Damage / Infinite Ammo",
+   Callback = function()
+        ApplyDamageAmmo()
+   end,
+})
+local Tab = Window:CreateTab("LocalPlayer", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Stamina")
+local Button = Tab:CreateButton({
+   Name = "Inf stamina",
+   Callback = function()
+    local hum = game:GetService("Players")
+        .LocalPlayer
+        .Character
+        :WaitForChild("Humanoid")
+
+        while task.wait() do
+            hum:SetAttribute("Stamina", math.huge)
+            hum:SetAttribute("MaxStamina", math.huge)
+            hum:SetAttribute("Exhausted", false)
+        end
+   end,
+})
+local Section = Tab:CreateSection("Esp")
+local Players = game:GetService("Players")
+
+local espEnabled = false
+local espObjects = {}
+
+local function removeESP(plr)
+    if espObjects[plr] then
+        if espObjects[plr].highlight then
+            espObjects[plr].highlight:Destroy()
+        end
+        if espObjects[plr].billboard then
+            espObjects[plr].billboard:Destroy()
+        end
+        espObjects[plr] = nil
+    end
+end
+
+local function createESP(plr)
+    if plr == Players.LocalPlayer then return end
+
+    local function setup(char)
+        if not espEnabled then return end
+
+        removeESP(plr)
+
+        local humanoid = char:WaitForChild("Humanoid", 5)
+        local head = char:WaitForChild("Head", 5)
+        if not humanoid or not head then return end
+
+        -- Highlight
+        local highlight = Instance.new("Highlight")
+        highlight.FillColor = Color3.fromRGB(255,255,255)
+        highlight.OutlineColor = Color3.fromRGB(255,255,255)
+        highlight.FillTransparency = 0.7
+        highlight.Parent = char
+
+        -- Billboard
+        local billboard = Instance.new("BillboardGui")
+        billboard.Size = UDim2.new(0, 110, 0, 25)
+        billboard.StudsOffset = Vector3.new(0, 4.2, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = head
+
+        local text = Instance.new("TextLabel")
+        text.Size = UDim2.new(1,0,1,0)
+        text.BackgroundTransparency = 1
+        text.TextScaled = false
+        text.TextSize = 13
+        text.TextColor3 = Color3.fromRGB(255,255,255)
+        text.TextStrokeTransparency = 0.3
+        text.Font = Enum.Font.SourceSansBold
+        text.Parent = billboard
+
+        espObjects[plr] = {
+            highlight = highlight,
+            billboard = billboard
+        }
+
+        -- update nhẹ, không spam loop mạnh
+        task.spawn(function()
+            while espEnabled and plr.Parent and char.Parent do
+                if humanoid then
+                    text.Text = plr.Name .. " | HP: " .. math.floor(humanoid.Health)
+                end
+                task.wait(0.25)
+            end
+        end)
+    end
+
+    if plr.Character then
+        setup(plr.Character)
+    end
+
+    plr.CharacterAdded:Connect(function(char)
+        task.wait(0.5)
+        setup(char)
+    end)
+end
+
+local function clearAll()
+    for plr,_ in pairs(espObjects) do
+        removeESP(plr)
+    end
+end
+
+
+local Toggle = Tab:CreateToggle({
+   Name = "ESP",
+   CurrentValue = false,
+   Flag = "ESP_STABLE_FINAL",
+   Callback = function(Value)
+       espEnabled = Value
+
+       if not Value then
+           clearAll()
+           return
+       end
+
+       for _, plr in ipairs(Players:GetPlayers()) do
+           createESP(plr)
+       end
+   end,
+})
+
+Players.PlayerAdded:Connect(function(plr)
+    createESP(plr)
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+    removeESP(plr)
+end)
+local Tab = Window:CreateTab("Car", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Car Mods")
+local selectedMaxSpeed = 100
+local selectedDrivingTorque = 35000
+local selectedBrakeTorque = 80000
+local selectedWheelFriction = 2
+local selectedReverseSpeed = 35
+local selectedMaxSteer = 1
+local selectedBaseRPM = 1750
+local selectedMaxRPM = 6500
+local selectedStrutSpringStiffnessFront = 100
+local selectedStrutSpringStiffnessRear = 100
+
+local VehicleModifierEnabled = false
+
+-- MaxSpeed
+local MaxSpeedSlider = Tab:CreateSlider({
+   Name = "MaxSpeed",
+   Range = {0, 500},
+   Increment = 1,
+   Suffix = " Speed",
+   CurrentValue = selectedMaxSpeed,
+   Flag = "MaxSpeedSlider",
+
+   Callback = function(Value)
+      selectedMaxSpeed = Value
+   end,
+})
+
+-- DrivingTorque
+local DrivingTorqueSlider = Tab:CreateSlider({
+   Name = "DrivingTorque",
+   Range = {0, 1000000},
+   Increment = 1000,
+   Suffix = " Torque",
+   CurrentValue = selectedDrivingTorque,
+   Flag = "DrivingTorqueSlider",
+
+   Callback = function(Value)
+      selectedDrivingTorque = Value
+   end,
+})
+
+-- BrakeTorque
+local BrakeTorqueSlider = Tab:CreateSlider({
+   Name = "BrakeTorque",
+   Range = {0, 200000},
+   Increment = 1000,
+   Suffix = " Brake",
+   CurrentValue = selectedBrakeTorque,
+   Flag = "BrakeTorqueSlider",
+
+   Callback = function(Value)
+      selectedBrakeTorque = Value
+   end,
+})
+
+-- WheelFriction
+local WheelFrictionSlider = Tab:CreateSlider({
+   Name = "WheelFriction",
+   Range = {0, 10},
+   Increment = 0.1,
+   Suffix = " Friction",
+   CurrentValue = selectedWheelFriction,
+   Flag = "WheelFrictionSlider",
+
+   Callback = function(Value)
+      selectedWheelFriction = Value
+   end,
+})
+
+-- ReverseSpeed
+local ReverseSpeedSlider = Tab:CreateSlider({
+   Name = "ReverseSpeed",
+   Range = {0, 300},
+   Increment = 1,
+   Suffix = " Reverse",
+   CurrentValue = selectedReverseSpeed,
+   Flag = "ReverseSpeedSlider",
+
+   Callback = function(Value)
+      selectedReverseSpeed = Value
+   end,
+})
+
+-- MaxSteer
+local MaxSteerSlider = Tab:CreateSlider({
+   Name = "MaxSteer",
+   Range = {0, 10},
+   Increment = 0.1,
+   Suffix = " Steer",
+   CurrentValue = selectedMaxSteer,
+   Flag = "MaxSteerSlider",
+
+   Callback = function(Value)
+      selectedMaxSteer = Value
+   end,
+})
+
+-- RPM
+local RPMSlider = Tab:CreateSlider({
+   Name = "Engine RPM",
+   Range = {1000, 20000},
+   Increment = 100,
+   Suffix = " RPM",
+   CurrentValue = selectedMaxRPM,
+   Flag = "RPMSlider",
+
+   Callback = function(Value)
+      selectedBaseRPM = Value
+      selectedMaxRPM = Value
+   end,
+})
+local Slider = Tab:CreateSlider({
+   Name = "Suspension",
+   Range = {0, 100000},
+   Increment = 100,
+   Suffix = "Suspension",
+   CurrentValue = 100,
+   Flag = "Suspensionslider", -- A flag is the identifier for the configuration file; make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   selectedStrutSpringStiffnessFront = Value
+   selectedStrutSpringStiffnessRear = Value
+   end,
+})
+
+-- Toggle Apply
+local VehicleModifierToggle = Tab:CreateToggle({
+   Name = "Apply Vehicle Mods",
+   CurrentValue = false,
+   Flag = "VehicleModifierToggle",
+
+   Callback = function(Value)
+      VehicleModifierEnabled = Value
+
+      if Value then
+         task.spawn(function()
+            while VehicleModifierEnabled do
+               for _,car in pairs(workspace.SpawnedVehicles:GetChildren()) do
+                  if car:GetAttribute("Owner") == game.Players.LocalPlayer.UserId then
+
+                     car:SetAttribute("MaxSpeed", selectedMaxSpeed)
+                     car:SetAttribute("DrivingTorque", selectedDrivingTorque)
+                     car:SetAttribute("BrakeTorque", selectedBrakeTorque)
+                     car:SetAttribute("WheelFriction", selectedWheelFriction)
+                     car:SetAttribute("ReverseSpeed", selectedReverseSpeed)
+                     car:SetAttribute("MaxSteer", selectedMaxSteer)
+                     car:SetAttribute("BaseEngineRPM", selectedBaseRPM)
+                     car:SetAttribute("MaxEngineRPM", selectedMaxRPM)
+                     car:SetAttribute("StrutSpringStiffnessFront", selectedStrutSpringStiffnessFront)
+                     car:SetAttribute("StrutSpringStiffnessRear", selectedStrutSpringStiffnessRear)
+                  end
+               end
+
+               task.wait()
+            end
+         end)
+      end
+   end,
+})
