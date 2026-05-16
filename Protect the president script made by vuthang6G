@@ -1,5 +1,12 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/UI%20Load%20script"))()
-wait(0.5)
+local Players = game:GetService("Players")
+local PlayerIsExecuting = Players.LocalPlayer.Name
+local function LoadEnvironment()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/UI%20Load%20script"))()
+	wait(0.5)
+end
+if PlayerIsExecuting == not Hackerissomuch_20 then
+	LoadEnvironment()
+end
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local MarketplaceService = game:GetService("MarketplaceService")
