@@ -371,35 +371,42 @@ local function removeESP(plr)
         if espObjects[plr].highlight then
             espObjects[plr].highlight:Destroy()
         end
+
         if espObjects[plr].billboard then
             espObjects[plr].billboard:Destroy()
         end
+
         espObjects[plr] = nil
     end
 end
 
 local function createESP(plr)
-    if plr == Players.LocalPlayer then return end
+    if plr == Players.LocalPlayer then
+        return
+    end
 
     local function setup(char)
-        if not espEnabled then return end
+        if not espEnabled then
+            return
+        end
 
         removeESP(plr)
 
         local humanoid = char:WaitForChild("Humanoid", 5)
         local head = char:WaitForChild("Head", 5)
-        if not humanoid or not head then return end
+
+        if not humanoid or not head then
+            return
+        end
 
         -- Highlight
         local highlight = Instance.new("Highlight")
-        highlight.FillColor = Color3.fromRGB(255,255,255)
-        highlight.OutlineColor = Color3.fromRGB(255,255,255)
         highlight.FillTransparency = 0.7
         highlight.Parent = char
 
         -- Billboard
         local billboard = Instance.new("BillboardGui")
-        billboard.Size = UDim2.new(0, 110, 0, 25)
+        billboard.Size = UDim2.new(0, 140, 0, 35)
         billboard.StudsOffset = Vector3.new(0, 4.2, 0)
         billboard.AlwaysOnTop = true
         billboard.Parent = head
@@ -409,7 +416,6 @@ local function createESP(plr)
         text.BackgroundTransparency = 1
         text.TextScaled = false
         text.TextSize = 13
-        text.TextColor3 = Color3.fromRGB(255,255,255)
         text.TextStrokeTransparency = 0.3
         text.Font = Enum.Font.SourceSansBold
         text.Parent = billboard
@@ -419,12 +425,33 @@ local function createESP(plr)
             billboard = billboard
         }
 
-        -- update nhẹ, không spam loop mạnh
+        local function updateTeamColor()
+            local color = Color3.fromRGB(255,255,255)
+            local teamName = "No Team"
+
+            if plr.Team then
+                color = plr.Team.TeamColor.Color
+                teamName = plr.Team.Name
+            end
+
+            highlight.FillColor = color
+            highlight.OutlineColor = color
+            text.TextColor3 = color
+
+            return teamName
+        end
+
         task.spawn(function()
             while espEnabled and plr.Parent and char.Parent do
+                local teamName = updateTeamColor()
+
                 if humanoid then
-                    text.Text = plr.Name .. " | HP: " .. math.floor(humanoid.Health)
+                    text.Text =
+                        plr.Name ..
+                        " [" .. teamName .. "]" ..
+                        "\nHP: " .. math.floor(humanoid.Health)
                 end
+
                 task.wait(0.25)
             end
         end)
@@ -445,7 +472,6 @@ local function clearAll()
         removeESP(plr)
     end
 end
-
 
 local Toggle = Tab:CreateToggle({
    Name = "ESP",
