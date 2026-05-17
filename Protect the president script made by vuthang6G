@@ -343,6 +343,114 @@ local Button3 = Tab:CreateButton({
         ApplyDamageAmmo()
    end,
 })
+local Section = Tab:CreateSection("Aim")
+local Players = game:GetService("Players")
+local Teams = game:GetService("Teams")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local selectedTeam = nil
+local selectedPlayer = nil
+local AimConnection = nil
+
+-- GET TEAM NAMES
+local function getTeamNames()
+    local tbl = {}
+
+    for _,team in pairs(Teams:GetChildren()) do
+        table.insert(tbl, team.Name)
+    end
+
+    return tbl
+end
+
+-- GET PLAYERS FROM TEAM
+local function getPlayersFromTeam(teamName)
+    local tbl = {}
+
+    local team = Teams:FindFirstChild(teamName)
+    if not team then
+        return tbl
+    end
+
+    for _,plr in pairs(Players:GetPlayers()) do
+        if plr.Team == team and plr ~= LocalPlayer then
+            table.insert(tbl, plr.Name)
+        end
+    end
+
+    return tbl
+end
+
+-- TEAM DROPDOWN
+local TeamDropdown = Tab:CreateDropdown({
+    Name = "Select Team",
+    Options = getTeamNames(),
+    CurrentOption = {},
+    MultipleOptions = false,
+    Flag = "TeamDropdown",
+
+    Callback = function(Options)
+        selectedTeam = Options[1]
+
+        PlayerDropdown:Refresh(getPlayersFromTeam(selectedTeam))
+    end,
+})
+
+-- PLAYER DROPDOWN
+PlayerDropdown = Tab:CreateDropdown({
+    Name = "Select Player",
+    Options = {},
+    CurrentOption = {},
+    MultipleOptions = false,
+    Flag = "PlayerDropdown",
+
+    Callback = function(Options)
+        local plrName = Options[1]
+
+        selectedPlayer = Players:FindFirstChild(plrName)
+    end,
+})
+
+-- AIM TOGGLE
+local AimToggle = Tab:CreateToggle({
+    Name = "Aim Selected Player",
+    CurrentValue = false,
+    Flag = "AimToggle",
+
+    Callback = function(Value)
+
+        if Value then
+
+            AimConnection = RunService.RenderStepped:Connect(function()
+
+                if selectedPlayer
+                and selectedPlayer.Character
+                and selectedPlayer.Character:FindFirstChild("Head") then
+
+                    local head = selectedPlayer.Character.Head
+
+                    Camera.CFrame = CFrame.new(
+                        Camera.CFrame.Position,
+                        head.Position
+                    )
+
+                end
+
+            end)
+
+        else
+
+            if AimConnection then
+                AimConnection:Disconnect()
+                AimConnection = nil
+            end
+
+        end
+    end,
+})
 local Tab = Window:CreateTab("LocalPlayer", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Stamina")
 local Button = Tab:CreateButton({
@@ -498,6 +606,99 @@ end)
 Players.PlayerRemoving:Connect(function(plr)
     removeESP(plr)
 end)
+local Section = Tab:CreateSection("Ragdoll")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+
+local AntiRagdollEnabled = false
+local AntiRagdollConnection = nil
+
+local function startAntiRagdoll(character)
+    local humanoid = character:WaitForChild("Humanoid")
+
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
+
+    if AntiRagdollConnection then
+        AntiRagdollConnection:Disconnect()
+    end
+
+    AntiRagdollConnection = RunService.Stepped:Connect(function()
+        if not AntiRagdollEnabled then
+            return
+        end
+
+        if not character.Parent then
+            return
+        end
+
+        -- cho phép ngồi xe
+        if humanoid.Sit or humanoid:GetState() == Enum.HumanoidStateType.Seated then
+            return
+        end
+
+        -- remove ragdoll attribute
+        if character:GetAttribute("Ragdolled") ~= nil then
+            character:SetAttribute("Ragdolled", nil)
+        end
+
+        -- bật lại joints
+        for _,v in pairs(character:GetDescendants()) do
+            if v:IsA("Motor6D") then
+                v.Enabled = true
+            end
+
+            if v:IsA("BallSocketConstraint") then
+                v.Enabled = false
+            end
+        end
+
+        local state = humanoid:GetState()
+
+        if state == Enum.HumanoidStateType.Ragdoll
+        or state == Enum.HumanoidStateType.FallingDown
+        or state == Enum.HumanoidStateType.Physics then
+
+            humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
+    end)
+end
+
+if LocalPlayer.Character then
+    startAntiRagdoll(LocalPlayer.Character)
+end
+
+LocalPlayer.CharacterAdded:Connect(function(character)
+    task.wait(1)
+
+    if AntiRagdollEnabled then
+        startAntiRagdoll(character)
+    end
+end)
+
+local Toggle = Tab:CreateToggle({
+   Name = "Anti Ragdoll",
+   CurrentValue = false,
+   Flag = "AntiRagdollToggle",
+
+   Callback = function(Value)
+       AntiRagdollEnabled = Value
+
+       if Value then
+           if LocalPlayer.Character then
+               startAntiRagdoll(LocalPlayer.Character)
+           end
+       else
+           if AntiRagdollConnection then
+               AntiRagdollConnection:Disconnect()
+               AntiRagdollConnection = nil
+           end
+       end
+   end,
+})
 local Tab = Window:CreateTab("Car", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Car Mods")
 local selectedMaxSpeed = 100
