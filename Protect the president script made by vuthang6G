@@ -476,6 +476,248 @@ local AimToggle = Tab:CreateToggle({
         end
     end,
 })
+local Section = Tab:CreateSection("FOV Aimbot")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+local AimEnabled = false
+local ShowFOV = false
+
+local TeamCheck = false
+local WallCheck = false
+local DiedCheck = false
+
+local FOV = 150
+local Smoothness = 5
+
+-- FOV Circle
+local Circle = Drawing.new("Circle")
+Circle.Visible = ShowFOV
+Circle.Color = Color3.fromRGB(255,255,255)
+Circle.Thickness = 1
+Circle.NumSides = 100
+Circle.Radius = FOV
+Circle.Filled = false
+Circle.Transparency = 1
+
+-- Update Circle
+RunService.RenderStepped:Connect(function()
+
+    local viewport = Camera.ViewportSize
+
+    Circle.Position = Vector2.new(
+        viewport.X / 2,
+        viewport.Y / 2
+    )
+
+    Circle.Radius = FOV
+    Circle.Visible = ShowFOV
+
+end)
+
+-- Wall Check
+local function IsVisible(targetPart)
+
+    local origin = Camera.CFrame.Position
+    local direction = targetPart.Position - origin
+
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = {
+        LocalPlayer.Character
+    }
+
+    local result = workspace:Raycast(
+        origin,
+        direction,
+        params
+    )
+
+    if result then
+        return result.Instance:IsDescendantOf(
+            targetPart.Parent
+        )
+    end
+
+    return true
+end
+
+-- Get Closest Player
+local function GetClosestPlayer()
+
+    local Closest = nil
+    local ShortestDistance = FOV
+
+    local viewport = Camera.ViewportSize
+
+    local screenCenter = Vector2.new(
+        viewport.X / 2,
+        viewport.Y / 2
+    )
+
+    for _,plr in pairs(Players:GetPlayers()) do
+
+        if plr ~= LocalPlayer then
+
+            -- Team Check
+            if TeamCheck and plr.Team == LocalPlayer.Team then
+                continue
+            end
+
+            local character = plr.Character
+
+            if character
+            and character:FindFirstChild("Head")
+            and character:FindFirstChild("Humanoid") then
+
+                -- Died Check
+                if DiedCheck and character.Humanoid.Health <= 0 then
+                    continue
+                end
+
+                local head = character.Head
+
+                -- Wall Check
+                if WallCheck and not IsVisible(head) then
+                    continue
+                end
+
+                local screenPos, visible =
+                    Camera:WorldToViewportPoint(head.Position)
+
+                if visible then
+
+                    local distance = (
+                        Vector2.new(screenPos.X, screenPos.Y)
+                        - screenCenter
+                    ).Magnitude
+
+                    if distance < ShortestDistance then
+
+                        ShortestDistance = distance
+                        Closest = plr
+
+                    end
+                end
+            end
+        end
+    end
+
+    return Closest
+end
+
+-- Aimlock
+RunService.RenderStepped:Connect(function()
+
+    if not AimEnabled then
+        return
+    end
+
+    local target = GetClosestPlayer()
+
+    if target
+    and target.Character
+    and target.Character:FindFirstChild("Head") then
+
+        local targetPos = target.Character.Head.Position
+
+        local newCFrame = CFrame.new(
+            Camera.CFrame.Position,
+            targetPos
+        )
+
+        Camera.CFrame = Camera.CFrame:Lerp(
+            newCFrame,
+            1 / Smoothness
+        )
+
+    end
+end)
+
+-- Aim Toggle
+Tab:CreateToggle({
+    Name = "Aimbot",
+    CurrentValue = false,
+    Flag = "CenterAimlock",
+
+    Callback = function(Value)
+        AimEnabled = Value
+    end,
+})
+
+-- Show FOV Toggle
+Tab:CreateToggle({
+    Name = "Show FOV",
+    CurrentValue = false,
+    Flag = "ShowFOV",
+
+    Callback = function(Value)
+        ShowFOV = Value
+    end,
+})
+
+-- Team Check Toggle
+Tab:CreateToggle({
+    Name = "Team Check",
+    CurrentValue = false,
+    Flag = "TeamCheck",
+
+    Callback = function(Value)
+        TeamCheck = Value
+    end,
+})
+
+-- Wall Check Toggle
+Tab:CreateToggle({
+    Name = "Wall Check",
+    CurrentValue = false,
+    Flag = "WallCheck",
+
+    Callback = function(Value)
+        WallCheck = Value
+    end,
+})
+
+-- Died Check Toggle
+Tab:CreateToggle({
+    Name = "Died Check",
+    CurrentValue = false,
+    Flag = "DiedCheck",
+
+    Callback = function(Value)
+        DiedCheck = Value
+    end,
+})
+
+-- FOV Slider
+Tab:CreateSlider({
+    Name = "FOV Size",
+    Range = {50, 500},
+    Increment = 5,
+    Suffix = "FOV",
+    CurrentValue = FOV,
+    Flag = "AimFOVSlider",
+
+    Callback = function(Value)
+        FOV = Value
+    end,
+})
+
+-- Smoothness Slider
+Tab:CreateSlider({
+    Name = "Smoothness",
+    Range = {1, 20},
+    Increment = 1,
+    Suffix = "Smooth",
+    CurrentValue = Smoothness,
+    Flag = "AimSmoothness",
+
+    Callback = function(Value)
+        Smoothness = Value
+    end,
+})
 local Tab = Window:CreateTab("LocalPlayer", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Stamina")
 local Button = Tab:CreateButton({
