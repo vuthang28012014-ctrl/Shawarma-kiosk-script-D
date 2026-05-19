@@ -884,3 +884,92 @@ local VehicleModifierToggle = Tab:CreateToggle({
       end
    end,
 })
+local Tab = Window:CreateTab("Teleport", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Teleport to")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function teleportToTeam(teamName)
+    local targetPlayer
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr.Team and plr.Team.Name == teamName then
+            targetPlayer = plr
+            break
+        end
+    end
+
+    if not targetPlayer then
+        warn("No " .. teamName .. " found")
+        return
+    end
+
+    local char = targetPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then
+        warn(teamName .. " not ready")
+        return
+    end
+
+    local hrp = char.HumanoidRootPart
+
+    -- anti-stuck offset
+    local backOffset = hrp.CFrame.LookVector * -6
+    local sideOffset = hrp.CFrame.RightVector * math.random(-2, 2)
+
+    local targetPos = hrp.Position + backOffset + sideOffset + Vector3.new(0, 3, 0)
+
+    local myChar = LocalPlayer.Character
+    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then
+        return
+    end
+
+    myChar.HumanoidRootPart.CFrame = CFrame.new(targetPos, hrp.Position)
+end
+Tab:CreateButton({
+    Name = "Teleport to President",
+    Callback = function()
+        teleportToTeam("President")
+    end,
+})
+
+Tab:CreateButton({
+    Name = "Teleport to Vice President",
+    Callback = function()
+        teleportToTeam("Vice President")
+    end,
+})
+local Button = Tab:CreateButton({
+   Name = "Teleport To My Vehicle",
+
+   Callback = function()
+
+      local Players = game:GetService("Players")
+      local LocalPlayer = Players.LocalPlayer
+
+      local vehiclesFolder = workspace:WaitForChild("SpawnedVehicles")
+
+      for _,vehicle in pairs(vehiclesFolder:GetChildren()) do
+
+         local owner = vehicle:GetAttribute("Owner")
+
+         if owner == LocalPlayer.UserId then
+
+            local character = LocalPlayer.Character
+            local hrp = character and character:FindFirstChild("HumanoidRootPart")
+
+            if hrp then
+
+               local targetPart = vehicle.PrimaryPart or vehicle:FindFirstChildWhichIsA("BasePart")
+
+               if targetPart then
+                  hrp.CFrame = targetPart.CFrame + Vector3.new(0,5,0)
+               end
+
+            end
+
+            break
+         end
+      end
+
+   end,
+})
