@@ -343,6 +343,31 @@ local Button3 = Tab:CreateButton({
         ApplyDamageAmmo()
    end,
 })
+-- Input
+local Input = Tab:CreateInput({
+   Name = "Edit fire sound",
+   CurrentValue = "",
+   PlaceholderText = "Ex: 1063625869",
+   RemoveTextAfterFocusLost = false,
+   Flag = "Edit fire sound",
+
+   Callback = function(Value)
+
+      if not Value or Value == "" then
+         return
+      end
+
+      local sound = game:GetService("Players")
+         .LocalPlayer
+         .Backpack[selectedTool]
+         .Handle["1"]
+         .FireSounds
+         .FireSound
+
+      sound.SoundId = "rbxassetid://" .. tostring(Value)
+
+   end,
+})
 local Section = Tab:CreateSection("Aim")
 local Players = game:GetService("Players")
 local Teams = game:GetService("Teams")
