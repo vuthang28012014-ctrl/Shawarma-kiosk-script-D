@@ -1128,6 +1128,96 @@ local VehicleModifierToggle = Tab:CreateToggle({
       end
    end,
 })
+local Section = Tab:CreateSection("Fly")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+local LocalPlayer = Players.LocalPlayer
+
+local flying = false
+local flyConnection
+
+-- function dùng chung
+local function ToggleFly(state)
+    flying = state
+
+    local character = LocalPlayer.Character
+    if not character then return end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    if flying then
+        local bv = Instance.new("BodyVelocity")
+        bv.Name = "CarFly"
+        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.Velocity = Vector3.zero
+        bv.Parent = hrp
+
+        flyConnection = RunService.RenderStepped:Connect(function()
+            local cam = workspace.CurrentCamera
+            local moveDir = Vector3.zero
+
+            if UIS:IsKeyDown(Enum.KeyCode.W) then
+                moveDir += cam.CFrame.LookVector
+            end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then
+                moveDir -= cam.CFrame.LookVector
+            end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then
+                moveDir -= cam.CFrame.RightVector
+            end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then
+                moveDir += cam.CFrame.RightVector
+            end
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then
+                moveDir += Vector3.new(0,1,0)
+            end
+            if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then
+                moveDir -= Vector3.new(0,1,0)
+            end
+
+            bv.Velocity = moveDir * 80
+        end)
+
+    else
+        if flyConnection then
+            flyConnection:Disconnect()
+            flyConnection = nil
+        end
+
+        local bv = hrp:FindFirstChild("CarFly")
+        if bv then
+            bv:Destroy()
+        end
+    end
+end
+
+-- Toggle
+local FlyToggle = Tab:CreateToggle({
+    Name = "Car Fly",
+    CurrentValue = false,
+    Flag = "CarFlyToggle",
+    Callback = function(Value)
+        ToggleFly(Value)
+    end,
+})
+
+-- Keybind
+local FlyKeybind = Tab:CreateKeybind({
+    Name = "Fly Keybind",
+    CurrentKeybind = "K",
+    HoldToInteract = false,
+    Flag = "CarFlyKeybind",
+
+    Callback = function()
+        flying = not flying
+
+        FlyToggle:Set(flying) -- sync toggle UI
+        ToggleFly(flying)
+    end,
+})
 local Tab = Window:CreateTab("Teleport", 4483362458) -- Title, Image
 local Section = Tab:CreateSection("Teleport to")
 local Players = game:GetService("Players")
