@@ -300,6 +300,8 @@ local function ApplyDamageAmmo()
         cfg.AmmoPerMag = math.huge
         cfg.Ammo = math.huge
         cfg.MaxAmmo = math.huge
+		cfg.ReloadTime = 0.1
+		cfg.TacticalReloadTime = 0.1
     end)
 
     if ok then
