@@ -32,5 +32,10 @@ if url then
     end
 else
     warn("No script available for this game")
-    player:Kick("No script available for this game!")
+    Rayfield:Notify({
+    Title = "Warning!",
+    Content = "No script available for this game!",
+    Duration = 6.5,
+    Image = 4483362458,
+    })
 end
