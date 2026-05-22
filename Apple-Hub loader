@@ -16,7 +16,7 @@ pcall(function()
 end)
 local Tab = Window:CreateTab("Info", 4483362458) -- Title, Image
 local Label = Tab:CreateLabel("PlaceId: "..tostring(game.PlaceId), 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
-local Label = Tab:CreateLabel("Game name"..tostring(gameName), 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
+local Label = Tab:CreateLabel("Game name: "..tostring(gameName), 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local Scripts = {
