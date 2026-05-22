@@ -9,9 +9,14 @@ Rayfield:Notify({
    Duration = 6.5,
    Image = 132863234944847,
 })
+local MarketplaceService = game:GetService("MarketplaceService")
+local gameName = "Unknown"
+pcall(function()
+    gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
+end)
 local Tab = Window:CreateTab("Info", 4483362458) -- Title, Image
 local Label = Tab:CreateLabel("PlaceId: "..tostring(game.PlaceId), 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
-local Label = Tab:CreateLabel("Game name", 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
+local Label = Tab:CreateLabel("Game name"..tostring(gameName), 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local Scripts = {
