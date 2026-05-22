@@ -1,47 +1,88 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Test = nil
+
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local Scripts = {
+    [128001665358186] = {
+        Name = "Shawarma Kiosk",
+        Url = "https://gate.sirius.menu/gateway?id=sid_9b25nn0jf85w"
+    },
+
+    [125700405216363] = {
+        Name = "Camo or get sniped",
+        Url = "https://gate.sirius.menu/gateway?id=sid_xgsuaw3oknia"
+    },
+
+    [14486123914] = {
+        Name = "Protect the president",
+        Url = "https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/Protect%20the%20president%20script%20made%20by%20vuthang6G"
+    }
+}
+
 local Window = Rayfield:CreateWindow({
     Name = "Apple-Hub loader",
     ScriptID = "sid_yilnd0avx1ef",
 })
+
 Rayfield:Notify({
    Title = "Please wait for a moment!",
    Content = "Please wait while we are preparing things!",
    Duration = 6.5,
    Image = 132863234944847,
 })
-local MarketplaceService = game:GetService("MarketplaceService")
+
 local gameName = "Unknown"
+
 pcall(function()
     gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
 end)
-local Tab = Window:CreateTab("Info", 4483362458) -- Title, Image
-local Label = Tab:CreateLabel("PlaceId: "..tostring(game.PlaceId), 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
-local Label = Tab:CreateLabel("Game name: "..tostring(gameName), 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local Scripts = {
-    [128001665358186] = "https://gate.sirius.menu/gateway?id=sid_9b25nn0jf85w", -- Type place id here
-    [125700405216363] = "https://gate.sirius.menu/gateway?id=sid_xgsuaw3oknia",  -- Type place id here
-    [14486123914] = "https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/Protect%20the%20president%20script%20made%20by%20vuthang6G" -- Type place id here
-}
 
-local url = Scripts[game.PlaceId]
+local Tab = Window:CreateTab("Info", 4483362458)
 
-if url then
-    local ok, res = pcall(function()
-    Rayfield:Destroy()
-        return loadstring(game:HttpGet(url))()
+Tab:CreateLabel("PlaceId: "..game.PlaceId)
+Tab:CreateLabel("Game name: "..gameName)
+
+local supported = Scripts[game.PlaceId]
+
+if supported then
+    Tab:CreateSection("Game Status")
+    Tab:CreateLabel("✅ Supported Game")
+    Tab:CreateLabel("Script: "..supported.Name)
+
+    task.wait(1)
+
+    local ok, err = pcall(function()
+        Rayfield:Destroy()
+        loadstring(game:HttpGet(supported.Url))()
     end)
-    
+
     if not ok then
-        warn("Detected errors when loading script:", res)
+        warn("Error loading script:", err)
+
+        Rayfield:Notify({
+            Title = "Script Error",
+            Content = tostring(err),
+            Duration = 6,
+            Image = 4483362458,
+        })
     end
 else
+    Tab:CreateSection("Game Status")
+    Tab:CreateLabel("❌ Unsupported Game")
+
+    Tab:CreateSection("Supported Games")
+
+    for placeId, data in pairs(Scripts) do
+        Tab:CreateLabel(data.Name.." | "..placeId)
+    end
+
     warn("No script available for this game")
+
     Rayfield:Notify({
-    Title = "Warning!",
-    Content = "No script available for this game!",
-    Duration = 6.5,
-    Image = 4483362458,
+        Title = "Warning!",
+        Content = "No script available for this game!",
+        Duration = 6.5,
+        Image = 4483362458,
     })
 end
