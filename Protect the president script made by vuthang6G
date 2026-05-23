@@ -142,7 +142,7 @@ local Window = Rayfield:CreateWindow({
       RememberJoins = false -- Set this to false to make them join the discord every time they load it up
    },
 
-   KeySystem = true, -- Set this to true to use our key system
+   KeySystem = false, -- Set this to true to use our key system
    KeySettings = {
       Title = "Protect the president key system",
       Subtitle = "Key System",
@@ -1189,7 +1189,7 @@ local LocalPlayer = Players.LocalPlayer
 local flying = false
 local flyConnection
 
--- function dùng chung
+
 local function ToggleFly(state)
     flying = state
 
@@ -1258,7 +1258,7 @@ local FlyToggle = Tab:CreateToggle({
 -- Keybind
 local FlyKeybind = Tab:CreateKeybind({
     Name = "Fly Keybind",
-    CurrentKeybind = "K",
+    CurrentKeybind = "X",
     HoldToInteract = false,
     Flag = "CarFlyKeybind",
 
