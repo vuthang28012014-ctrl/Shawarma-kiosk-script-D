@@ -6,17 +6,17 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Scripts = {
     [128001665358186] = {
         Name = "Shawarma Kiosk",
-        Url = "https://gate.sirius.menu/gateway?id=sid_9b25nn0jf85w"
+        Url = 'https://gate.sirius.menu/gateway?id=sid_9b25nn0jf85w'
     },
 
     [125700405216363] = {
         Name = "Camo or get sniped",
-        Url = "https://gate.sirius.menu/gateway?id=sid_xgsuaw3oknia"
+        Url = 'https://gate.sirius.menu/gateway?id=sid_xgsuaw3oknia'
     },
 
     [14486123914] = {
         Name = "Protect the president",
-        Url = "https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/Protect%20the%20president%20script%20made%20by%20vuthang6G"
+        Url = 'https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/Protect%20the%20president%20script%20made%20by%20vuthang6G'
     }
 }
 
