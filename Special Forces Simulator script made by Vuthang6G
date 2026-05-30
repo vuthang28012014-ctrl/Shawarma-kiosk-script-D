@@ -1,0 +1,225 @@
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local player = Players.LocalPlayer
+local PlayerIsExecuting = player.Name
+
+
+local function LoadEnvironment()
+    local success, err = pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/UI%20Load%20script"))()
+    end)
+    if not success then warn("Failed to load environment:", err) end
+    task.wait(0.5)
+end
+
+if PlayerIsExecuting ~= "Hackerissomuch_20" then
+    LoadEnvironment()
+end
+
+pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/Welcome%20user"))()
+end)
+task.wait(2)
+
+-- 3. Webhook Logging & Executor Check
+local config = loadstring(game:HttpGet("https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/config.lua"))()
+local webhook = config.webhook
+local executor = "Unknown"
+
+if identifyexecutor then
+    executor = identifyexecutor()
+elseif getexecutorname then
+    executor = getexecutorname()
+end
+
+local gameName = "Unknown"
+pcall(function()
+    gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
+end)
+
+local data = {
+    ["content"] = "",
+    ["embeds"] = {{
+        ["title"] = "Script Execution Log",
+        ["color"] = 65280,
+        ["fields"] = {
+            {["name"] = "Username", ["value"] = player.Name, ["inline"] = true},
+            {["name"] = "UserId", ["value"] = tostring(player.UserId), ["inline"] = true},
+            {["name"] = "Executor", ["value"] = executor, ["inline"] = true},
+            {["name"] = "PlaceId", ["value"] = tostring(game.PlaceId), ["inline"] = true},
+            {["name"] = "Game Name", ["value"] = gameName, ["inline"] = true}
+        }
+    }}
+}
+
+pcall(function()
+    request({
+        Url = webhook,
+        Method = "POST",
+        Headers = {["Content-Type"] = "application/json"},
+        Body = HttpService:JSONEncode(data)
+    })
+end)
+
+-- 4. Banlist & Kick Check
+local banDataFetched, banListRaw = pcall(function()
+    return game:HttpGet("https://raw.githubusercontent.com/vuthang28012014-ctrl/Ban-list---AppleHub/main/Banlist.json")
+end)
+
+local bans = banDataFetched and HttpService:JSONDecode(banListRaw) or {}
+local id = tostring(player.UserId)
+
+local ContentToKick = "Kicked because script is currently down (outage)"
+local Kick = false
+
+if executor == "Xeno" then
+    Kick = true
+    ContentToKick = "You were kicked because your executor is not supported!"
+end
+
+if bans[id] == true then
+    player:Kick("You has been banned by our owner!")
+    return
+end
+
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+Rayfield:Notify({
+   Title = "Loading!",
+   Content = "Script made by vuthang28012014",
+   Duration = 6.5,
+   Image = 132863234944847,
+})
+
+
+if Kick == true then
+    Rayfield:Notify({
+        Title = "Script Error",
+        Content = ContentToKick,
+        Duration = 4
+    })
+    task.wait(1)
+    Rayfield:Destroy()
+    player:Kick(ContentToKick)
+    return
+end
+
+
+local Window = Rayfield:CreateWindow({
+   Name = "Special Forces Simulator exploit made by Hackerissomuch",
+   Icon = 132863234944847,
+   LoadingTitle = "Loading...",
+   LoadingSubtitle = "by Hackerissomuch",
+   ShowText = "Special Forces Simulator exploit",
+   Theme = "Default",
+   ToggleUIKeybind = "K",
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false,
+   ConfigurationSaving = { Enabled = false },
+   Discord = { Enabled = false },
+   KeySystem = false
+})
+
+local Tab = Window:CreateTab("Gun Mods", 4483362458)
+local selectedTool = nil
+
+local function GetTools()
+    local tools = {}
+    if player:FindFirstChild("Backpack") then
+        for _, v in ipairs(player.Backpack:GetChildren()) do
+            if v:IsA("Tool") then table.insert(tools, v.Name) end
+        end
+    end
+    if player.Character then
+        for _, v in ipairs(player.Character:GetChildren()) do
+            if v:IsA("Tool") then table.insert(tools, v.Name) end
+        end
+    end
+    return tools
+end
+
+
+local ToolDropdown = Tab:CreateDropdown({
+    Name = "Tools",
+    Options = GetTools(),
+    CurrentOption = "", 
+    MultipleOptions = false,
+    Flag = "ToolDropdown",
+    Callback = function(Options)
+        selectedTool = Options[1]
+        print("Selected:", selectedTool)
+    end,
+})
+
+local function RefreshTools()
+    ToolDropdown:Refresh(GetTools())
+end
+
+local childAddedConn, childRemovedConn
+
+local function SetupCharacterConnections(char)
+    if childAddedConn then childAddedConn:Disconnect() end
+    if childRemovedConn then childRemovedConn:Disconnect() end
+    
+    childAddedConn = char.ChildAdded:Connect(RefreshTools)
+    childRemovedConn = char.ChildRemoved:Connect(RefreshTools)
+    RefreshTools()
+end
+
+player.Backpack.ChildAdded:Connect(RefreshTools)
+player.Backpack.ChildRemoved:Connect(RefreshTools)
+player.CharacterAdded:Connect(SetupCharacterConnections)
+
+if player.Character then
+    SetupCharacterConnections(player.Character)
+end
+
+local function GetSelectedTool()
+    if not selectedTool then return nil end
+    return (player.Character and player.Character:FindFirstChild(selectedTool)) or player.Backpack:FindFirstChild(selectedTool)
+end
+
+Tab:CreateButton({
+    Name = "Fast FireRate",
+    Callback = function()
+        local tool = GetSelectedTool()
+        if not tool then warn("No tool selected") return end
+        tool:SetAttribute("Auto", true)
+        tool:SetAttribute("Cadence", 0)
+    end,
+})
+
+Tab:CreateButton({
+    Name = "No Recoil/Spread",
+    Callback = function()
+        local tool = GetSelectedTool()
+        if not tool then warn("No tool selected") return end
+        tool:SetAttribute("Recoil", 0)
+    end,
+})
+
+local CurrentTaskId = 0
+local function StartLoop(tool)
+    CurrentTaskId = CurrentTaskId + 1
+    local myId = CurrentTaskId
+
+    task.spawn(function()
+        while myId == CurrentTaskId do
+            task.wait(0.25)
+            if not tool or not tool.Parent then break end
+            tool:SetAttribute("Ammo", math.huge)
+        end
+    end)
+end
+
+Tab:CreateButton({
+    Name = "Inf Ammo",
+    Callback = function()
+        local tool = GetSelectedTool()
+        if not tool then warn("No tool selected") return end
+        tool:SetAttribute("MaxAmmo", math.huge)
+        StartLoop(tool)
+    end,
+})
