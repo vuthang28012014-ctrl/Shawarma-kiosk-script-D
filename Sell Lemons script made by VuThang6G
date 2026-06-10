@@ -50,7 +50,21 @@ end
 FindMyTycoon()
 
 local Tab = Window:CreateTab("Status", 4483362458)
+local Section = Tab:CreateSection("Tycoon")
 local Label = Tab:CreateLabel("My Tycoon: " .. MeTycoon, 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
+local Button = Tab:CreateButton({
+   Name = "Refresh",
+   Callback = function()
+        Rayfield:Notify({
+        Title = "Notification",
+        Content = "Refreshed!",
+        Duration = 6.5,
+        Image = 76359550502696,
+        })
+        FindMyTycoon()
+        Label:Set("My Tycoon: " .. MeTycoon, 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
+   end,
+})
 local Tab = Window:CreateTab("Auto", 4483362458)
 local Section = Tab:CreateSection("Lemon trees")
 
