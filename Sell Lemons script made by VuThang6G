@@ -30,7 +30,6 @@ local function FindMyTycoon()
             
             if ownerObject then
                 if ownerObject.Value == LocalPlayer.Name or (type(ownerObject.Value) == "userdata" and ownerObject.Value == LocalPlayer) then
-                    print("🎉 Đã tìm thấy Tycoon của bạn: " .. obj.Name)
                     
                     -- SET GIÁ TRỊ VÀO BIẾN CỦA PHẠM VI NGOÀI (Không ghi lại chữ local)
                     MyTycoonInstance = obj
@@ -42,7 +41,6 @@ local function FindMyTycoon()
         end
     end
     
-    print("❌ Hiện tại bạn chưa sở hữu Tycoon nào trong Server này.")
     return nil
 end
 
@@ -51,7 +49,7 @@ FindMyTycoon()
 
 local Tab = Window:CreateTab("Status", 4483362458)
 local Section = Tab:CreateSection("Tycoon")
-local Label = Tab:CreateLabel("My Tycoon: " .. MeTycoon, 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
+local Label = Tab:CreateLabel("My Tycoon: " .. tostring(MeTycoon), 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
 local Button = Tab:CreateButton({
    Name = "Refresh",
    Callback = function()
@@ -62,7 +60,7 @@ local Button = Tab:CreateButton({
         Image = 76359550502696,
         })
         FindMyTycoon()
-        Label:Set("My Tycoon: " .. MeTycoon, 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
+        Label:Set("My Tycoon: " .. tostring(MeTycoon), 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
    end,
 })
 local Tab = Window:CreateTab("Auto", 4483362458)
@@ -79,7 +77,6 @@ local Dropdown = Tab:CreateDropdown({
    Flag = "Dropdown_SelectPlace",
    Callback = function(Options)
        _G.SelectedPlace = Options[1]
-       print("📍 Đã chuyển chế độ farm sang:", _G.SelectedPlace)
    end,
 })
 
@@ -114,7 +111,6 @@ local Toggle = Tab:CreateToggle({
                                 
                                 -- 2. Click cây
                                 fireclickdetector(descendant, 0)
-                                print("⚡ Farmed:", descendant:GetFullName())
                                 
                                 task.wait(0.5)
                             end
@@ -137,7 +133,6 @@ local Toggle = Tab:CreateToggle({
                                 and tycoonObj.Constant:FindFirstChild("Trees")
                             
                             if treesFolder then
-                                print("🔍 Đang quét toàn bộ cây tại:", tycoonName)
                                 farmFolder(treesFolder)
                             end
                         end
@@ -156,20 +151,13 @@ local Toggle = Tab:CreateToggle({
                                 and myTycoonObj.Constant:FindFirstChild("Trees")
                             
                             if treesFolder then
-                                print("🔍 Đang quét cây tại khu vực của bạn: " .. MeTycoon)
                                 farmFolder(treesFolder)
-                            else
-                                print("⚠️ Không tìm thấy thư mục Trees trong nhà của bạn!")
                             end
-                        else
-                            print("⚠️ Lỗi: Không chạy được My Slot vì không tìm thấy nhà sở hữu!")
                         end
                     end
 
                     task.wait(1)
                 end
-                
-                print("🛑 [Auto Farm]: Đã dừng farm hoàn toàn!")
             end)
         end
     end,
@@ -186,8 +174,6 @@ local Toggle = Tab:CreateToggle({
 
         if Value then
             task.spawn(function()
-                print("🚀 [Smooth Cheer]: Hệ thống tối ưu bộ nhớ bắt đầu chạy...")
-                
                 local CollectionService = game:GetService("CollectionService")
                 local LocalPlayer = game:GetService("Players").LocalPlayer
                 local targetUIElement = nil
@@ -230,7 +216,6 @@ local Toggle = Tab:CreateToggle({
                         task.wait(0.5)
                     end
                 end
-                print("🛑 [Smooth Cheer]: Đã dừng.")
             end)
         end
     end,
@@ -246,7 +231,6 @@ local Toggle = Tab:CreateToggle({
 
         if Value then
             task.spawn(function()
-                print("🚀 [Auto Buy] Đã sửa lỗi cú pháp - Khởi động hệ thống SELL LEMONS...")
                 local Players = game:GetService("Players")
                 local LocalPlayer = Players.LocalPlayer
                 local BrokenButtons = {} 
@@ -349,15 +333,11 @@ local Toggle = Tab:CreateToggle({
                             end)
 
                             local myCashInfo = getMyCashInfo()
-                            print(string.format("📊 [Auto Buy] Tìm thấy %d nút bằng Cash.", #validButtons))
 
                             if #validButtons > 0 then
                                 local cheapestButton = validButtons[1]
                                 local pInfo = cheapestButton.PriceInfo
                                 
-                                print(string.format("🎯 Mục tiêu: %s | Giá: %s %s | Ví: %s %s", 
-                                    cheapestButton.RawName, tostring(pInfo.Num), pInfo.MagStr, tostring(myCashInfo.Num), myCashInfo.MagStr))
-
                                 -- So sánh tiền ví với giá nút dựa trên Cấp bậc danh hiệu
                                 local canAfford = false
                                 if myCashInfo.Rank > pInfo.Rank then
@@ -373,14 +353,9 @@ local Toggle = Tab:CreateToggle({
                                     end)
                                     
                                     if not success or (result == false) then
-                                        print("⚠️ Server từ chối nút: " .. cheapestButton.RawName)
                                         BrokenButtons[cheapestButton.Instance] = true
-                                    else
-                                        print("✅ Đã mua thành công: " .. cheapestButton.RawName)
                                     end
                                     task.wait(0.3)
-                                else
-                                    print("⏳ Ví chưa đủ tiền (Chờ tích lũy số mũ hoặc số tiền).")
                                 end
                             else
                                 BrokenButtons = {}
@@ -390,7 +365,6 @@ local Toggle = Tab:CreateToggle({
 
                     task.wait(1.2)
                 end
-                print("🛑 Đã tắt Auto Buy.")
             end)
         end
    end,
