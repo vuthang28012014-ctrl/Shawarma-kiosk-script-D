@@ -235,3 +235,163 @@ local Toggle = Tab:CreateToggle({
         end
     end,
 })
+----------------------------------------------------------------------------------------
+local Section = Tab:CreateSection("Tycoon")
+local Toggle = Tab:CreateToggle({
+   Name = "Auto Buy Buttons",
+   CurrentValue = false,
+   Flag = "Toggle_AutoBuyButtons", 
+   Callback = function(Value)
+        _G.AutoBuyButtons = Value
+
+        if Value then
+            task.spawn(function()
+                print("🚀 [Auto Buy] Đã sửa lỗi cú pháp - Khởi động hệ thống SELL LEMONS...")
+                local Players = game:GetService("Players")
+                local LocalPlayer = Players.LocalPlayer
+                local BrokenButtons = {} 
+
+                -- Bảng xếp hạng độ lớn của đơn vị tiền tệ (Số càng cao càng lớn)
+                local MagRank = {
+                    [""] = 1, ["k"] = 2, ["m"] = 3, ["million"] = 3, ["b"] = 4, ["billion"] = 4,
+                    ["t"] = 5, ["trillion"] = 5, ["qa"] = 6, ["quadrillion"] = 6, ["qi"] = 7, ["quintillion"] = 7,
+                    ["sx"] = 8, ["sextillion"] = 8, ["sp"] = 9, ["septillion"] = 9, ["oc"] = 10, ["octillion"] = 10,
+                    ["no"] = 11, ["nonillion"] = 11, ["dc"] = 12, ["decillion"] = 12
+                }
+
+                -- Hàm phân tách chuỗi tiền tệ thành Số và Cấp bậc đơn vị
+                local function parseCurrency(textNum, textMag)
+                    local cleanNum = string.gsub(string.lower(tostring(textNum)), "[^%d%.]", "")
+                    local num = tonumber(cleanNum) or 0
+                    
+                    local mag = string.lower(string.gsub(tostring(textMag), "[%s%$%,]", ""))
+                    local rank = MagRank[mag] or 1
+                    
+                    return { Num = num, Rank = rank, MagStr = mag }
+                end
+                
+                -- Hàm lấy và phân tách tiền trong ví leaderstats (Đã sửa lỗi cú pháp)
+                local function getMyCashInfo()
+                    local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
+                    local cashObj = leaderstats and leaderstats:FindFirstChild("Cash")
+                    if not cashObj then return { Num = 0, Rank = 1, MagStr = "" } end
+                    
+                    local rawCash = cashObj.Value
+                    if type(rawCash) == "number" then
+                        return { Num = rawCash, Rank = 1, MagStr = "" }
+                    end
+                    
+                    if type(rawCash) == "string" then
+                        local numPart = string.match(rawCash, "[%d%.]+") or "0"
+                        local magPart = string.gsub(rawCash, "[%d%.%s%$%,]", "")
+                        return parseCurrency(numPart, magPart)
+                    end
+                    
+                    return { Num = 0, Rank = 1, MagStr = "" }
+                end
+
+                -- Vòng lặp quét nút chính
+                while _G.AutoBuyButtons do
+                    if MeTycoon then
+                        local myTycoonObj = workspace:FindFirstChild(MeTycoon)
+                        
+                        if myTycoonObj then
+                            local validButtons = {}
+
+                            for _, descendant in ipairs(myTycoonObj:GetDescendants()) do
+                                if not _G.AutoBuyButtons then break end
+
+                                if descendant:IsA("Model") then
+                                    local fullPathLower = string.lower(descendant:GetFullName())
+                                    
+                                    if not string.match(fullPathLower, "gamepass") then
+                                        local remoteFunc = descendant:FindFirstChild("Purchase")
+                                        local buttonPart = descendant:FindFirstChild("Button")
+                                        
+                                        if remoteFunc and remoteFunc:IsA("RemoteFunction") and buttonPart then
+                                            if not BrokenButtons[descendant] then
+                                                local guiObj = buttonPart:FindFirstChild("Gui")
+                                                local priceLabel = guiObj and guiObj:FindFirstChild("Price")
+                                                local magLabel = guiObj and guiObj:FindFirstChild("PriceMag")
+
+                                                if priceLabel and priceLabel:IsA("TextLabel") and priceLabel.Text ~= "" then
+                                                    local numText = priceLabel.Text
+                                                    local magText = magLabel and magLabel:IsA("TextLabel") and magLabel.Text or ""
+                                                    
+                                                    if not string.match(string.lower(numText), "robux") and not string.match(string.lower(magText), "robux") and not string.match(string.lower(numText), "r$") then
+                                                        local priceData = parseCurrency(numText, magText)
+                                                        
+                                                        if priceData.Num > 0 then
+                                                            table.insert(validButtons, {
+                                                                Instance = descendant,
+                                                                Remote = remoteFunc,
+                                                                PriceInfo = priceData,
+                                                                RawName = descendant.Name
+                                                            })
+                                                        end
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+
+                            if not _G.AutoBuyButtons then break end
+
+                            -- Thuật toán sắp xếp nút thông minh theo Cấp bậc đơn vị trước, giá trị sau
+                            table.sort(validButtons, function(a, b)
+                                if a.PriceInfo.Rank ~= b.PriceInfo.Rank then
+                                    return a.PriceInfo.Rank < b.PriceInfo.Rank
+                                else
+                                    return a.PriceInfo.Num < b.PriceInfo.Num
+                                end
+                            end)
+
+                            local myCashInfo = getMyCashInfo()
+                            print(string.format("📊 [Auto Buy] Tìm thấy %d nút bằng Cash.", #validButtons))
+
+                            if #validButtons > 0 then
+                                local cheapestButton = validButtons[1]
+                                local pInfo = cheapestButton.PriceInfo
+                                
+                                print(string.format("🎯 Mục tiêu: %s | Giá: %s %s | Ví: %s %s", 
+                                    cheapestButton.RawName, tostring(pInfo.Num), pInfo.MagStr, tostring(myCashInfo.Num), myCashInfo.MagStr))
+
+                                -- So sánh tiền ví với giá nút dựa trên Cấp bậc danh hiệu
+                                local canAfford = false
+                                if myCashInfo.Rank > pInfo.Rank then
+                                    canAfford = true
+                                elseif myCashInfo.Rank == pInfo.Rank and myCashInfo.Num >= pInfo.Num then
+                                    canAfford = true
+                                end
+
+                                if canAfford then
+                                    local args = { false }
+                                    local success, result = pcall(function()
+                                        return cheapestButton.Remote:InvokeServer(unpack(args))
+                                    end)
+                                    
+                                    if not success or (result == false) then
+                                        print("⚠️ Server từ chối nút: " .. cheapestButton.RawName)
+                                        BrokenButtons[cheapestButton.Instance] = true
+                                    else
+                                        print("✅ Đã mua thành công: " .. cheapestButton.RawName)
+                                    end
+                                    task.wait(0.3)
+                                else
+                                    print("⏳ Ví chưa đủ tiền (Chờ tích lũy số mũ hoặc số tiền).")
+                                end
+                            else
+                                BrokenButtons = {}
+                            end
+                        end
+                    end
+
+                    task.wait(1.2)
+                end
+                print("🛑 Đã tắt Auto Buy.")
+            end)
+        end
+   end,
+})
