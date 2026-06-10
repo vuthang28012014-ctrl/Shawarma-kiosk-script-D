@@ -1,0 +1,223 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+   Name = "Sell Lemons exploit script",
+   Icon = 0,
+   LoadingTitle = "Sell Lemons script",
+   LoadingSubtitle = "made by VuThang6G",
+   ShowText = "Sell Lemons exploit script",
+   Theme = "Default",
+   ToggleUIKeybind = "K",
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false,
+   ConfigurationSaving = { Enabled = false, FolderName = nil, FileName = "Big Hub" },
+   Discord = { Enabled = false, Invite = "noinvitelink", RememberJoins = true },
+   KeySystem = false,
+   KeySettings = {}
+})
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- 🌟 KHAI BÁO LOCAL RA NGOÀI RÌA ĐỂ TẤT CẢ CÁC HÀM ĐỀU ĐỌC ĐƯỢC
+local MyTycoonInstance = nil
+local MeTycoon = nil
+
+-- Hàm quét và tìm kiếm Tycoon thuộc sở hữu của bạn
+local function FindMyTycoon()
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if string.match(obj.Name, "Tycoon") then
+            local ownerObject = obj:FindFirstChild("Owner")
+            
+            if ownerObject then
+                if ownerObject.Value == LocalPlayer.Name or (type(ownerObject.Value) == "userdata" and ownerObject.Value == LocalPlayer) then
+                    print("🎉 Đã tìm thấy Tycoon của bạn: " .. obj.Name)
+                    
+                    -- SET GIÁ TRỊ VÀO BIẾN CỦA PHẠM VI NGOÀI (Không ghi lại chữ local)
+                    MyTycoonInstance = obj
+                    MeTycoon = obj.Name 
+                    
+                    return obj
+                end
+            end
+        end
+    end
+    
+    print("❌ Hiện tại bạn chưa sở hữu Tycoon nào trong Server này.")
+    return nil
+end
+
+-- Chạy hàm quét nhà ngay khi vừa load Script
+FindMyTycoon()
+
+local Tab = Window:CreateTab("Status", 4483362458)
+local Label = Tab:CreateLabel("My Tycoon: " .. MeTycoon, 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
+local Tab = Window:CreateTab("Auto", 4483362458)
+local Section = Tab:CreateSection("Lemon trees")
+
+_G.SelectedPlace = "Map"
+
+-- 1. DROPDOWN CHỌN ĐỊA ĐIỂM
+local Dropdown = Tab:CreateDropdown({
+   Name = "Select Place",
+   Options = {"Map", "My Slot"},
+   CurrentOption = {"Map"},
+   MultipleOptions = false,
+   Flag = "Dropdown_SelectPlace",
+   Callback = function(Options)
+       _G.SelectedPlace = Options[1]
+       print("📍 Đã chuyển chế độ farm sang:", _G.SelectedPlace)
+   end,
+})
+
+-- 2. TOGGLE AUTO FARM
+local Toggle = Tab:CreateToggle({
+    Name = "Auto Farm LemonTree",
+    CurrentValue = false,
+    Flag = "Toggle_AutoFarmTrees",
+    Callback = function(Value)
+        _G.AutoFarmTrees = Value
+
+        if Value then
+            task.spawn(function()
+                local player = game:GetService("Players").LocalPlayer
+                
+                -- Hàm phụ: Xử lý farm cho một thư mục cây
+                local function farmFolder(treesFolder)
+                    if not treesFolder then return end
+                    
+                    for _, descendant in ipairs(treesFolder:GetDescendants()) do
+                        if not _G.AutoFarmTrees then break end
+
+                        if descendant:IsA("ClickDetector") then
+                            local parentPart = descendant.Parent
+                            
+                            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and parentPart and parentPart:IsA("BasePart") then
+                                -- 1. Teleport đến cây
+                                player.Character.HumanoidRootPart.CFrame = parentPart.CFrame * CFrame.new(0, 2, 0)
+                                task.wait(0.05)
+                                
+                                if not _G.AutoFarmTrees then break end
+                                
+                                -- 2. Click cây
+                                fireclickdetector(descendant, 0)
+                                print("⚡ Farmed:", descendant:GetFullName())
+                                
+                                task.wait(0.5)
+                            end
+                        end
+                    end
+                end
+
+                -- Vòng lặp chính của Toggle Auto Farm
+                while _G.AutoFarmTrees do
+                    
+                    if _G.SelectedPlace == "Map" then
+                        -- CHẾ ĐỘ MAP: Quét từ Tycoon1 đến Tycoon10
+                        for i = 1, 10 do
+                            if not _G.AutoFarmTrees then break end
+                            
+                            local tycoonName = "Tycoon" .. i
+                            local tycoonObj = workspace:FindFirstChild(tycoonName)
+                            local treesFolder = tycoonObj
+                                and tycoonObj:FindFirstChild("Constant")
+                                and tycoonObj.Constant:FindFirstChild("Trees")
+                            
+                            if treesFolder then
+                                print("🔍 Đang quét toàn bộ cây tại:", tycoonName)
+                                farmFolder(treesFolder)
+                            end
+                        end
+                        
+                    elseif _G.SelectedPlace == "My Slot" then
+                        -- CHẾ ĐỘ MY SLOT: Nếu chưa tìm được tên nhà thì quét lại để phòng hờ
+                        if not MeTycoon then
+                            FindMyTycoon()
+                        end
+
+                        if MeTycoon then
+                            -- 🛠️ ĐÃ SỬA CÚ PHÁP: Tìm vật thể bằng tên biến động trong ngoặc vuông []
+                            local myTycoonObj = workspace:FindFirstChild(MeTycoon)
+                            local treesFolder = myTycoonObj
+                                and myTycoonObj:FindFirstChild("Constant")
+                                and myTycoonObj.Constant:FindFirstChild("Trees")
+                            
+                            if treesFolder then
+                                print("🔍 Đang quét cây tại khu vực của bạn: " .. MeTycoon)
+                                farmFolder(treesFolder)
+                            else
+                                print("⚠️ Không tìm thấy thư mục Trees trong nhà của bạn!")
+                            end
+                        else
+                            print("⚠️ Lỗi: Không chạy được My Slot vì không tìm thấy nhà sở hữu!")
+                        end
+                    end
+
+                    task.wait(1)
+                end
+                
+                print("🛑 [Auto Farm]: Đã dừng farm hoàn toàn!")
+            end)
+        end
+    end,
+})
+
+----------------------------------------------------------------------------------------
+local Section = Tab:CreateSection("Mini Game - Race")
+local Toggle = Tab:CreateToggle({
+    Name = "Auto Cheer",
+    CurrentValue = false,
+    Flag = "Toggle_SmoothCheer",
+    Callback = function(Value)
+        _G.SmoothCheer = Value
+
+        if Value then
+            task.spawn(function()
+                print("🚀 [Smooth Cheer]: Hệ thống tối ưu bộ nhớ bắt đầu chạy...")
+                
+                local CollectionService = game:GetService("CollectionService")
+                local LocalPlayer = game:GetService("Players").LocalPlayer
+                local targetUIElement = nil
+
+                while _G.SmoothCheer do
+                    local taggedObjects = CollectionService:GetTagged("UI.MinigameRace")
+                    local isRacing = false
+                    
+                    for _, guiInstance in ipairs(taggedObjects) do
+                        if guiInstance:IsDescendantOf(LocalPlayer:FindFirstChild("PlayerGui")) then
+                            local btn = guiInstance:FindFirstChild("Button")
+                            if btn and btn.Visible and btn:FindFirstChild("Title") and btn.Title.Text == "Cheer" then
+                                isRacing = true
+                                break
+                            end
+                        end
+                    end
+                    
+                    if isRacing then
+                        if not targetUIElement then
+                            for _, obj in ipairs(getgc(true)) do
+                                if type(obj) == "table" and rawget(obj, "Cheered") and rawget(obj, "_TitleShowPrep") then
+                                    if obj._Cheer == true then
+                                        targetUIElement = obj
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                        
+                        if targetUIElement and targetUIElement._Cheer == true then
+                            pcall(function()
+                                targetUIElement.Cheered:Fire()
+                            end)
+                        end
+                        
+                        task.wait(0.04)
+                    else
+                        targetUIElement = nil
+                        task.wait(0.5)
+                    end
+                end
+                print("🛑 [Smooth Cheer]: Đã dừng.")
+            end)
+        end
+    end,
+})
