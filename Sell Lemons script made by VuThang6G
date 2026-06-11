@@ -235,7 +235,7 @@ local Toggle = Tab:CreateToggle({
                 local LocalPlayer = Players.LocalPlayer
                 local BrokenButtons = {} 
 
-                -- Hàm phân tách chuỗi tiền tệ thông minh
+                -- Hàm phân tách chuỗi tiền tệ thông minh (Chống nhận nhầm chữ trong tên nút)
                 local function parseCurrency(textNum, textMag)
                     local cleanNum = string.gsub(string.lower(tostring(textNum)), "[^%d%.]", "")
                     local num = tonumber(cleanNum) or 0
@@ -243,23 +243,39 @@ local Toggle = Tab:CreateToggle({
                     local mag = string.lower(tostring(textMag))
                     local rank = 1 
                     
-                    if string.find(mag, "dc") or string.find(mag, "decillion") then rank = 12
-                    elseif string.find(mag, "no") or string.find(mag, "nonillion") then rank = 11
-                    elseif string.find(mag, "oc") or string.find(mag, "octillion") then rank = 10 
-                    elseif string.find(mag, "sp") or string.find(mag, "septillion") then rank = 9
-                    elseif string.find(mag, "sx") or string.find(mag, "sextillion") then rank = 8
-                    elseif string.find(mag, "qi") or string.find(mag, "quintillion") then rank = 7
-                    elseif string.find(mag, "qa") or string.find(mag, "quadrillion") then rank = 6
-                    elseif string.find(mag, "t") or string.find(mag, "trillion") then rank = 5
-                    elseif string.find(mag, "b") or string.find(mag, "billion") then rank = 4
-                    elseif string.find(mag, "m") or string.find(mag, "million") then rank = 3
-                    elseif string.find(mag, "k") or string.find(mag, "thousand") then rank = 2
+                    -- Tách các từ riêng biệt bằng khoảng trắng để kiểm tra chính xác đơn vị viết tắt độc lập
+                    local words = {}
+                    for word in string.gmatch(mag, "%a+") do
+                        table.insert(words, word)
+                    end
+
+                    -- Kiểm tra danh sách từ khóa đơn vị chuẩn
+                    local function hasUnit(shortForm, longForm)
+                        for _, w in ipairs(words) do
+                            if w == shortForm or string.find(w, longForm) then
+                                return true
+                            end
+                        end
+                        return false
+                    end
+                    
+                    if hasUnit("dc", "decillion") then rank = 12
+                    elseif hasUnit("no", "nonillion") then rank = 11
+                    elseif hasUnit("oc", "octillion") then rank = 10 
+                    elseif hasUnit("sp", "septillion") then rank = 9
+                    elseif hasUnit("sx", "sextillion") then rank = 8
+                    elseif hasUnit("qi", "quintillion") then rank = 7
+                    elseif hasUnit("qa", "quadrillion") then rank = 6
+                    elseif hasUnit("t", "trillion") then rank = 5
+                    elseif hasUnit("b", "billion") then rank = 4
+                    elseif hasUnit("m", "million") then rank = 3
+                    elseif hasUnit("k", "thousand") then rank = 2
                     end
                     
                     return { Num = num, Rank = rank, MagStr = mag }
                 end
                 
-                -- Hàm lấy và phân tách tiền từ ví chính xác
+                -- Hàm lấy tiền từ ví chính xác
                 local function getMyCashInfo()
                     local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
                     local cashObj = leaderstats and leaderstats:FindFirstChild("Cash")
@@ -303,17 +319,20 @@ local Toggle = Tab:CreateToggle({
                                                 
                                                 if guiObj then
                                                     local allText = ""
+                                                    local textMagOnly = ""
                                                     for _, txtLabel in ipairs(guiObj:GetDescendants()) do
                                                         if txtLabel:IsA("TextLabel") and txtLabel.Text ~= "" then
-                                                            allText = allText .. " " .. string.lower(txtLabel.Text)
+                                                            local cleanText = string.lower(txtLabel.Text)
+                                                            allText = allText .. " " .. cleanText
+                                                            if not string.match(cleanText, "%d") then
+                                                                textMagOnly = textMagOnly .. " " .. cleanText
+                                                            end
                                                         end
                                                     end
 
                                                     if allText ~= "" and not string.find(allText, "robux") and not string.find(allText, "r$") then
                                                         local numPart = string.match(allText, "[%d%.]+") or "0"
-                                                        local magPart = string.gsub(allText, "[%d%.%s%$%,%+#]", "")
-                                                        
-                                                        local priceData = parseCurrency(numPart, magPart)
+                                                        local priceData = parseCurrency(numPart, textMagOnly)
                                                         
                                                         if priceData.Num > 0 then
                                                             table.insert(validButtons, {
