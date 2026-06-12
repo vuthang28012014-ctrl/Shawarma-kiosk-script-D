@@ -260,14 +260,113 @@ local Toggle = Tab:CreateToggle({
                     end
                     
                     if hasUnit("ce", "centillion") then rank = 102
+                    -- ========================================================
+                    -- GIA ĐÌNH HÀNG CHÍN MƯƠI (Gốc nog - Rank 92)
+                    -- ========================================================
+                    elseif hasUnit("nonog", "novemnonagintillion") then rank = 101
+                    elseif hasUnit("ocnog", "octononagintillion") then rank = 100
+                    elseif hasUnit("spnog", "septennonagintillion") then rank = 99
+                    elseif hasUnit("sxnog", "sexnonagintillion") then rank = 98
+                    elseif hasUnit("qnnog", "quinnonagintillion") then rank = 97
+                    elseif hasUnit("qtnog", "quattuornonagintillion") then rank = 96
+                    elseif hasUnit("tnog", "tresnonagintillion") then rank = 95
+                    elseif hasUnit("dnog", "duononagintillion") then rank = 94
+                    elseif hasUnit("unog", "unnonagintillion") then rank = 93
                     elseif hasUnit("nog", "nonagintillion") then rank = 92
+                    -- ========================================================
+                    -- GIA ĐÌNH HÀNG TÁM MƯƠI (Gốc ocg - Rank 82)
+                    -- ========================================================
+                    elseif hasUnit("noocg", "novemoctogintillion") then rank = 91
+                    elseif hasUnit("ococg", "octooctogintillion") then rank = 90
+                    elseif hasUnit("spocg", "septenoctogintillion") then rank = 89
+                    elseif hasUnit("sxocg", "sexoctogintillion") then rank = 88
+                    elseif hasUnit("qnocg", "quinoctogintillion") then rank = 87
+                    elseif hasUnit("qtocg", "quattuoroctogintillion") then rank = 86
+                    elseif hasUnit("tocg", "tresoctogintillion") then rank = 85
+                    elseif hasUnit("docg", "duooctogintillion") then rank = 84
+                    elseif hasUnit("uocg", "unoctogintillion") then rank = 83
                     elseif hasUnit("ocg", "octogintillion") then rank = 82
+                    -- ========================================================
+                    -- GIA ĐÌNH HÀNG BẢY MƯƠI (Gốc spg - Rank 72)
+                    -- ========================================================
+                    elseif hasUnit("nospg", "novemseptuagintillion") then rank = 81
+                    elseif hasUnit("ocspg", "octoseptuagintillion") then rank = 80
+                    elseif hasUnit("spspg", "septenseptuagintillion") then rank = 79
+                    elseif hasUnit("sxspg", "sexseptuagintillion") then rank = 78
+                    elseif hasUnit("qnspg", "quinseptuagintillion") then rank = 77
+                    elseif hasUnit("qtspg", "quattuorseptuagintillion") then rank = 76
+                    elseif hasUnit("tspg", "tresseptuagintillion") then rank = 75
+                    elseif hasUnit("dspg", "duoseptuagintillion") then rank = 74
+                    elseif hasUnit("uspg", "unseptuagintillion") then rank = 73
                     elseif hasUnit("spg", "septuagintillion") then rank = 72
+                    -- ========================================================
+                    -- GIA ĐÌNH HÀNG SÁU MƯƠI (Gốc sxg - Rank 62)
+                    -- ========================================================
+                    elseif hasUnit("nosxg", "novemsexagintillion") then rank = 71
+                    elseif hasUnit("ocsxg", "octosexagintillion") then rank = 70
+                    elseif hasUnit("spsxg", "septensexagintillion") then rank = 69
+                    elseif hasUnit("sxsxg", "sexsexagintillion") then rank = 68
+                    elseif hasUnit("qnsxg", "quinsexagintillion") then rank = 67
+                    elseif hasUnit("qtsxg", "quattuorsexagintillion") then rank = 66
+                    elseif hasUnit("tsxg", "tressexagintillion") then rank = 65
+                    elseif hasUnit("dsxg", "duosexagintillion") then rank = 64
+                    elseif hasUnit("usxg", "unsexagintillion") then rank = 63
                     elseif hasUnit("sxg", "sexagintillion") then rank = 62
+                    -- ========================================================
+                    -- GIA ĐÌNH HÀNG NĂM MƯƠI (Gốc qng - Rank 52)
+                    -- ========================================================
+                    elseif hasUnit("noqng", "novemquinquagintillion") then rank = 61
+                    elseif hasUnit("ocqng", "octoquinquagintillion") then rank = 60
+                    elseif hasUnit("spqng", "septenquinquagintillion") then rank = 59
+                    elseif hasUnit("sxqng", "sexquinquagintillion") then rank = 58
+                    elseif hasUnit("qnqng", "quinquinquagintillion") then rank = 57
+                    elseif hasUnit("qtqng", "quattuorquinquagintillion") then rank = 56
+                    elseif hasUnit("tqng", "tresquinquagintillion") then rank = 55
+                    elseif hasUnit("dqng", "duoquinquagintillion") then rank = 54
+                    elseif hasUnit("uqng", "unquinquagintillion") then rank = 53
                     elseif hasUnit("qng", "quinquagintillion") then rank = 52
+                    -- ========================================================
+                    -- GIA ĐÌNH HÀNG BỐN MƯƠI (Gốc qdg - Rank 42)
+                    -- ========================================================
+                    elseif hasUnit("noqdg", "novemquadragintillion") then rank = 51
+                    elseif hasUnit("ocqdg", "octoquadragintillion") then rank = 50
+                    elseif hasUnit("spqdg", "septenquadragintillion") then rank = 49
+                    elseif hasUnit("sxqdg", "sexquadragintillion") then rank = 48
+                    elseif hasUnit("qnqdg", "quinquadragintillion") then rank = 47
+                    elseif hasUnit("qtqdg", "quattuorquadragintillion") then rank = 46
+                    elseif hasUnit("tqdg", "tresquadragintillion") then rank = 45
+                    elseif hasUnit("dqdg", "duoquadragintillion") then rank = 44
+                    elseif hasUnit("uqdg", "unquadragintillion") then rank = 43
                     elseif hasUnit("qdg", "quadragintillion") then rank = 42
+                    -- ========================================================
+                    -- GIA ĐÌNH HÀNG BA MƯƠI (Gốc tg - Rank 32)
+                    -- ========================================================
+                    elseif hasUnit("notg", "novemtrigintillion") then rank = 41
+                    elseif hasUnit("octg", "octotrigintillion") then rank = 40
+                    elseif hasUnit("sptg", "septentrigintillion") then rank = 39
+                    elseif hasUnit("sxtg", "sextrigintillion") then rank = 38
+                    elseif hasUnit("hntg", "quintrigintillion") then rank = 37
+                    elseif hasUnit("qttg", "quattuortrigintillion") then rank = 36
+                    elseif hasUnit("ttg", "trestrigintillion") then rank = 35
+                    elseif hasUnit("dtg", "duotrigintillion") then rank = 34
+                    elseif hasUnit("utg", "untrigintillion") then rank = 33
                     elseif hasUnit("tg", "trigintillion") then rank = 32
+                    -- ========================================================
+                    -- GIA ĐÌNH HÀNG HAI MƯƠI (Gốc vg - Rank 22)
+                    -- ========================================================
+                    elseif hasUnit("novg", "novemvigintillion") then rank = 31
+                    elseif hasUnit("ocvg", "octovigintillion") then rank = 30
+                    elseif hasUnit("spvg", "septenvigintillion") then rank = 29
+                    elseif hasUnit("sxvg", "sexvigintillion") then rank = 28
+                    elseif hasUnit("qnvg", "quinvigintillion") then rank = 27
+                    elseif hasUnit("qtvg", "quattuorvigintillion") then rank = 26
+                    elseif hasUnit("tvg", "tresvigintillion") then rank = 25
+                    elseif hasUnit("dvg", "duovigintillion") then rank = 24
+                    elseif hasUnit("uvg", "unvigintillion") then rank = 23
                     elseif hasUnit("vg", "vigintillion") then rank = 22
+                    -- ========================================================
+                    -- ĐOẠN ĐƠN VỊ CŨ (Từ rank 21 xuống rank 2)
+                    -- ========================================================
                     elseif hasUnit("nod", "novemdecillion") then rank = 21
                     elseif hasUnit("ocd", "octodecillion") then rank = 20
                     elseif hasUnit("spd", "septendecillion") then rank = 19
