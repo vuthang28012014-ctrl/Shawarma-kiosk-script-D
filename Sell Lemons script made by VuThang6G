@@ -259,7 +259,25 @@ local Toggle = Tab:CreateToggle({
                         return false
                     end
                     
-                    if hasUnit("dc", "decillion") then rank = 12
+                    if hasUnit("ce", "centillion") then rank = 102
+                    elseif hasUnit("nog", "nonagintillion") then rank = 92
+                    elseif hasUnit("ocg", "octogintillion") then rank = 82
+                    elseif hasUnit("spg", "septuagintillion") then rank = 72
+                    elseif hasUnit("sxg", "sexagintillion") then rank = 62
+                    elseif hasUnit("qng", "quinquagintillion") then rank = 52
+                    elseif hasUnit("qdg", "quadragintillion") then rank = 42
+                    elseif hasUnit("tg", "trigintillion") then rank = 32
+                    elseif hasUnit("vg", "vigintillion") then rank = 22
+                    elseif hasUnit("nod", "novemdecillion") then rank = 21
+                    elseif hasUnit("ocd", "octodecillion") then rank = 20
+                    elseif hasUnit("spd", "septendecillion") then rank = 19
+                    elseif hasUnit("sxd", "sexdecillion") then rank = 18
+                    elseif hasUnit("qnd", "quindecillion") then rank = 17
+                    elseif hasUnit("qtd", "quattuordecillion") then rank = 16
+                    elseif hasUnit("td", "tredecillion") then rank = 15
+                    elseif hasUnit("dd", "duodecillion") then rank = 14
+                    elseif hasUnit("ud", "undecillion") then rank = 13
+                    elseif hasUnit("dc", "decillion") then rank = 12
                     elseif hasUnit("no", "nonillion") then rank = 11
                     elseif hasUnit("oc", "octillion") then rank = 10 
                     elseif hasUnit("sp", "septillion") then rank = 9
