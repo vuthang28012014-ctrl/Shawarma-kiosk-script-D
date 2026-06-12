@@ -63,6 +63,13 @@ local Button = Tab:CreateButton({
         Label:Set("My Tycoon: " .. tostring(MeTycoon), 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
    end,
 })
+local Section = Tab:CreateSection("Status/Values")
+local Button = Tab:CreateButton({
+   Name = "Execute the status/values script",
+   Callback = function()
+   loadstring(game:HttpGet('https://raw.githubusercontent.com/vuthang28012014-ctrl/Ban-list---AppleHub/refs/heads/main/Status%20and%20values%20script'))()
+   end,
+})
 local Tab = Window:CreateTab("Auto", 4483362458)
 local Section = Tab:CreateSection("Lemon trees")
 
