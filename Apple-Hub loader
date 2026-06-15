@@ -6,7 +6,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Scripts = {
     [128001665358186] = {
         Name = "Shawarma Kiosk",
-        Url = 'https://gate.sirius.menu/gateway?id=sid_9b25nn0jf85w'
+        Url = 'https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/Shawarma%20kiosk%20script%20made%20by%20vuthang6G'
     },
 
     [125700405216363] = {
