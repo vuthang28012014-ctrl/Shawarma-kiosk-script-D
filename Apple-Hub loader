@@ -17,6 +17,10 @@ local Scripts = {
     [14486123914] = {
         Name = "Protect the president",
         Url = 'https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/Protect%20the%20president%20script%20made%20by%20vuthang6G'
+    },
+    [79268393072444] = {
+        Name = "Sell lemons",
+        Url = 'https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/Sell%20Lemons%20script%20made%20by%20VuThang6G'
     }
 }
 
