@@ -3,7 +3,7 @@ local Window = Rayfield:CreateWindow({
    Name = "Sell Lemons exploit script",
    Icon = 0,
    LoadingTitle = "Sell Lemons script",
-   LoadingSubtitle = "made by Hackerissomuch_20",
+   LoadingSubtitle = "made by VuThang6G",
    ShowText = "Sell Lemons exploit script",
    Theme = "Default",
    ToggleUIKeybind = "K",
@@ -42,6 +42,49 @@ local function FindMyTycoon()
     end
     
     return nil
+end
+
+local suffixMultiplier = {
+    k = 1e3, m = 1e6, b = 1e9, t = 1e12, qa = 1e15, qi = 1e18, sx = 1e21, sp = 1e24, oc = 1e27, no = 1e30, dc = 1e33,
+    ud = 1e36, dd = 1e39, td = 1e42, qtd = 1e45, qnd = 1e48, sxd = 1e51, spd = 1e54, ocd = 1e57, nod = 1e60, vg = 1e63,
+    uvg = 1e66, dvg = 1e69, tvg = 1e72, qtvg = 1e75, qnvg = 1e78, sxvg = 1e81, spvg = 1e84, ocvg = 1e87, novg = 1e90, tg = 1e93,
+    utg = 1e96, dtg = 1e99, ttg = 1e102, qttg = 1e105, hntg = 1e108, sxtg = 1e111, sptg = 1e114, octg = 1e117, notg = 1e120, qdg = 1e123,
+    uqdg = 1e126, dqdg = 1e129, tqdg = 1e132, qtqdg = 1e135, qnqdg = 1e138, sxqdg = 1e141, spqdg = 1e144, ocqdg = 1e147, noqdg = 1e150, qng = 1e153,
+    uqng = 1e156, dqng = 1e159, tqng = 1e162, qtqng = 1e165, qnqng = 1e168, sxqng = 1e171, spqng = 1e174, ocqng = 1e177, noqng = 1e180, sxg = 1e183,
+    usxg = 1e186, dsxg = 1e189, tsxg = 1e192, qtsxg = 1e195, qnsxg = 1e198, sxsxg = 1e201, spsxg = 1e204, ocsxg = 1e207, nosxg = 1e210, spg = 1e213,
+    uspg = 1e216, dspg = 1e219, tspg = 1e222, qtspg = 1e225, qnspg = 1e228, sxspg = 1e231, spspg = 1e234, ocspg = 1e237, nospg = 1e240, ocg = 1e243,
+    uocg = 1e246, docg = 1e249, tocg = 1e252, qtocg = 1e255, qnocg = 1e258, sxocg = 1e261, spocg = 1e264, ococg = 1e267, noocg = 1e270, nog = 1e273,
+    unog = 1e276, dnog = 1e279, tnog = 1e282, qtnog = 1e285, qnnog = 1e288, sxnog = 1e291, spnog = 1e294, ocnog = 1e297, nonog = 1e300, ce = 1e303
+}
+
+-- Hàm giải mã chuỗi tiền tệ theo thuật toán gốc của Game (Lọc sạch ký tự ẩn)
+local function gameStyleDecode(str)
+    if not str then return 0 end
+    -- Loại bỏ chính xác các ký tự ẩn Unicode (\226\128\128 đến \226\128\143)
+    local clean = tostring(str):gsub("[\226\128\128-\226\128\143]", "")
+    
+    local numStr, suffix = clean:match("%$([%d%,%.]+)(%a*)")
+    if not numStr then
+        numStr, suffix = clean:match("([%d%,%.]+)(%a*)")
+    end
+    if not numStr then return 0 end
+
+    local num = tonumber((numStr:gsub(",", "")))
+    if not num then return 0 end
+    if not suffix or suffix == "" then return num end
+
+    suffix = string.lower(suffix)
+    local multiplier = suffixMultiplier[suffix]
+    
+    if not multiplier then
+        suffix = suffix:sub(1,1):upper() .. suffix:sub(2):lower()
+        multiplier = suffixMultiplier[string.lower(suffix)]
+    end
+
+    if multiplier then
+        return num * multiplier
+    end
+    return num
 end
 
 -- Chạy hàm quét nhà ngay khi vừa load Script
@@ -238,298 +281,214 @@ local Toggle = Tab:CreateToggle({
 
         if Value then
             task.spawn(function()
-                local Players = game:GetService("Players")
-                local LocalPlayer = Players.LocalPlayer
-                local BrokenButtons = {} 
-
-                -- Hàm phân tách chuỗi tiền tệ thông minh (Chống nhận nhầm chữ trong tên nút)
-                local function parseCurrency(textNum, textMag)
-                    local cleanNum = string.gsub(string.lower(tostring(textNum)), "[^%d%.]", "")
-                    local num = tonumber(cleanNum) or 0
-                    
-                    local mag = string.lower(tostring(textMag))
-                    local rank = 1 
-                    
-                    -- Tách các từ riêng biệt bằng khoảng trắng để kiểm tra chính xác đơn vị viết tắt độc lập
-                    local words = {}
-                    for word in string.gmatch(mag, "%a+") do
-                        table.insert(words, word)
-                    end
-
-                    -- Kiểm tra danh sách từ khóa đơn vị chuẩn
-                    local function hasUnit(shortForm, longForm)
-                        for _, w in ipairs(words) do
-                            if w == shortForm or string.find(w, longForm) then
-                                return true
-                            end
-                        end
-                        return false
-                    end
-                    
-                    if hasUnit("ce", "centillion") then rank = 102
-                    -- ========================================================
-                    -- GIA ĐÌNH HÀNG CHÍN MƯƠI (Gốc nog - Rank 92)
-                    -- ========================================================
-                    elseif hasUnit("nonog", "novemnonagintillion") then rank = 101
-                    elseif hasUnit("ocnog", "octononagintillion") then rank = 100
-                    elseif hasUnit("spnog", "septennonagintillion") then rank = 99
-                    elseif hasUnit("sxnog", "sexnonagintillion") then rank = 98
-                    elseif hasUnit("qnnog", "quinnonagintillion") then rank = 97
-                    elseif hasUnit("qtnog", "quattuornonagintillion") then rank = 96
-                    elseif hasUnit("tnog", "tresnonagintillion") then rank = 95
-                    elseif hasUnit("dnog", "duononagintillion") then rank = 94
-                    elseif hasUnit("unog", "unnonagintillion") then rank = 93
-                    elseif hasUnit("nog", "nonagintillion") then rank = 92
-                    -- ========================================================
-                    -- GIA ĐÌNH HÀNG TÁM MƯƠI (Gốc ocg - Rank 82)
-                    -- ========================================================
-                    elseif hasUnit("noocg", "novemoctogintillion") then rank = 91
-                    elseif hasUnit("ococg", "octooctogintillion") then rank = 90
-                    elseif hasUnit("spocg", "septenoctogintillion") then rank = 89
-                    elseif hasUnit("sxocg", "sexoctogintillion") then rank = 88
-                    elseif hasUnit("qnocg", "quinoctogintillion") then rank = 87
-                    elseif hasUnit("qtocg", "quattuoroctogintillion") then rank = 86
-                    elseif hasUnit("tocg", "tresoctogintillion") then rank = 85
-                    elseif hasUnit("docg", "duooctogintillion") then rank = 84
-                    elseif hasUnit("uocg", "unoctogintillion") then rank = 83
-                    elseif hasUnit("ocg", "octogintillion") then rank = 82
-                    -- ========================================================
-                    -- GIA ĐÌNH HÀNG BẢY MƯƠI (Gốc spg - Rank 72)
-                    -- ========================================================
-                    elseif hasUnit("nospg", "novemseptuagintillion") then rank = 81
-                    elseif hasUnit("ocspg", "octoseptuagintillion") then rank = 80
-                    elseif hasUnit("spspg", "septenseptuagintillion") then rank = 79
-                    elseif hasUnit("sxspg", "sexseptuagintillion") then rank = 78
-                    elseif hasUnit("qnspg", "quinseptuagintillion") then rank = 77
-                    elseif hasUnit("qtspg", "quattuorseptuagintillion") then rank = 76
-                    elseif hasUnit("tspg", "tresseptuagintillion") then rank = 75
-                    elseif hasUnit("dspg", "duoseptuagintillion") then rank = 74
-                    elseif hasUnit("uspg", "unseptuagintillion") then rank = 73
-                    elseif hasUnit("spg", "septuagintillion") then rank = 72
-                    -- ========================================================
-                    -- GIA ĐÌNH HÀNG SÁU MƯƠI (Gốc sxg - Rank 62)
-                    -- ========================================================
-                    elseif hasUnit("nosxg", "novemsexagintillion") then rank = 71
-                    elseif hasUnit("ocsxg", "octosexagintillion") then rank = 70
-                    elseif hasUnit("spsxg", "septensexagintillion") then rank = 69
-                    elseif hasUnit("sxsxg", "sexsexagintillion") then rank = 68
-                    elseif hasUnit("qnsxg", "quinsexagintillion") then rank = 67
-                    elseif hasUnit("qtsxg", "quattuorsexagintillion") then rank = 66
-                    elseif hasUnit("tsxg", "tressexagintillion") then rank = 65
-                    elseif hasUnit("dsxg", "duosexagintillion") then rank = 64
-                    elseif hasUnit("usxg", "unsexagintillion") then rank = 63
-                    elseif hasUnit("sxg", "sexagintillion") then rank = 62
-                    -- ========================================================
-                    -- GIA ĐÌNH HÀNG NĂM MƯƠI (Gốc qng - Rank 52)
-                    -- ========================================================
-                    elseif hasUnit("noqng", "novemquinquagintillion") then rank = 61
-                    elseif hasUnit("ocqng", "octoquinquagintillion") then rank = 60
-                    elseif hasUnit("spqng", "septenquinquagintillion") then rank = 59
-                    elseif hasUnit("sxqng", "sexquinquagintillion") then rank = 58
-                    elseif hasUnit("qnqng", "quinquinquagintillion") then rank = 57
-                    elseif hasUnit("qtqng", "quattuorquinquagintillion") then rank = 56
-                    elseif hasUnit("tqng", "tresquinquagintillion") then rank = 55
-                    elseif hasUnit("dqng", "duoquinquagintillion") then rank = 54
-                    elseif hasUnit("uqng", "unquinquagintillion") then rank = 53
-                    elseif hasUnit("qng", "quinquagintillion") then rank = 52
-                    -- ========================================================
-                    -- GIA ĐÌNH HÀNG BỐN MƯƠI (Gốc qdg - Rank 42)
-                    -- ========================================================
-                    elseif hasUnit("noqdg", "novemquadragintillion") then rank = 51
-                    elseif hasUnit("ocqdg", "octoquadragintillion") then rank = 50
-                    elseif hasUnit("spqdg", "septenquadragintillion") then rank = 49
-                    elseif hasUnit("sxqdg", "sexquadragintillion") then rank = 48
-                    elseif hasUnit("qnqdg", "quinquadragintillion") then rank = 47
-                    elseif hasUnit("qtqdg", "quattuorquadragintillion") then rank = 46
-                    elseif hasUnit("tqdg", "tresquadragintillion") then rank = 45
-                    elseif hasUnit("dqdg", "duoquadragintillion") then rank = 44
-                    elseif hasUnit("uqdg", "unquadragintillion") then rank = 43
-                    elseif hasUnit("qdg", "quadragintillion") then rank = 42
-                    -- ========================================================
-                    -- GIA ĐÌNH HÀNG BA MƯƠI (Gốc tg - Rank 32)
-                    -- ========================================================
-                    elseif hasUnit("notg", "novemtrigintillion") then rank = 41
-                    elseif hasUnit("octg", "octotrigintillion") then rank = 40
-                    elseif hasUnit("sptg", "septentrigintillion") then rank = 39
-                    elseif hasUnit("sxtg", "sextrigintillion") then rank = 38
-                    elseif hasUnit("hntg", "quintrigintillion") then rank = 37
-                    elseif hasUnit("qttg", "quattuortrigintillion") then rank = 36
-                    elseif hasUnit("ttg", "trestrigintillion") then rank = 35
-                    elseif hasUnit("dtg", "duotrigintillion") then rank = 34
-                    elseif hasUnit("utg", "untrigintillion") then rank = 33
-                    elseif hasUnit("tg", "trigintillion") then rank = 32
-                    -- ========================================================
-                    -- GIA ĐÌNH HÀNG HAI MƯƠI (Gốc vg - Rank 22)
-                    -- ========================================================
-                    elseif hasUnit("novg", "novemvigintillion") then rank = 31
-                    elseif hasUnit("ocvg", "octovigintillion") then rank = 30
-                    elseif hasUnit("spvg", "septenvigintillion") then rank = 29
-                    elseif hasUnit("sxvg", "sexvigintillion") then rank = 28
-                    elseif hasUnit("qnvg", "quinvigintillion") then rank = 27
-                    elseif hasUnit("qtvg", "quattuorvigintillion") then rank = 26
-                    elseif hasUnit("tvg", "tresvigintillion") then rank = 25
-                    elseif hasUnit("dvg", "duovigintillion") then rank = 24
-                    elseif hasUnit("uvg", "unvigintillion") then rank = 23
-                    elseif hasUnit("vg", "vigintillion") then rank = 22
-                    -- ========================================================
-                    -- ĐOẠN ĐƠN VỊ CŨ (Từ rank 21 xuống rank 2)
-                    -- ========================================================
-                    elseif hasUnit("nod", "novemdecillion") then rank = 21
-                    elseif hasUnit("ocd", "octodecillion") then rank = 20
-                    elseif hasUnit("spd", "septendecillion") then rank = 19
-                    elseif hasUnit("sxd", "sexdecillion") then rank = 18
-                    elseif hasUnit("qnd", "quindecillion") then rank = 17
-                    elseif hasUnit("qtd", "quattuordecillion") then rank = 16
-                    elseif hasUnit("td", "tredecillion") then rank = 15
-                    elseif hasUnit("dd", "duodecillion") then rank = 14
-                    elseif hasUnit("ud", "undecillion") then rank = 13
-                    elseif hasUnit("dc", "decillion") then rank = 12
-                    elseif hasUnit("no", "nonillion") then rank = 11
-                    elseif hasUnit("oc", "octillion") then rank = 10 
-                    elseif hasUnit("sp", "septillion") then rank = 9
-                    elseif hasUnit("sx", "sextillion") then rank = 8
-                    elseif hasUnit("qi", "quintillion") then rank = 7
-                    elseif hasUnit("qa", "quadrillion") then rank = 6
-                    elseif hasUnit("t", "trillion") then rank = 5
-                    elseif hasUnit("b", "billion") then rank = 4
-                    elseif hasUnit("m", "million") then rank = 3
-                    elseif hasUnit("k", "thousand") then rank = 2
-                    end
-                    
-                    return { Num = num, Rank = rank, MagStr = mag }
-                end
-                
-                -- Hàm lấy tiền từ ví chính xác
-                local function getMyCashInfo()
-                    local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
-                    local cashObj = leaderstats and leaderstats:FindFirstChild("Cash")
-                    if not cashObj then return { Num = 0, Rank = 1, MagStr = "" } end
-                    
-                    local rawCash = cashObj.Value
-                    if type(rawCash) == "number" then
-                        return { Num = rawCash, Rank = 1, MagStr = "" }
-                    end
-                    
-                    if type(rawCash) == "string" then
-                        local numPart = string.match(rawCash, "[%d%.]+") or "0"
-                        local magPart = string.gsub(rawCash, "[%d%.%s%$%,]", "")
-                        return parseCurrency(numPart, magPart)
-                    end
-                    
-                    return { Num = 0, Rank = 1, MagStr = "" }
-                end
-
-                -- Vòng lặp chính quét và tự động mua
                 while _G.AutoBuyButtons do
                     if MeTycoon then
                         local myTycoonObj = workspace:FindFirstChild(MeTycoon)
-                        
-                        if myTycoonObj then
-                            local validButtons = {}
+                        local PurchasesFold = myTycoonObj and myTycoonObj:FindFirstChild("Purchases")
 
-                            for _, descendant in ipairs(myTycoonObj:GetDescendants()) do
-                                if not _G.AutoBuyButtons then break end
-
-                                if descendant:IsA("Model") then
-                                    local fullPathLower = string.lower(descendant:GetFullName())
+                        if PurchasesFold then
+                            pcall(function()
+                                for _, fold in pairs(PurchasesFold:GetChildren()) do
+                                    if not _G.AutoBuyButtons then break end
                                     
-                                    if not string.match(fullPathLower, "gamepass") then
-                                        local remoteFunc = descendant:FindFirstChild("Purchase")
-                                        local buttonPart = descendant:FindFirstChild("Button")
-                                        
-                                        if remoteFunc and buttonPart then
-                                            if not BrokenButtons[descendant] then
-                                                local guiObj = buttonPart:FindFirstChild("Gui") or buttonPart:FindFirstChildOfClass("SurfaceGui") or buttonPart:FindFirstChildOfClass("BillboardGui")
-                                                
-                                                if guiObj then
-                                                    local allText = ""
-                                                    local textMagOnly = ""
-                                                    for _, txtLabel in ipairs(guiObj:GetDescendants()) do
-                                                        if txtLabel:IsA("TextLabel") and txtLabel.Text ~= "" then
-                                                            local cleanText = string.lower(txtLabel.Text)
-                                                            allText = allText .. " " .. cleanText
-                                                            if not string.match(cleanText, "%d") then
-                                                                textMagOnly = textMagOnly .. " " .. cleanText
-                                                            end
-                                                        end
-                                                    end
+                                    if fold:FindFirstChild("Buttons") then
+                                        for _, nFold in pairs(fold.Buttons:GetChildren()) do
+                                            if not _G.AutoBuyButtons then break end
 
-                                                    if allText ~= "" and not string.find(allText, "robux") and not string.find(allText, "r$") then
-                                                        local numPart = string.match(allText, "[%d%.]+") or "0"
-                                                        local priceData = parseCurrency(numPart, textMagOnly)
+                                            local function processButton(btn)
+                                                if btn:GetAttribute("Shown") and btn:GetAttribute("Enabled") and not btn:GetAttribute("Purchased") then
+                                                    if btn:FindFirstChild("Button") and btn.Button:FindFirstChild("Gui") and btn.Button.Gui:FindFirstChild("Price") then
+                                                        local price = gameStyleDecode(btn.Button.Gui.Price.Text)
+                                                        local curbalance = gameStyleDecode(LocalPlayer.leaderstats.Cash.Value)
                                                         
-                                                        if priceData.Num > 0 then
-                                                            table.insert(validButtons, {
-                                                                Instance = descendant,
-                                                                Remote = remoteFunc,
-                                                                PriceInfo = priceData,
-                                                                RawName = descendant.Name
-                                                            })
+                                                        if price <= curbalance and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head") then
+                                                            firetouchinterest(LocalPlayer.Character.Head, btn.Button, true)
+                                                            task.wait(0.01)
+                                                            firetouchinterest(LocalPlayer.Character.Head, btn.Button, false)
                                                         end
                                                     end
                                                 end
                                             end
+
+                                            if nFold:IsA("Folder") then
+                                                for _, btn in pairs(nFold:GetChildren()) do processButton(btn) end
+                                            elseif nFold:IsA("Model") then
+                                                processButton(nFold)
+                                            end
                                         end
                                     end
                                 end
-                            end
-
-                            if not _G.AutoBuyButtons then break end
-
-                            -- Sắp xếp danh sách nút từ rẻ đến đắt
-                            table.sort(validButtons, function(a, b)
-                                if a.PriceInfo.Rank ~= b.PriceInfo.Rank then
-                                    return a.PriceInfo.Rank < b.PriceInfo.Rank
-                                else
-                                    return a.PriceInfo.Num < b.PriceInfo.Num
-                                end
                             end)
-
-                            local myCashInfo = getMyCashInfo()
-
-                            if #validButtons > 0 then
-                                local cheapestButton = validButtons[1]
-                                local pInfo = cheapestButton.PriceInfo
-                                
-                                local myNum   = tonumber(myCashInfo.Num) or 0
-                                local myRank  = tonumber(myCashInfo.Rank) or 1
-                                local btnNum  = tonumber(pInfo.Num) or 0
-                                local btnRank = tonumber(pInfo.Rank) or 1
-
-                                local canAfford = false
-                                if myRank > btnRank then
-                                    canAfford = true
-                                elseif myRank == btnRank and myNum >= btnNum then
-                                    canAfford = true
-                                end
-
-                                if canAfford then
-                                    local success, result
-                                    if cheapestButton.Remote:IsA("RemoteFunction") then
-                                        success, result = pcall(function() 
-                                            return cheapestButton.Remote:InvokeServer(false) 
-                                        end)
-                                    else
-                                        success, result = pcall(function() 
-                                            cheapestButton.Remote:FireServer(false) 
-                                            return true 
-                                        end)
-                                    end
-                                    
-                                    if not success or (result == false) then
-                                        BrokenButtons[cheapestButton.Instance] = true
-                                    end
-                                    task.wait(0.3)
-                                end
-                            else
-                                BrokenButtons = {}
-                            end
                         end
+                    else
+                        FindMyTycoon()
                     end
-
-                    task.wait(1.2)
+                    task.wait(0.5)
                 end
             end)
         end
     end,
 })
+
+local isFarming = false
+
+local Toggle = Tab:CreateToggle({
+   Name = "Auto Spam Stands & Computers",
+   CurrentValue = false,
+   Flag = "Auto Spam Stands", 
+   Callback = function(Value)
+       isFarming = Value
+       
+       if isFarming then
+           task.spawn(function()
+               while isFarming do
+                   -- TỰ ĐỘNG KIỂM TRA VÀ LẤY NHÀ BIẾN ĐỘNG THEO BIẾN MeTycoon
+                   if not MeTycoon then
+                       FindMyTycoon()
+                   end
+                   
+                   if MeTycoon then
+                       local myTycoonObj = workspace:FindFirstChild(MeTycoon)
+                       if myTycoonObj then
+                           -- Tìm các đường dẫn Values -> Income -> Streams dựa trên nhà quét được
+                           local valuesFolder = myTycoonObj:FindFirstChild("Values")
+                           local incomeFolder = valuesFolder and valuesFolder:FindFirstChild("Income")
+                           local stands = incomeFolder and incomeFolder:FindFirstChild("Streams")
+                           local remotesFolder = myTycoonObj:FindFirstChild("Remotes")
+                           local Event = remotesFolder and remotesFolder:FindFirstChild("WakeIncomeStream")
+                           
+                           -- Nếu tìm thấy đầy đủ các mục thì mới tiến hành spam
+                           if stands and Event then
+                               for _, v in pairs(stands:GetChildren()) do
+                                   task.spawn(function()
+                                       Event:InvokeServer(v.Name)
+                                   end)
+                               end
+                           end
+                       end
+                   end
+                   
+                   task.wait() 
+               end
+           end)
+       end
+   end,
+})
+local Toggle = Tab:CreateToggle({
+    Name = "Auto Upgrade Everything",
+    CurrentValue = false,
+    Flag = "Toggle_AutoUpgradeEverything",
+    Callback = function(Value)
+        _G.AutoUpgradeEverything = Value
+
+        if Value then
+            task.spawn(function()
+                while _G.AutoUpgradeEverything do
+                    if MeTycoon then
+                        local myTycoonObj = workspace:FindFirstChild(MeTycoon)
+                        local PurchasesFold = myTycoonObj and myTycoonObj:FindFirstChild("Purchases")
+
+                        if PurchasesFold then
+                            pcall(function()
+                                if not _G.AutoUpgradeEverything then return end
+                                for _, fold in pairs(PurchasesFold:GetChildren()) do
+                                    if not _G.AutoUpgradeEverything then break end
+
+                                    -- Quét chuẩn cấu trúc lặp tên 3 tầng dạng búp bê Nga của game
+                                    if fold:FindFirstChild(fold.Name) then
+                                        if not fold:FindFirstChild(fold.Name):GetAttribute("Enabled") then
+                                            continue
+                                        end
+                                        
+                                        local subFold = fold:FindFirstChild(fold.Name)
+                                        if subFold and subFold:FindFirstChild(fold.Name) and subFold:FindFirstChild(fold.Name):FindFirstChild("Upgrade") then
+                                            subFold:FindFirstChild(fold.Name).Upgrade:InvokeServer(1)
+                                        end
+                                    end
+                                end
+                            end)
+                        end
+                    else
+                        FindMyTycoon()
+                    end
+                    task.wait() -- Thời gian chờ quét nâng cấp (0.8 giây để chạy mượt mà ổn định)
+                end
+            end)
+        end
+    end,
+})
+-- TOGGLE 6: AUTO CASH DROPS (TỰ ĐỘNG NHẶT TIỀN RƠI KHÔNG DÙNG GETGENV)
+local Toggle = Tab:CreateToggle({
+    Name = "Auto Collect Cash Drops",
+    CurrentValue = false,
+    Flag = "Toggle_AutoCashDrops",
+    Callback = function(Value)
+        _G.AutoCashDrops = Value
+
+        if Value then
+            task.spawn(function()
+                local Players = game:GetService("Players")
+                local LocalPlayer = Players.LocalPlayer
+
+                while _G.AutoCashDrops do
+                    pcall(function()
+                        -- Kiểm tra xem thư mục chứa tiền rơi có tồn tại trong workspace không
+                        local CashDropsFolder = workspace:FindFirstChild("CashDrops")
+                        
+                        if CashDropsFolder then
+                            for _, cashItem in pairs(CashDropsFolder:GetChildren()) do
+                                -- Nếu người dùng tắt nút giữa chừng thì dừng vòng lặp quét ngay lập tức
+                                if not _G.AutoCashDrops then break end
+
+                                -- Kiểm tra nhân vật và phần đầu (Head) còn sống/tồn tại không để tránh lỗi
+                                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head") then
+                                    local head = LocalPlayer.Character.Head
+                                    
+                                    -- Giả lập va chạm: Chạm vào cục tiền từ xa
+                                    firetouchinterest(head, cashItem, true)
+                                    task.wait(0.01) -- Thời gian chờ siêu ngắn để server nhận lệnh
+                                    firetouchinterest(head, cashItem, false) -- Rời khỏi va chạm
+                                end
+                            end
+                        end
+                    end)
+                    
+                    task.wait(0.5) -- Khoảng nghỉ giữa các đợt quét toàn bản đồ (tránh làm lag game)
+                end
+            end)
+        end
+    end,
+})
+-- TOGGLE 7: AUTO ACCEPT PHONE OFFERS (KHÔNG DÙNG GETGENV)
+local Toggle = Tab:CreateToggle({
+    Name = "Auto Accept Phone Offers",
+    CurrentValue = false,
+    Flag = "Toggle_AutoPhoneOffers",
+    Callback = function(Value)
+        _G.AutoPhoneOffers = Value
+    end,
+})
+
+-- HỆ THỐNG LẮNG NGHE SỰ KIỆN TỪ SERVER (EVENT LISTENER)
+-- Đặt đoạn này ở cuối script hoặc phía ngoài các Toggle để nó luôn chạy ngầm
+task.spawn(function()
+    -- Đợi cho đến khi hệ thống tìm thấy nhà Tycoon của bạn để tránh lỗi chặn script
+    while not MeTycoon do 
+        task.wait(1) 
+    end
+    
+    local myTycoonObj = workspace:FindFirstChild(MeTycoon)
+    local phoneEvent = myTycoonObj 
+        and myTycoonObj:FindFirstChild("Remotes") 
+        and myTycoonObj.Remotes:FindFirstChild("PhoneOffer")
+
+    if phoneEvent and phoneEvent:IsA("RemoteEvent") then
+        phoneEvent.OnClientEvent:Connect(function()
+            -- Kiểm tra xem bạn có đang bật tính năng này trong menu không
+            if not _G.AutoPhoneOffers then return end
+            
+            -- Gửi phản hồi "Accept" lên Server ngay khi nhận được thông báo
+            phoneEvent:FireServer("Accept")
+        end)
+    end
+end)
