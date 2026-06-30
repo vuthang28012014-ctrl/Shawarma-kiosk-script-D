@@ -492,3 +492,144 @@ task.spawn(function()
         end)
     end
 end)
+--===================================================================================
+-- BẢN SỬA LỖI: DÁN ĐOẠN NÀY THAY THẾ CHO ĐOẠN PROGRESSION CŨ Ở CUỐI SCRIPT
+--===================================================================================
+
+local RS = game:GetService("ReplicatedStorage")
+
+-- Gọi trực tiếp Module gốc của game giống 100% script lấy logic ban đầu
+local function req(p) local ok, m = pcall(require, p) return ok and m or nil end
+local ProgTycoonModule     = req(RS.Modules.Tycoon.Tycoon)
+local ClientTycoonBalances  = req(RS.Modules.Tycoon.Component.Client.ClientTycoonBalances)
+local ClientTycoonRebirth   = req(RS.Modules.Tycoon.Component.Client.ClientTycoonRebirth)
+local ClientTycoonAscension = req(RS.Modules.Tycoon.Component.Client.ClientTycoonAscension)
+local ClientTycoonEvolution = req(RS.Modules.Tycoon.Component.Client.ClientTycoonEvolution)
+local ClientTycoonPowers    = req(RS.Modules.Tycoon.Component.Client.ClientTycoonPowers)
+local Huge                  = req(RS.Modules.Huge)
+local Config                = req(RS.Config)
+
+-- Bảng trạng thái hoạt động của 4 Toggle mới
+local ProgState = {
+    AutoUpgradePowers = false,
+    AutoRebirth       = false,
+    AutoEvolve        = false,
+    AutoAscend        = false
+}
+
+local function affordProg(price, cur) local ok, r = pcall(function() return price ~= nil and price <= cur end) return ok and r end
+
+-- Tạo Section mới nằm trong Tab "Auto" hiện tại của bạn
+local ProgressionSection = Tab:CreateSection("Progression")
+
+-- 1. TOGGLE: AUTO UPGRADE POWERS
+local TogglePowers = Tab:CreateToggle({
+   Name = "Auto Upgrade Powers",
+   CurrentValue = false,
+   Flag = "Toggle_ProgAutoPowers",
+   Callback = function(Value)
+       ProgState.AutoUpgradePowers = Value
+   end,
+})
+
+-- 2. TOGGLE: AUTO REBIRTH
+local ToggleRebirth = Tab:CreateToggle({
+   Name = "Auto Rebirth",
+   CurrentValue = false,
+   Flag = "Toggle_ProgAutoRebirth",
+   Callback = function(Value)
+       ProgState.AutoRebirth = Value
+   end,
+})
+
+-- 3. TOGGLE: AUTO EVOLVE
+local ToggleEvolve = Tab:CreateToggle({
+   Name = "Auto Evolve",
+   CurrentValue = false,
+   Flag = "Toggle_ProgAutoEvolve",
+   Callback = function(Value)
+       ProgState.AutoEvolve = Value
+   end,
+})
+
+-- 4. TOGGLE: AUTO ASCEND
+local ToggleAscend = Tab:CreateToggle({
+   Name = "Auto Ascend",
+   CurrentValue = false,
+   Flag = "Toggle_ProgAutoAscend",
+   Callback = function(Value)
+       ProgState.AutoAscend = Value
+   end,
+})
+
+-- HỆ THỐNG XỬ LÝ LOGIC TIẾN TRÌNH CHẠY NGẦM CHUẨN THEO MODULE GAME
+task.spawn(function()
+    while true do
+        -- Lấy đúng thực thể Tycoon từ Module hệ thống (giống script gốc của bạn)
+        local t = ProgTycoonModule and ProgTycoonModule.getLocal()
+        
+        if t then
+            pcall(function()
+                -- 1. Logic: Auto Upgrade Powers
+                if ProgState.AutoUpgradePowers then
+                    local bal = t:GetComponent(ClientTycoonBalances)
+                    local pw = t:GetComponent(ClientTycoonPowers)
+                    if bal and pw and Config then
+                        for name in pairs(Config.Powers) do
+                            if not ProgState.AutoUpgradePowers then break end
+                            local okl, lvl = pcall(function() return pw:GetLevel(name) end)
+                            local okm, maxl = pcall(function() return pw:GetMaxLevel(name) end)
+                            if okl and okm and maxl and lvl < maxl then
+                                local okp, price = pcall(function() return pw:GetUpgradePrice(name) end)
+                                local oki, inv = pcall(function() return bal:GetInvestors() end)
+                                if okp and price and oki and affordProg(price, inv) then 
+                                    pcall(function() pw:UpgradeAsync(name) end) 
+                                end
+                            end
+                        end
+                    end
+                end
+
+                -- 2. Logic: Auto Rebirth (Đã sửa đổi để chạy chuẩn xác)
+                if ProgState.AutoRebirth then
+                    local rb = t:GetComponent(ClientTycoonRebirth)
+                    if rb then
+                        local ok, pot = pcall(function() return rb:GetPotentialInvestors() end)
+                        if ok then
+                            local cok, ready = pcall(function() return Huge.one < pot end)
+                            if cok and ready then 
+                                pcall(function() rb:RebirthAsync(false) end) 
+                            end
+                        end
+                    end
+                end
+
+                -- 3. Logic: Auto Evolve
+                if ProgState.AutoEvolve then
+                    local ev = t:GetComponent(ClientTycoonEvolution)
+                    if ev then
+                        local ok, p = pcall(function() return ev:GetEvolutionProgress() end)
+                        if ok and type(p) == "number" and p >= 1 then 
+                            pcall(function() ev:EvolveAsync() end) 
+                        end
+                    end
+                end
+
+                -- 4. Logic: Auto Ascend
+                if ProgState.AutoAscend then
+                    local a = t:GetComponent(ClientTycoonAscension)
+                    if a then
+                        local okd, d = pcall(function() return a:IsDiscovered() end)
+                        if okd and d then
+                            local ok, p = pcall(function() return a:GetAscension() end)
+                            if ok and type(p) == "number" and p >= 1 then 
+                                pcall(function() a:AscendAsync() end) 
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+        task.wait(0.5) -- Tần suất kiểm tra
+    end
+end)
