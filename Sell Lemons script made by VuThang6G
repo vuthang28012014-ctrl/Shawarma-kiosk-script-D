@@ -491,3 +491,46 @@ task.spawn(function()
         task.wait(0.5)
     end
 end)
+--===================================================================================
+-- TÍNH NĂNG: ANTI-AFK (CHỐNG BỊ KICK KHI TREO MÁY VĨNH VIỄN)
+--===================================================================================
+
+-- Khai báo dịch vụ giả lập hệ thống
+local VirtualUser = game:GetService("VirtualUser")
+
+-- Thêm trạng thái AntiAFK vào bảng cấu hình (mặc định tắt khi mới chạy script)
+ProgState.AntiAFK = false
+
+-- TẠO TOGGLE TRÊN MENU RAYFIELD (Nằm chung Section Progression của bạn)
+local ToggleAntiAFK = Tab:CreateToggle({
+   Name = "Anti-AFK (Treo máy vĩnh viễn)",
+   CurrentValue = false,
+   Flag = "Toggle_ProgAntiAFK",
+   Callback = function(Value)
+       ProgState.AntiAFK = Value
+   end,
+})
+
+-- HỆ THỐNG LẮNG NGHE TRẠNG THÁI IDLE TỪ ROBLOX
+-- Đoạn này chạy độc lập, tự bắt tín hiệu khi tài khoản của bạn không di chuyển sau 20 phút
+local LocalPlayer = game:GetService("Players").LocalPlayer
+
+LocalPlayer.Idled:Connect(function()
+    -- Nếu bạn đang BẬT nút Anti-AFK trên Menu
+    if ProgState.AntiAFK then
+        pcall(function()
+            -- Giành quyền mô phỏng thiết bị đầu vào (chuột/bàn phím)
+            VirtualUser:CaptureController()
+            -- Giả lập một cú Click chuột phải ngầm vào vị trí (0,0) trên màn hình game
+            VirtualUser:ClickButton2(Vector2.new(0, 0))
+            
+            -- Gửi thông báo nhỏ lên góc màn hình để bạn biết hệ thống vừa cứu bạn khỏi bị AFK
+            Rayfield:Notify({
+                Title = "Anti-AFK Triggered",
+                Content = "Bypass successful! Resetting Roblox's 20-minute idle timer.",
+                Duration = 3,
+                Image = 4483362458
+            })
+        end)
+    end
+end)
