@@ -491,6 +491,7 @@ task.spawn(function()
         task.wait(0.5)
     end
 end)
+local SectionUtility = Tab:CreateSection("Utility")
 --===================================================================================
 -- TÍNH NĂNG: ANTI-AFK (CHỐNG BỊ KICK KHI TREO MÁY VĨNH VIỄN)
 --===================================================================================
@@ -503,7 +504,7 @@ ProgState.AntiAFK = false
 
 -- TẠO TOGGLE TRÊN MENU RAYFIELD (Nằm chung Section Progression của bạn)
 local ToggleAntiAFK = Tab:CreateToggle({
-   Name = "Anti-AFK (Treo máy vĩnh viễn)",
+   Name = "Anti-AFK",
    CurrentValue = false,
    Flag = "Toggle_ProgAntiAFK",
    Callback = function(Value)
