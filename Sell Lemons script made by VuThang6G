@@ -17,6 +17,8 @@ local Window = Rayfield:CreateWindow({
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local CollectionService = game:GetService("CollectionService")
+local RS = game:GetService("ReplicatedStorage")
 
 -- 🌟 KHAI BÁO LOCAL RA NGOÀI RÌA ĐỂ TẤT CẢ CÁC HÀM ĐỀU ĐỌC ĐƯỢC
 local MyTycoonInstance = nil
@@ -30,17 +32,13 @@ local function FindMyTycoon()
             
             if ownerObject then
                 if ownerObject.Value == LocalPlayer.Name or (type(ownerObject.Value) == "userdata" and ownerObject.Value == LocalPlayer) then
-                    
-                    -- SET GIÁ TRỊ VÀO BIẾN CỦA PHẠM VI NGOÀI (Không ghi lại chữ local)
                     MyTycoonInstance = obj
                     MeTycoon = obj.Name 
-                    
                     return obj
                 end
             end
         end
     end
-    
     return nil
 end
 
@@ -57,16 +55,11 @@ local suffixMultiplier = {
     unog = 1e276, dnog = 1e279, tnog = 1e282, qtnog = 1e285, qnnog = 1e288, sxnog = 1e291, spnog = 1e294, ocnog = 1e297, nonog = 1e300, ce = 1e303
 }
 
--- Hàm giải mã chuỗi tiền tệ theo thuật toán gốc của Game (Lọc sạch ký tự ẩn)
 local function gameStyleDecode(str)
     if not str then return 0 end
-    -- Loại bỏ chính xác các ký tự ẩn Unicode (\226\128\128 đến \226\128\143)
     local clean = tostring(str):gsub("[\226\128\128-\226\128\143]", "")
-    
     local numStr, suffix = clean:match("%$([%d%,%.]+)(%a*)")
-    if not numStr then
-        numStr, suffix = clean:match("([%d%,%.]+)(%a*)")
-    end
+    if not numStr then numStr, suffix = clean:match("([%d%,%.]+)(%a*)") end
     if not numStr then return 0 end
 
     local num = tonumber((numStr:gsub(",", "")))
@@ -75,137 +68,92 @@ local function gameStyleDecode(str)
 
     suffix = string.lower(suffix)
     local multiplier = suffixMultiplier[suffix]
-    
     if not multiplier then
         suffix = suffix:sub(1,1):upper() .. suffix:sub(2):lower()
         multiplier = suffixMultiplier[string.lower(suffix)]
     end
-
-    if multiplier then
-        return num * multiplier
-    end
-    return num
+    return multiplier and (num * multiplier) or num
 end
 
--- Chạy hàm quét nhà ngay khi vừa load Script
 FindMyTycoon()
 
-local Tab = Window:CreateTab("Status", 4483362458)
-local Section = Tab:CreateSection("Tycoon")
-local Label = Tab:CreateLabel("My Tycoon: " .. tostring(MeTycoon), 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
-local Button = Tab:CreateButton({
+-- TAB STATUS
+local TabStatus = Window:CreateTab("Status", 4483362458)
+local SectionTycoon = TabStatus:CreateSection("Tycoon")
+local LabelTycoon = TabStatus:CreateLabel("My Tycoon: " .. tostring(MeTycoon), 4483362458, Color3.fromRGB(255, 255, 255), false)
+local ButtonRefresh = TabStatus:CreateButton({
    Name = "Refresh",
    Callback = function()
-        Rayfield:Notify({
-        Title = "Notification",
-        Content = "Refreshed!",
-        Duration = 6.5,
-        Image = 76359550502696,
-        })
+        Rayfield:Notify({Title = "Notification", Content = "Refreshed!", Duration = 6.5, Image = 76359550502696})
         FindMyTycoon()
-        Label:Set("My Tycoon: " .. tostring(MeTycoon), 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
+        LabelTycoon:Set("My Tycoon: " .. tostring(MeTycoon), 4483362458, Color3.fromRGB(255, 255, 255), false)
    end,
 })
-local Section = Tab:CreateSection("Status/Values")
-local Button = Tab:CreateButton({
+local SectionValues = TabStatus:CreateSection("Status/Values")
+local ButtonExecute = TabStatus:CreateButton({
    Name = "Execute the status/values script",
    Callback = function()
-   loadstring(game:HttpGet('https://raw.githubusercontent.com/vuthang28012014-ctrl/Ban-list---AppleHub/refs/heads/main/Status%20and%20values%20script'))()
+        loadstring(game:HttpGet('https://raw.githubusercontent.com/vuthang28012014-ctrl/Ban-list---AppleHub/refs/heads/main/Status%20and%20values%20script'))()
    end,
 })
+
+-- TAB AUTO
 local Tab = Window:CreateTab("Auto", 4483362458)
-local Section = Tab:CreateSection("Lemon trees")
+local SectionTrees = Tab:CreateSection("Lemon trees")
 
 _G.SelectedPlace = "Map"
 
--- 1. DROPDOWN CHỌN ĐỊA ĐIỂM
 local Dropdown = Tab:CreateDropdown({
    Name = "Select Place",
    Options = {"Map", "My Slot"},
    CurrentOption = {"Map"},
    MultipleOptions = false,
    Flag = "Dropdown_SelectPlace",
-   Callback = function(Options)
-       _G.SelectedPlace = Options[1]
-   end,
+   Callback = function(Options) _G.SelectedPlace = Options[1] end,
 })
 
--- 2. TOGGLE AUTO FARM
-local Toggle = Tab:CreateToggle({
+local ToggleFarm = Tab:CreateToggle({
     Name = "Auto Farm LemonTree",
     CurrentValue = false,
     Flag = "Toggle_AutoFarmTrees",
     Callback = function(Value)
         _G.AutoFarmTrees = Value
-
         if Value then
             task.spawn(function()
                 local player = game:GetService("Players").LocalPlayer
-                
-                -- Hàm phụ: Xử lý farm cho một thư mục cây
                 local function farmFolder(treesFolder)
                     if not treesFolder then return end
-                    
                     for _, descendant in ipairs(treesFolder:GetDescendants()) do
                         if not _G.AutoFarmTrees then break end
-
                         if descendant:IsA("ClickDetector") then
                             local parentPart = descendant.Parent
-                            
                             if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and parentPart and parentPart:IsA("BasePart") then
-                                -- 1. Teleport đến cây
                                 player.Character.HumanoidRootPart.CFrame = parentPart.CFrame * CFrame.new(0, 2, 0)
                                 task.wait(0.05)
-                                
                                 if not _G.AutoFarmTrees then break end
-                                
-                                -- 2. Click cây
                                 fireclickdetector(descendant, 0)
-                                
                                 task.wait(0.5)
                             end
                         end
                     end
                 end
 
-                -- Vòng lặp chính của Toggle Auto Farm
                 while _G.AutoFarmTrees do
-                    
                     if _G.SelectedPlace == "Map" then
-                        -- CHẾ ĐỘ MAP: Quét từ Tycoon1 đến Tycoon10
                         for i = 1, 10 do
                             if not _G.AutoFarmTrees then break end
-                            
-                            local tycoonName = "Tycoon" .. i
-                            local tycoonObj = workspace:FindFirstChild(tycoonName)
-                            local treesFolder = tycoonObj
-                                and tycoonObj:FindFirstChild("Constant")
-                                and tycoonObj.Constant:FindFirstChild("Trees")
-                            
-                            if treesFolder then
-                                farmFolder(treesFolder)
-                            end
+                            local tycoonObj = workspace:FindFirstChild("Tycoon" .. i)
+                            local treesFolder = tycoonObj and tycoonObj:FindFirstChild("Constant") and tycoonObj.Constant:FindFirstChild("Trees")
+                            if treesFolder then farmFolder(treesFolder) end
                         end
-                        
                     elseif _G.SelectedPlace == "My Slot" then
-                        -- CHẾ ĐỘ MY SLOT: Nếu chưa tìm được tên nhà thì quét lại để phòng hờ
-                        if not MeTycoon then
-                            FindMyTycoon()
-                        end
-
+                        if not MeTycoon then FindMyTycoon() end
                         if MeTycoon then
-                            -- 🛠️ ĐÃ SỬA CÚ PHÁP: Tìm vật thể bằng tên biến động trong ngoặc vuông []
                             local myTycoonObj = workspace:FindFirstChild(MeTycoon)
-                            local treesFolder = myTycoonObj
-                                and myTycoonObj:FindFirstChild("Constant")
-                                and myTycoonObj.Constant:FindFirstChild("Trees")
-                            
-                            if treesFolder then
-                                farmFolder(treesFolder)
-                            end
+                            local treesFolder = myTycoonObj and myTycoonObj:FindFirstChild("Constant") and myTycoonObj.Constant:FindFirstChild("Trees")
+                            if treesFolder then farmFolder(treesFolder) end
                         end
                     end
-
                     task.wait(1)
                 end
             end)
@@ -213,25 +161,19 @@ local Toggle = Tab:CreateToggle({
     end,
 })
 
-----------------------------------------------------------------------------------------
-local Section = Tab:CreateSection("Mini Game - Race")
-local Toggle = Tab:CreateToggle({
+local SectionRace = Tab:CreateSection("Mini Game - Race")
+local ToggleCheer = Tab:CreateToggle({
     Name = "Auto Cheer",
     CurrentValue = false,
     Flag = "Toggle_SmoothCheer",
     Callback = function(Value)
         _G.SmoothCheer = Value
-
         if Value then
             task.spawn(function()
-                local CollectionService = game:GetService("CollectionService")
-                local LocalPlayer = game:GetService("Players").LocalPlayer
                 local targetUIElement = nil
-
                 while _G.SmoothCheer do
                     local taggedObjects = CollectionService:GetTagged("UI.MinigameRace")
                     local isRacing = false
-                    
                     for _, guiInstance in ipairs(taggedObjects) do
                         if guiInstance:IsDescendantOf(LocalPlayer:FindFirstChild("PlayerGui")) then
                             local btn = guiInstance:FindFirstChild("Button")
@@ -241,25 +183,18 @@ local Toggle = Tab:CreateToggle({
                             end
                         end
                     end
-                    
                     if isRacing then
                         if not targetUIElement then
                             for _, obj in ipairs(getgc(true)) do
-                                if type(obj) == "table" and rawget(obj, "Cheered") and rawget(obj, "_TitleShowPrep") then
-                                    if obj._Cheer == true then
-                                        targetUIElement = obj
-                                        break
-                                    end
+                                if type(obj) == "table" and rawget(obj, "Cheered") and rawget(obj, "_TitleShowPrep") and obj._Cheer == true then
+                                    targetUIElement = obj
+                                    break
                                 end
                             end
                         end
-                        
                         if targetUIElement and targetUIElement._Cheer == true then
-                            pcall(function()
-                                targetUIElement.Cheered:Fire()
-                            end)
+                            pcall(function() targetUIElement.Cheered:Fire() end)
                         end
-                        
                         task.wait(0.04)
                     else
                         targetUIElement = nil
@@ -270,37 +205,32 @@ local Toggle = Tab:CreateToggle({
         end
     end,
 })
-----------------------------------------------------------------------------------------
-local Section = Tab:CreateSection("Tycoon")
-local Toggle = Tab:CreateToggle({
+
+local SectionTycoonMain = Tab:CreateSection("Tycoon")
+local ToggleBuyButtons = Tab:CreateToggle({
     Name = "Auto Buy Buttons",
     CurrentValue = false,
     Flag = "Toggle_AutoBuyButtons", 
     Callback = function(Value)
         _G.AutoBuyButtons = Value
-
         if Value then
             task.spawn(function()
                 while _G.AutoBuyButtons do
                     if MeTycoon then
                         local myTycoonObj = workspace:FindFirstChild(MeTycoon)
                         local PurchasesFold = myTycoonObj and myTycoonObj:FindFirstChild("Purchases")
-
                         if PurchasesFold then
                             pcall(function()
                                 for _, fold in pairs(PurchasesFold:GetChildren()) do
                                     if not _G.AutoBuyButtons then break end
-                                    
                                     if fold:FindFirstChild("Buttons") then
                                         for _, nFold in pairs(fold.Buttons:GetChildren()) do
                                             if not _G.AutoBuyButtons then break end
-
                                             local function processButton(btn)
                                                 if btn:GetAttribute("Shown") and btn:GetAttribute("Enabled") and not btn:GetAttribute("Purchased") then
                                                     if btn:FindFirstChild("Button") and btn.Button:FindFirstChild("Gui") and btn.Button.Gui:FindFirstChild("Price") then
                                                         local price = gameStyleDecode(btn.Button.Gui.Price.Text)
                                                         local curbalance = gameStyleDecode(LocalPlayer.leaderstats.Cash.Value)
-                                                        
                                                         if price <= curbalance and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head") then
                                                             firetouchinterest(LocalPlayer.Character.Head, btn.Button, true)
                                                             task.wait(0.01)
@@ -309,7 +239,6 @@ local Toggle = Tab:CreateToggle({
                                                     end
                                                 end
                                             end
-
                                             if nFold:IsA("Folder") then
                                                 for _, btn in pairs(nFold:GetChildren()) do processButton(btn) end
                                             elseif nFold:IsA("Model") then
@@ -331,174 +260,87 @@ local Toggle = Tab:CreateToggle({
 })
 
 local isFarming = false
-
-local Toggle = Tab:CreateToggle({
+local ToggleSpamStands = Tab:CreateToggle({
    Name = "Auto Spam Stands & Computers",
    CurrentValue = false,
    Flag = "Auto Spam Stands", 
    Callback = function(Value)
        isFarming = Value
-       
        if isFarming then
            task.spawn(function()
                while isFarming do
-                   -- TỰ ĐỘNG KIỂM TRA VÀ LẤY NHÀ BIẾN ĐỘNG THEO BIẾN MeTycoon
-                   if not MeTycoon then
-                       FindMyTycoon()
-                   end
-                   
+                   if not MeTycoon then FindMyTycoon() end
                    if MeTycoon then
                        local myTycoonObj = workspace:FindFirstChild(MeTycoon)
-                       if myTycoonObj then
-                           -- Tìm các đường dẫn Values -> Income -> Streams dựa trên nhà quét được
-                           local valuesFolder = myTycoonObj:FindFirstChild("Values")
-                           local incomeFolder = valuesFolder and valuesFolder:FindFirstChild("Income")
-                           local stands = incomeFolder and incomeFolder:FindFirstChild("Streams")
-                           local remotesFolder = myTycoonObj:FindFirstChild("Remotes")
-                           local Event = remotesFolder and remotesFolder:FindFirstChild("WakeIncomeStream")
-                           
-                           -- Nếu tìm thấy đầy đủ các mục thì mới tiến hành spam
-                           if stands and Event then
-                               for _, v in pairs(stands:GetChildren()) do
-                                   task.spawn(function()
-                                       Event:InvokeServer(v.Name)
-                                   end)
-                               end
+                       local valuesFolder = myTycoonObj and myTycoonObj:FindFirstChild("Values")
+                       local incomeFolder = valuesFolder and valuesFolder:FindFirstChild("Income")
+                       local stands = incomeFolder and incomeFolder:FindFirstChild("Streams")
+                       local remotesFolder = myTycoonObj and myTycoonObj:FindFirstChild("Remotes")
+                       local Event = remotesFolder and remotesFolder:FindFirstChild("WakeIncomeStream")
+                       if stands and Event then
+                           for _, v in pairs(stands:GetChildren()) do
+                               task.spawn(function() Event:InvokeServer(v.Name) end)
                            end
                        end
                    end
-                   
                    task.wait() 
                end
            end)
        end
    end,
 })
-local Toggle = Tab:CreateToggle({
-    Name = "Auto Upgrade Everything",
-    CurrentValue = false,
-    Flag = "Toggle_AutoUpgradeEverything",
-    Callback = function(Value)
-        _G.AutoUpgradeEverything = Value
 
-        if Value then
-            task.spawn(function()
-                while _G.AutoUpgradeEverything do
-                    if MeTycoon then
-                        local myTycoonObj = workspace:FindFirstChild(MeTycoon)
-                        local PurchasesFold = myTycoonObj and myTycoonObj:FindFirstChild("Purchases")
-
-                        if PurchasesFold then
-                            pcall(function()
-                                if not _G.AutoUpgradeEverything then return end
-                                for _, fold in pairs(PurchasesFold:GetChildren()) do
-                                    if not _G.AutoUpgradeEverything then break end
-
-                                    -- Quét chuẩn cấu trúc lặp tên 3 tầng dạng búp bê Nga của game
-                                    if fold:FindFirstChild(fold.Name) then
-                                        if not fold:FindFirstChild(fold.Name):GetAttribute("Enabled") then
-                                            continue
-                                        end
-                                        
-                                        local subFold = fold:FindFirstChild(fold.Name)
-                                        if subFold and subFold:FindFirstChild(fold.Name) and subFold:FindFirstChild(fold.Name):FindFirstChild("Upgrade") then
-                                            subFold:FindFirstChild(fold.Name).Upgrade:InvokeServer(1)
-                                        end
-                                    end
-                                end
-                            end)
-                        end
-                    else
-                        FindMyTycoon()
-                    end
-                    task.wait() -- Thời gian chờ quét nâng cấp (0.8 giây để chạy mượt mà ổn định)
-                end
-            end)
-        end
-    end,
-})
--- TOGGLE 6: AUTO CASH DROPS (TỰ ĐỘNG NHẶT TIỀN RƠI KHÔNG DÙNG GETGENV)
-local Toggle = Tab:CreateToggle({
+local ToggleCashDrops = Tab:CreateToggle({
     Name = "Auto Collect Cash Drops",
     CurrentValue = false,
     Flag = "Toggle_AutoCashDrops",
     Callback = function(Value)
         _G.AutoCashDrops = Value
-
         if Value then
             task.spawn(function()
-                local Players = game:GetService("Players")
-                local LocalPlayer = Players.LocalPlayer
-
                 while _G.AutoCashDrops do
                     pcall(function()
-                        -- Kiểm tra xem thư mục chứa tiền rơi có tồn tại trong workspace không
                         local CashDropsFolder = workspace:FindFirstChild("CashDrops")
-                        
                         if CashDropsFolder then
                             for _, cashItem in pairs(CashDropsFolder:GetChildren()) do
-                                -- Nếu người dùng tắt nút giữa chừng thì dừng vòng lặp quét ngay lập tức
                                 if not _G.AutoCashDrops then break end
-
-                                -- Kiểm tra nhân vật và phần đầu (Head) còn sống/tồn tại không để tránh lỗi
                                 if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head") then
                                     local head = LocalPlayer.Character.Head
-                                    
-                                    -- Giả lập va chạm: Chạm vào cục tiền từ xa
                                     firetouchinterest(head, cashItem, true)
-                                    task.wait(0.01) -- Thời gian chờ siêu ngắn để server nhận lệnh
-                                    firetouchinterest(head, cashItem, false) -- Rời khỏi va chạm
+                                    task.wait(0.01)
+                                    firetouchinterest(head, cashItem, false)
                                 end
                             end
                         end
                     end)
-                    
-                    task.wait(0.5) -- Khoảng nghỉ giữa các đợt quét toàn bản đồ (tránh làm lag game)
+                    task.wait(0.5)
                 end
             end)
         end
     end,
 })
--- TOGGLE 7: AUTO ACCEPT PHONE OFFERS (KHÔNG DÙNG GETGENV)
-local Toggle = Tab:CreateToggle({
+
+local TogglePhoneOffers = Tab:CreateToggle({
     Name = "Auto Accept Phone Offers",
     CurrentValue = false,
     Flag = "Toggle_AutoPhoneOffers",
-    Callback = function(Value)
-        _G.AutoPhoneOffers = Value
-    end,
+    Callback = function(Value) _G.AutoPhoneOffers = Value end,
 })
 
--- HỆ THỐNG LẮNG NGHE SỰ KIỆN TỪ SERVER (EVENT LISTENER)
--- Đặt đoạn này ở cuối script hoặc phía ngoài các Toggle để nó luôn chạy ngầm
 task.spawn(function()
-    -- Đợi cho đến khi hệ thống tìm thấy nhà Tycoon của bạn để tránh lỗi chặn script
-    while not MeTycoon do 
-        task.wait(1) 
-    end
-    
+    while not MeTycoon do task.wait(1) end
     local myTycoonObj = workspace:FindFirstChild(MeTycoon)
-    local phoneEvent = myTycoonObj 
-        and myTycoonObj:FindFirstChild("Remotes") 
-        and myTycoonObj.Remotes:FindFirstChild("PhoneOffer")
-
+    local phoneEvent = myTycoonObj and myTycoonObj:FindFirstChild("Remotes") and myTycoonObj.Remotes:FindFirstChild("PhoneOffer")
     if phoneEvent and phoneEvent:IsA("RemoteEvent") then
         phoneEvent.OnClientEvent:Connect(function()
-            -- Kiểm tra xem bạn có đang bật tính năng này trong menu không
-            if not _G.AutoPhoneOffers then return end
-            
-            -- Gửi phản hồi "Accept" lên Server ngay khi nhận được thông báo
-            phoneEvent:FireServer("Accept")
+            if _G.AutoPhoneOffers then phoneEvent:FireServer("Accept") end
         end)
     end
 end)
---===================================================================================
--- BẢN SỬA LỖI: DÁN ĐOẠN NÀY THAY THẾ CHO ĐOẠN PROGRESSION CŨ Ở CUỐI SCRIPT
---===================================================================================
 
-local RS = game:GetService("ReplicatedStorage")
-
--- Gọi trực tiếp Module gốc của game giống 100% script lấy logic ban đầu
+-- ===================================================================================
+-- KHU VỰC HỆ THỐNG PHÁT TRIỂN NGẦM (PROGRESSION & EARNERS BULK) - ĐÃ GỘP CHUẨN XÁC
+-- ===================================================================================
 local function req(p) local ok, m = pcall(require, p) return ok and m or nil end
 local ProgTycoonModule     = req(RS.Modules.Tycoon.Tycoon)
 local ClientTycoonBalances  = req(RS.Modules.Tycoon.Component.Client.ClientTycoonBalances)
@@ -506,71 +348,95 @@ local ClientTycoonRebirth   = req(RS.Modules.Tycoon.Component.Client.ClientTycoo
 local ClientTycoonAscension = req(RS.Modules.Tycoon.Component.Client.ClientTycoonAscension)
 local ClientTycoonEvolution = req(RS.Modules.Tycoon.Component.Client.ClientTycoonEvolution)
 local ClientTycoonPowers    = req(RS.Modules.Tycoon.Component.Client.ClientTycoonPowers)
+local TycoonBalances        = req(RS.Modules.Tycoon.Component.TycoonBalances)
+local Entity                = req(RS.Core.Entity)
 local Huge                  = req(RS.Modules.Huge)
 local Config                = req(RS.Config)
 
--- Bảng trạng thái hoạt động của 4 Toggle mới
 local ProgState = {
-    AutoUpgradePowers = false,
-    AutoRebirth       = false,
-    AutoEvolve        = false,
-    AutoAscend        = false
+    AutoUpgradeEarners = false,
+    AutoUpgradePowers  = false,
+    AutoRebirth        = false,
+    AutoEvolve         = false,
+    AutoAscend         = false
 }
 
 local function affordProg(price, cur) local ok, r = pcall(function() return price ~= nil and price <= cur end) return ok and r end
 
--- Tạo Section mới nằm trong Tab "Auto" hiện tại của bạn
+local _rootCache, _earnCache = nil, {}
+local function refreshEarnersCache(t)
+    if not t or not t.Instance then return end
+    if _rootCache == t.Instance and #_earnCache > 0 then return end
+    _rootCache, _earnCache = t.Instance, {}
+    for _, i in ipairs(CollectionService:GetTagged("Tycoon.Earner")) do 
+        if i:IsDescendantOf(_rootCache) then table.insert(_earnCache, i) end 
+    end
+end
+
 local ProgressionSection = Tab:CreateSection("Progression")
 
--- 1. TOGGLE: AUTO UPGRADE POWERS
+local ToggleUpgradeEarners = Tab:CreateToggle({
+   Name = "Auto Upgrade Earners (Bulk)",
+   CurrentValue = false,
+   Flag = "Toggle_ProgAutoUpgradeEarners",
+   Callback = function(Value) ProgState.AutoUpgradeEarners = Value end,
+})
+
 local TogglePowers = Tab:CreateToggle({
    Name = "Auto Upgrade Powers",
    CurrentValue = false,
    Flag = "Toggle_ProgAutoPowers",
-   Callback = function(Value)
-       ProgState.AutoUpgradePowers = Value
-   end,
+   Callback = function(Value) ProgState.AutoUpgradePowers = Value end,
 })
 
--- 2. TOGGLE: AUTO REBIRTH
 local ToggleRebirth = Tab:CreateToggle({
    Name = "Auto Rebirth",
    CurrentValue = false,
    Flag = "Toggle_ProgAutoRebirth",
-   Callback = function(Value)
-       ProgState.AutoRebirth = Value
-   end,
+   Callback = function(Value) ProgState.AutoRebirth = Value end,
 })
 
--- 3. TOGGLE: AUTO EVOLVE
 local ToggleEvolve = Tab:CreateToggle({
    Name = "Auto Evolve",
    CurrentValue = false,
    Flag = "Toggle_ProgAutoEvolve",
-   Callback = function(Value)
-       ProgState.AutoEvolve = Value
-   end,
-})
+   Callback = function(Value) ProgState.AutoEvolve = Value end,
+ })
 
--- 4. TOGGLE: AUTO ASCEND
 local ToggleAscend = Tab:CreateToggle({
    Name = "Auto Ascend",
    CurrentValue = false,
    Flag = "Toggle_ProgAutoAscend",
-   Callback = function(Value)
-       ProgState.AutoAscend = Value
-   end,
+   Callback = function(Value) ProgState.AutoAscend = Value end,
 })
 
--- HỆ THỐNG XỬ LÝ LOGIC TIẾN TRÌNH CHẠY NGẦM CHUẨN THEO MODULE GAME
 task.spawn(function()
     while true do
-        -- Lấy đúng thực thể Tycoon từ Module hệ thống (giống script gốc của bạn)
         local t = ProgTycoonModule and ProgTycoonModule.getLocal()
-        
         if t then
             pcall(function()
-                -- 1. Logic: Auto Upgrade Powers
+                -- 1. Logic: Auto Upgrade Earners (Bulk) mua số lượng lớn bằng Cash
+                if ProgState.AutoUpgradeEarners then
+                    local bal = t:GetComponent(TycoonBalances)
+                    if bal then
+                        refreshEarnersCache(t)
+                        for _, inst in ipairs(_earnCache) do
+                            if not ProgState.AutoUpgradeEarners then break end
+                            local e = Entity.getUnsafe(inst)
+                            if e then
+                                local okl, lvl = pcall(function() return e:GetUpgradeLevel() end)
+                                if okl then
+                                    local ok, price, count = pcall(function() 
+                                        return e:GetUpgradePrice(lvl, math.huge, bal:GetCash()) 
+                                    end)
+                                    if ok and count and count > 0 then pcall(function() e:UpgradeAsync(count) end) end
+                                end
+                            end
+                        end
+                    end
+                end
+
+                -- 2. Logic: Auto Upgrade Powers
                 if ProgState.AutoUpgradePowers then
                     local bal = t:GetComponent(ClientTycoonBalances)
                     local pw = t:GetComponent(ClientTycoonPowers)
@@ -582,54 +448,46 @@ task.spawn(function()
                             if okl and okm and maxl and lvl < maxl then
                                 local okp, price = pcall(function() return pw:GetUpgradePrice(name) end)
                                 local oki, inv = pcall(function() return bal:GetInvestors() end)
-                                if okp and price and oki and affordProg(price, inv) then 
-                                    pcall(function() pw:UpgradeAsync(name) end) 
-                                end
+                                if okp and price and oki and affordProg(price, inv) then pcall(function() pw:UpgradeAsync(name) end) end
                             end
                         end
                     end
                 end
 
-                -- 2. Logic: Auto Rebirth (Đã sửa đổi để chạy chuẩn xác)
+                -- 3. Logic: Auto Rebirth
                 if ProgState.AutoRebirth then
                     local rb = t:GetComponent(ClientTycoonRebirth)
                     if rb then
                         local ok, pot = pcall(function() return rb:GetPotentialInvestors() end)
                         if ok then
                             local cok, ready = pcall(function() return Huge.one < pot end)
-                            if cok and ready then 
-                                pcall(function() rb:RebirthAsync(false) end) 
-                            end
+                            if cok and ready then pcall(function() rb:RebirthAsync(false) end) end
                         end
                     end
                 end
 
-                -- 3. Logic: Auto Evolve
+                -- 4. Logic: Auto Evolve
                 if ProgState.AutoEvolve then
                     local ev = t:GetComponent(ClientTycoonEvolution)
                     if ev then
                         local ok, p = pcall(function() return ev:GetEvolutionProgress() end)
-                        if ok and type(p) == "number" and p >= 1 then 
-                            pcall(function() ev:EvolveAsync() end) 
-                        end
+                        if ok and type(p) == "number" and p >= 1 then pcall(function() ev:EvolveAsync() end) end
                     end
                 end
 
-                -- 4. Logic: Auto Ascend
+                -- 5. Logic: Auto Ascend
                 if ProgState.AutoAscend then
                     local a = t:GetComponent(ClientTycoonAscension)
                     if a then
                         local okd, d = pcall(function() return a:IsDiscovered() end)
                         if okd and d then
                             local ok, p = pcall(function() return a:GetAscension() end)
-                            if ok and type(p) == "number" and p >= 1 then 
-                                pcall(function() a:AscendAsync() end) 
-                            end
+                            if ok and type(p) == "number" and p >= 1 then pcall(function() a:AscendAsync() end) end
                         end
                     end
                 end
             end)
         end
-        task.wait(0.5) -- Tần suất kiểm tra
+        task.wait(0.5)
     end
 end)
