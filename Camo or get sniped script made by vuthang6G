@@ -119,7 +119,6 @@ else
 end
 local Window = Rayfield:CreateWindow({
    Name = "Camo or get sniped script",
-   ScriptID = "sid_xgsuaw3oknia",
    Icon = 132863234944847, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Loading...",
    LoadingSubtitle = "by Hackerissomuch",
