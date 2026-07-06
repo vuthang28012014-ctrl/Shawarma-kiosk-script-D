@@ -20,11 +20,9 @@ local LocalPlayer = Players.LocalPlayer
 local CollectionService = game:GetService("CollectionService")
 local RS = game:GetService("ReplicatedStorage")
 
--- 🌟 KHAI BÁO LOCAL RA NGOÀI RÌA ĐỂ TẤT CẢ CÁC HÀM ĐỀU ĐỌC ĐƯỢC
 local MyTycoonInstance = nil
 local MeTycoon = nil
 
--- Hàm quét và tìm kiếm Tycoon thuộc sở hữu của bạn
 local function FindMyTycoon()
     for _, obj in ipairs(workspace:GetChildren()) do
         if string.match(obj.Name, "Tycoon") then
@@ -226,19 +224,46 @@ local ToggleBuyButtons = Tab:CreateToggle({
                                     if fold:FindFirstChild("Buttons") then
                                         for _, nFold in pairs(fold.Buttons:GetChildren()) do
                                             if not _G.AutoBuyButtons then break end
-                                            local function processButton(btn)
-                                                if btn:GetAttribute("Shown") and btn:GetAttribute("Enabled") and not btn:GetAttribute("Purchased") then
-                                                    if btn:FindFirstChild("Button") and btn.Button:FindFirstChild("Gui") and btn.Button.Gui:FindFirstChild("Price") then
-                                                        local price = gameStyleDecode(btn.Button.Gui.Price.Text)
-                                                        local curbalance = gameStyleDecode(LocalPlayer.leaderstats.Cash.Value)
-                                                        if price <= curbalance and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head") then
-                                                            firetouchinterest(LocalPlayer.Character.Head, btn.Button, true)
-                                                            task.wait(0.01)
-                                                            firetouchinterest(LocalPlayer.Character.Head, btn.Button, false)
-                                                        end
-                                                    end
-                                                end
-                                            end
+                                            
+											local function processButton(btn)
+												local isShown = btn:GetAttribute("Shown")
+												local isEnabled = btn:GetAttribute("Enabled")
+												local isPurchased = btn:GetAttribute("Purchased")
+												
+												if isShown and isEnabled and not isPurchased then
+													if btn:FindFirstChild("Button") then
+														local buttonPart = btn.Button
+														local gui = buttonPart:FindFirstChildOfClass("BillboardGui") or buttonPart:FindFirstChildOfClass("SurfaceGui") or buttonPart:FindFirstChild("Gui")
+														local priceLabel = nil
+														
+														if gui then
+															for _, child in pairs(gui:GetDescendants()) do
+																if child:IsA("TextLabel") and (string.match(child.Text, "%d") or string.match(child.Text, "%$")) then
+																	priceLabel = child
+																	break
+																end
+															end
+														end
+														
+														if priceLabel then
+															local rawPriceText = priceLabel.Text
+															local price = gameStyleDecode(rawPriceText)
+															
+															local rawCashValue = LocalPlayer.leaderstats and LocalPlayer.leaderstats:FindFirstChild("Cash") and LocalPlayer.leaderstats.Cash.Value or 0
+															local curbalance = gameStyleDecode(rawCashValue)
+															
+															if price <= curbalance then
+																if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head") then
+																	firetouchinterest(LocalPlayer.Character.Head, buttonPart, true)
+																	task.wait(0.01)
+																	firetouchinterest(LocalPlayer.Character.Head, buttonPart, false)
+																end
+															end
+														end
+													end
+												end
+											end
+                                            
                                             if nFold:IsA("Folder") then
                                                 for _, btn in pairs(nFold:GetChildren()) do processButton(btn) end
                                             elseif nFold:IsA("Model") then
@@ -415,7 +440,6 @@ task.spawn(function()
         local t = ProgTycoonModule and ProgTycoonModule.getLocal()
         if t then
             pcall(function()
-                -- 1. Logic: Auto Upgrade Earners (Bulk) mua số lượng lớn bằng Cash
                 if ProgState.AutoUpgradeEarners then
                     local bal = t:GetComponent(TycoonBalances)
                     if bal then
@@ -436,7 +460,6 @@ task.spawn(function()
                     end
                 end
 
-                -- 2. Logic: Auto Upgrade Powers
                 if ProgState.AutoUpgradePowers then
                     local bal = t:GetComponent(ClientTycoonBalances)
                     local pw = t:GetComponent(ClientTycoonPowers)
@@ -454,7 +477,6 @@ task.spawn(function()
                     end
                 end
 
-                -- 3. Logic: Auto Rebirth
                 if ProgState.AutoRebirth then
                     local rb = t:GetComponent(ClientTycoonRebirth)
                     if rb then
@@ -466,7 +488,6 @@ task.spawn(function()
                     end
                 end
 
-                -- 4. Logic: Auto Evolve
                 if ProgState.AutoEvolve then
                     local ev = t:GetComponent(ClientTycoonEvolution)
                     if ev then
@@ -475,7 +496,6 @@ task.spawn(function()
                     end
                 end
 
-                -- 5. Logic: Auto Ascend
                 if ProgState.AutoAscend then
                     local a = t:GetComponent(ClientTycoonAscension)
                     if a then
@@ -491,18 +511,12 @@ task.spawn(function()
         task.wait(0.5)
     end
 end)
+
 local SectionUtility = Tab:CreateSection("Utility")
---===================================================================================
--- TÍNH NĂNG: ANTI-AFK (CHỐNG BỊ KICK KHI TREO MÁY VĨNH VIỄN)
---===================================================================================
 
--- Khai báo dịch vụ giả lập hệ thống
 local VirtualUser = game:GetService("VirtualUser")
-
--- Thêm trạng thái AntiAFK vào bảng cấu hình (mặc định tắt khi mới chạy script)
 ProgState.AntiAFK = false
 
--- TẠO TOGGLE TRÊN MENU RAYFIELD (Nằm chung Section Progression của bạn)
 local ToggleAntiAFK = Tab:CreateToggle({
    Name = "Anti-AFK",
    CurrentValue = false,
@@ -512,20 +526,12 @@ local ToggleAntiAFK = Tab:CreateToggle({
    end,
 })
 
--- HỆ THỐNG LẮNG NGHE TRẠNG THÁI IDLE TỪ ROBLOX
--- Đoạn này chạy độc lập, tự bắt tín hiệu khi tài khoản của bạn không di chuyển sau 20 phút
-local LocalPlayer = game:GetService("Players").LocalPlayer
-
 LocalPlayer.Idled:Connect(function()
-    -- Nếu bạn đang BẬT nút Anti-AFK trên Menu
     if ProgState.AntiAFK then
         pcall(function()
-            -- Giành quyền mô phỏng thiết bị đầu vào (chuột/bàn phím)
             VirtualUser:CaptureController()
-            -- Giả lập một cú Click chuột phải ngầm vào vị trí (0,0) trên màn hình game
             VirtualUser:ClickButton2(Vector2.new(0, 0))
             
-            -- Gửi thông báo nhỏ lên góc màn hình để bạn biết hệ thống vừa cứu bạn khỏi bị AFK
             Rayfield:Notify({
                 Title = "Anti-AFK Triggered",
                 Content = "Bypass successful! Resetting Roblox's 20-minute idle timer.",
