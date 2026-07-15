@@ -541,3 +541,67 @@ LocalPlayer.Idled:Connect(function()
         end)
     end
 end)
+local TabEvents = Window:CreateTab("Events", 4483362458) -- Title, Image
+local Section = TabEvents:CreateSection("Void event")
+local Toggle = TabEvents:CreateToggle({
+   Name = "Active/Disactive void event",
+   CurrentValue = false,
+   Flag = "Void Event", -- A flag is the identifier for the configuration file; make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   local Event = game:GetService("ReplicatedStorage").Core.RemoteSignal["VoidEventService.Event"]
+        firesignal(Event.OnClientEvent, 
+            Value
+        )
+   end,
+})
+local TabChanges = Window:CreateTab("Changes", 4483362458) -- Title, Image
+-- 1. Tạo danh sách Options tự động từ Tycoon1 đến Tycoon10
+local tycoonOptions = {}
+for i = 1, 10 do
+    table.insert(tycoonOptions, "Tycoon" .. i)
+end
+
+-- Biến lưu trữ Tycoon đang được chọn (Mặc định ban đầu là Tycoon1)
+local TycoonNumber = "Tycoon1"
+
+-- 2. Tạo Dropdown Menu để chọn Tycoon
+local Dropdown = TabChanges:CreateDropdown({
+   Name = "Choose tycoon",
+   Options = tycoonOptions,
+   CurrentOption = {TycoonNumber},
+   MultipleOptions = false,
+   Flag = "TycoonSelectDropdown",
+   Callback = function(Options)
+      -- Cập nhật lại biến TycoonNumber mỗi khi người dùng chọn cái mới
+      TycoonNumber = Options[1]
+   end,
+})
+
+-- 3. Tạo Input Menu của Rayfield
+local Section = TabChanges:CreateSection("Lemon Stand")
+local Input = TabChanges:CreateInput({
+   Name = "Change label",
+   CurrentValue = "",
+   PlaceholderText = "Type here",
+   RemoveTextAfterFocusLost = false,
+   Flag = "ChangeLabelInput",
+   Callback = function(Text)
+      -- Code sẽ chạy NGAY KHI bạn nhập xong và nhấn Enter (hoặc click ra ngoài)
+      
+      -- Kiểm tra xem workspace có chứa Tycoon đó không để tránh bị lỗi crash script
+      if workspace:FindFirstChild(TycoonNumber) then
+         
+         -- Sử dụng ngoặc vuông [TycoonNumber] để thay thế Path động chính xác không lỗi
+         local Change = workspace[TycoonNumber].Remotes.LabelChanged
+         
+         -- Kích hoạt firesignal với giá trị Text bạn vừa nhập vào Input
+         -- Ở đây tôi thay chữ "cac" cố định bằng biến Text để nó nhận những gì bạn nhập nhé!
+         firesignal(Change.OnClientEvent, "LemonStand", Text)
+         
+         print("Đã firesignal đến: workspace." .. TycoonNumber .. " với nội dung: " .. Text)
+      else
+         warn("Không tìm thấy " .. TycoonNumber .. " trong workspace!")
+      end
+   end,
+})
+local Section = TabChanges:CreateSection("Billboard")
