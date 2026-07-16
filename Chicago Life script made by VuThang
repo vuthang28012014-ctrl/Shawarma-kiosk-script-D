@@ -1,0 +1,290 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+   Name = "Chicago Life exploit script",
+   Icon = 0,
+   LoadingTitle = "Chicago Life script",
+   LoadingSubtitle = "made by Hackerissomuch_20",
+   ShowText = "Chicago Life exploit script",
+   Theme = "Default",
+   ToggleUIKeybind = "K",
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false,
+   ConfigurationSaving = { Enabled = false, FolderName = nil, FileName = "Big Hub" },
+   Discord = { Enabled = false, Invite = "noinvitelink", RememberJoins = true },
+   KeySystem = false,
+   KeySettings = {}
+})
+local Tab = Window:CreateTab("Aimbot", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Aim to a selected player")
+-- =================================================================
+-- SYSTEM 1: PLAYER AIM VARIABLES (He thong chon qua Dropdown)
+-- =================================================================
+local AimBotEnabled = false
+local Smoothness = 0.1
+local SelectedTargetName = nil
+local LastPlayerCount = 0
+
+-- =================================================================
+-- SYSTEM 2: FOV AIM VARIABLES (Tu dong quet nguoi trong vong tron FOV)
+-- =================================================================
+local FOVAimEnabled_FOV = false
+local FOV_Radius_FOV = 150
+local Smoothness_FOV = 0.1 -- Do dinh nguoi rieng cho FOV Aim
+local WallCheckEnabled_FOV = false
+local DeadCheckEnabled_FOV = false
+
+-- =================================================================
+-- SHARED SERVICES & VARIABLES
+-- =================================================================
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+
+-- Khoi tao vong tron FOV Drawing
+local FOVCircle_Drawing = Drawing.new("Circle")
+FOVCircle_Drawing.Thickness = 1.5
+FOVCircle_Drawing.NumSides = 60
+FOVCircle_Drawing.Radius = FOV_Radius_FOV
+FOVCircle_Drawing.Filled = false
+FOVCircle_Drawing.Color = Color3.fromRGB(255, 85, 85)
+FOVCircle_Drawing.Visible = false
+
+-- =================================================================
+-- UTILITY FUNCTIONS
+-- =================================================================
+local function getPlayerNamesList()
+    local list = {}
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            table.insert(list, p.Name)
+        end
+    end
+    return list
+end
+
+local function isBehindWall_FOV(targetCharacter)
+    if not targetCharacter or not targetCharacter:FindFirstChild("Head") then return true end
+    local head = targetCharacter.Head
+    local origin = Camera.CFrame.Position
+    local direction = (head.Position - origin).Unit * (head.Position - origin).Magnitude
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, targetCharacter}
+    raycastParams.IgnoreWater = true
+    
+    local raycastResult = workspace:Raycast(origin, direction, raycastParams)
+    if raycastResult then
+        return true
+    end
+    return false
+end
+
+local function isDead_FOV(player)
+    if player.Character then
+        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid and humanoid.Health > 0 then
+            return false
+        end
+    end
+    return true
+end
+
+-- LAY VI TRI TARGET CHO PLAYER AIM (He thong 1 - Chon theo ten)
+local function getManualTargetPosition()
+    if not SelectedTargetName then return nil end
+    local p = Players:FindFirstChild(SelectedTargetName)
+    if p and p.Character and p.Character:FindFirstChild("Head") then
+        if DeadCheckEnabled_FOV and isDead_FOV(p) then return nil end
+        if WallCheckEnabled_FOV and isBehindWall_FOV(p.Character) then return nil end
+        return p.Character.Head.Position
+    end
+    return nil
+end
+
+-- TU DONG QUET TIM NGUOI TRONG VONG TRON FOV (He thong 2 - KHONG can chon ten)
+local function getFOVAimbotTarget_FOV()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    local centerScreen = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            if DeadCheckEnabled_FOV and isDead_FOV(player) then continue end
+            if WallCheckEnabled_FOV and isBehindWall_FOV(player.Character) then continue end
+            
+            local pos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position)
+            if onScreen then
+                local distance = (Vector2.new(pos.X, pos.Y) - centerScreen).Magnitude
+                if distance < shortestDistance and distance < FOV_Radius_FOV then
+                    closestPlayer = player
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+    
+    if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
+        return closestPlayer.Character.Head.Position
+    end
+    return nil
+end
+
+
+-- =================================================================
+-- CAC PHAN TU MENU (Dat duoi bien Tab cua ban)
+-- =================================================================
+
+-- ----------------- HỆ THỐNG 1: PLAYER AIM -----------------
+local AimToggle = Tab:CreateToggle({
+   Name = "Player Aim",
+   CurrentValue = false,
+   Flag = "PlayerAimToggle_Flag", 
+   Callback = function(Value)
+      AimBotEnabled = Value
+   end,
+})
+
+local SmoothnessSlider = Tab:CreateSlider({
+   Name = "Smoothness",
+   Range = {5, 100},
+   Increment = 5,
+   Suffix = "%",
+   CurrentValue = 10,
+   Flag = "SmoothnessSlider_Flag",
+   Callback = function(Value)
+      Smoothness = Value / 100
+   end,
+})
+
+local PlayerDropdown = Tab:CreateDropdown({
+   Name = "Choose a player",
+   Options = getPlayerNamesList(),
+   CurrentOption = {}, 
+   MultipleOptions = false,
+   Flag = "PlayerDropdown_Flag", 
+   Callback = function(Options)
+      SelectedTargetName = Options[1]
+   end,
+})
+
+local Section = Tab:CreateSection("FOV Aim")
+-- ----------------- HỆ THỐNG 2: FOV AIM (TU DONG QUET) -----------------
+local FOVToggle = Tab:CreateToggle({
+   Name = "FOV Aim",
+   CurrentValue = false,
+   Flag = "FOVAimToggle_Flag_FOV", 
+   Callback = function(Value)
+      FOVAimEnabled_FOV = Value
+      FOVCircle_Drawing.Visible = Value
+   end,
+})
+
+local FOVSlider = Tab:CreateSlider({
+   Name = "FOV Size",
+   Range = {30, 600},
+   Increment = 10,
+   Suffix = "Pixels",
+   CurrentValue = 150,
+   Flag = "FOVSlider_Flag_FOV",
+   Callback = function(Value)
+      FOV_Radius_FOV = Value
+      FOVCircle_Drawing.Radius = Value
+   end,
+})
+
+local SmoothnessFOVSlider = Tab:CreateSlider({
+   Name = "Smoothness-FOV",
+   Range = {5, 100},
+   Increment = 5,
+   Suffix = "%",
+   CurrentValue = 10,
+   Flag = "FOVSmoothness_Flag_FOV",
+   Callback = function(Value)
+      Smoothness_FOV = Value / 100
+   end,
+})
+
+-- ----------------- TUY CHON CHUNG (WALL & DEAD CHECK) -----------------
+local WallCheckToggle = Tab:CreateToggle({
+   Name = "Wall Check",
+   CurrentValue = false,
+   Flag = "WallCheckToggle_Flag_FOV",
+   Callback = function(Value)
+      WallCheckEnabled_FOV = Value
+   end,
+})
+
+local DeadCheckToggle = Tab:CreateToggle({
+   Name = "Dead Check",
+   CurrentValue = false,
+   Flag = "DeadCheckToggle_Flag_FOV",
+   Callback = function(Value)
+      DeadCheckEnabled_FOV = Value
+   end
+})
+
+
+-- =================================================================
+-- LUONG CAP NHAT DROPDOWN THONG MINH
+-- =================================================================
+local UpdateActive = true
+task.spawn(function()
+    while UpdateActive do
+        pcall(function()
+            if SelectedTargetName and not Players:FindFirstChild(SelectedTargetName) then
+                SelectedTargetName = nil
+            end
+            
+            local currentList = getPlayerNamesList()
+            local currentPlayerCount = #currentList
+            
+            if currentPlayerCount ~= LastPlayerCount then
+                LastPlayerCount = currentPlayerCount
+                PlayerDropdown:Set(currentList)
+            end
+        end)
+        task.wait(1)
+    end
+end)
+
+
+-- =================================================================
+-- MAIN LOOP: LOGIC DIEU HUONG CAMERA (DA DUOC TACH BIET DOC LAP)
+-- =================================================================
+local AimConnection = RunService.RenderStepped:Connect(function()
+    if FOVCircle_Drawing.Visible then
+        FOVCircle_Drawing.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    end
+
+    -- CHAY SONG SONG: He thong nao bat thi ngam theo he thong do, khong bi de len nhau
+    if AimBotEnabled and SelectedTargetName then
+        local targetPos = getManualTargetPosition()
+        if targetPos then
+            local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPos)
+            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, Smoothness)
+        end
+    end
+    
+    if FOVAimEnabled_FOV then
+        local targetPos = getFOVAimbotTarget_FOV()
+        if targetPos then
+            local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPos)
+            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, Smoothness_FOV)
+        end
+    end
+end)
+
+-- Don dep bo nho tranh loi re-execute
+if _G.GlobalAimConnection then _G.GlobalAimConnection:Disconnect() end
+if _G.GlobalFOVCircle then _G.GlobalFOVCircle:Remove() end
+
+_G.GlobalAimConnection = AimConnection
+_G.GlobalFOVCircle = FOVCircle_Drawing
+
+if _G.StopOldUpdateLoop then _G.StopOldUpdateLoop() end
+_G.StopOldUpdateLoop = function()
+    UpdateActive = false
+    FOVCircle_Drawing:Remove()
+end
