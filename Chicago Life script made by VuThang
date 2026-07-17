@@ -528,3 +528,179 @@ local RobVanToggle = Tab:CreateToggle({
       AutoRobEnabled = Value
    end,
 })
+local TabGun = Window:CreateTab("Mod", 4483362458) -- Title, Image
+-- =================================================================
+-- HỆ THỐNG ĐIỀU KHIỂN SÚNG THÔNG MINH (DROPDOWN + 3 TOGGLES) -> TABGUN
+-- =================================================================
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Các biến lưu trữ trạng thái cấu hình súng
+local SelectedGunName = nil
+local AutoReloadEnabled = false
+local AutoFireEnabled = false
+local AlwaysCoolEnabled = false
+
+-- Hàm hỗ trợ tìm kiếm cấu hình Setting của khẩu súng đang chọn
+local function getGunConfig(gunName)
+    if not gunName then return nil, nil end
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    if not backpack then return nil, nil end
+    
+    local gun = backpack:FindFirstChild(gunName)
+    if not gun then
+        -- Tìm thêm trên tay nhân vật nếu lỡ đang cầm súng
+        local char = LocalPlayer.Character
+        if char then
+            gun = char:FindFirstChild(gunName)
+        end
+    end
+    
+    if gun then
+        local settingFolder = gun:FindFirstChild("Setting")
+        if settingFolder then
+            local configCommon = require(settingFolder)
+            local config1 = nil
+            local gunModule1 = settingFolder:FindFirstChild("1")
+            if gunModule1 then
+                config1 = require(gunModule1)
+            end
+            return configCommon, config1
+        end
+    end
+    return nil, nil
+end
+
+-- Hàm cập nhật các tính năng dựa theo trạng thái hiện tại của các Toggle
+local function applyGunModifications()
+    if not SelectedGunName then return end
+    
+    local configCommon, config1 = getGunConfig(SelectedGunName)
+    if not configCommon and not config1 then return end
+
+    -- 1. Xử lý Toggle: Auto Reload (Tự động nạp đạn)
+    if configCommon then
+        configCommon.AutoReload = AutoReloadEnabled
+    end
+
+    -- 2. Xử lý Toggle: Auto Fire (Bắn tự động / Liên thanh)
+    if config1 then
+        config1.Auto = AutoFireEnabled
+    end
+
+    -- 3. Xử lý Toggle: Luôn luôn mát (Không nóng súng / Không sụt pin)
+    if config1 then
+        if AlwaysCoolEnabled then
+            config1.BatteryEnabled = false
+            config1.HeatPerFireMin = 0
+            config1.HeatPerFireMax = 0
+        else
+            -- Khôi phục về mặc định nếu bạn tắt toggle
+            config1.BatteryEnabled = true
+        end
+    end
+end
+
+-- Hàm quét nhanh Backpack để lấy danh sách tên các khẩu súng đang có
+local function getBackpackGuns()
+    local guns = {}
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    if backpack then
+        for _, item in pairs(backpack:GetChildren()) do
+            -- Kiểm tra xem item có phải là súng (có thư mục Setting) không
+            if item:IsA("Tool") and item:FindFirstChild("Setting") then
+                table.insert(guns, item.Name)
+            end
+        end
+    end
+    -- Kiểm tra thêm súng đang cầm trên tay
+    local char = LocalPlayer.Character
+    if char then
+        for _, item in pairs(char:GetChildren()) do
+            if item:IsA("Tool") and item:FindFirstChild("Setting") then
+                -- Tránh trùng lặp tên súng
+                local exists = false
+                for _, name in pairs(guns) do
+                    if name == item.Name then exists = true break end
+                end
+                if not exists then
+                    table.insert(guns, item.Name)
+                end
+            end
+        end
+    end
+    
+    -- Nếu trống trơn thì hiển thị thông báo tạm thời
+    if #guns == 0 then
+        table.insert(guns, "Không tìm thấy súng trong balo!")
+    end
+    return guns
+end
+
+-- =================================================================
+-- CHÈN DROPDOWN & 3 TOGGLES VÀO TAB CỦA BẠN (Sử dụng TabGun)
+-- =================================================================
+
+-- 1. Tạo Dropdown chọn súng trên TabGun
+local GunDropdown = TabGun:CreateDropdown({
+   Name = "Chọn khẩu súng muốn Mod",
+   Options = getBackpackGuns(), -- Lấy danh sách súng hiện tại trong Balo
+   CurrentOption = "",
+   MultipleOptions = false,
+   Flag = "SelectedGunFlag",
+   Callback = function(Option)
+      -- Option là một mảng (table) hoặc chuỗi tùy thư viện UI, chúng ta chuẩn hóa nó:
+      local gunName = type(Option) == "table" and Option[1] or Option
+      
+      if gunName and gunName ~= "Không tìm thấy súng trong balo!" then
+          SelectedGunName = gunName
+          print("Đã chọn súng: " .. SelectedGunName)
+          -- Áp dụng ngay các tùy chọn đã bật trước đó lên khẩu súng mới chọn
+          applyGunModifications()
+      end
+   end,
+})
+
+-- Tạo nút làm mới danh sách súng trên TabGun
+TabGun:CreateButton({
+   Name = "Làm mới danh sách súng 🔁",
+   Callback = function()
+       if GunDropdown and GunDropdown.Refresh then
+           GunDropdown:Refresh(getBackpackGuns(), true)
+       end
+   end,
+})
+
+-- 2. Toggle 1: Tự động nạp đạn (Auto Reload) trên TabGun
+TabGun:CreateToggle({
+   Name = "Tự động nạp đạn (Auto Reload)",
+   CurrentValue = false,
+   Flag = "GunAutoReloadFlag",
+   Callback = function(Value)
+      AutoReloadEnabled = Value
+      applyGunModifications()
+   end,
+})
+
+-- 3. Toggle 2: Bắn liên thanh (Auto Fire) trên TabGun
+TabGun:CreateToggle({
+   Name = "Bắn liên thanh (Auto Fire)",
+   CurrentValue = false,
+   Flag = "GunAutoFireFlag",
+   Callback = function(Value)
+      AutoFireEnabled = Value
+      applyGunModifications()
+   end,
+})
+
+-- 4. Toggle 3: Luôn giữ nhiệt độ nguội trên TabGun
+TabGun:CreateToggle({
+   Name = "Luôn giữ súng mát (Không quá nhiệt)",
+   CurrentValue = false,
+   Flag = "GunAlwaysCoolFlag",
+   Callback = function(Value)
+      AlwaysCoolEnabled = Value
+      applyGunModifications()
+   end,
+})
