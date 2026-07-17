@@ -121,6 +121,7 @@ else
 end
 local Window = Rayfield:CreateWindow({
    Name = "Chicago Life exploit script",
+   ScriptID = "sid_04usu24bgzau",
    Icon = 0,
    LoadingTitle = "Chicago Life script",
    LoadingSubtitle = "made by Hackerissomuch_20",
