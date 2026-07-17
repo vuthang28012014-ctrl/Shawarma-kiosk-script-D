@@ -530,7 +530,7 @@ local RobVanToggle = Tab:CreateToggle({
 })
 local TabGun = Window:CreateTab("Mod", 4483362458) -- Title, Image
 -- =================================================================
--- HỆ THỐNG ĐIỀU KHIỂN SÚNG THÔNG MINH (DROPDOWN + 3 TOGGLES) -> TABGUN
+-- HỆ THỐNG ĐIỀU KHIỂN SÚNG THÔNG MINH (DROPDOWN + 4 TOGGLES) -> TABGUN
 -- =================================================================
 
 local Players = game:GetService("Players")
@@ -541,6 +541,10 @@ local SelectedGunName = nil
 local AutoReloadEnabled = false
 local AutoFireEnabled = false
 local AlwaysCoolEnabled = false
+local NoRecoilEnabled = false -- Biến trạng thái cho tính năng Không Giật
+
+-- Lưu lại cấu hình gốc của súng để khôi phục khi tắt Toggle
+local OriginalRecoilSettings = {}
 
 -- Hàm hỗ trợ tìm kiếm cấu hình Setting của khẩu súng đang chọn
 local function getGunConfig(gunName)
@@ -596,8 +600,49 @@ local function applyGunModifications()
             config1.HeatPerFireMin = 0
             config1.HeatPerFireMax = 0
         else
-            -- Khôi phục về mặc định nếu bạn tắt toggle
             config1.BatteryEnabled = true
+        end
+    end
+
+    -- 4. Xử lý Toggle: Không giật & Không nở tâm (No Recoil / Spread)
+    if config1 then
+        if NoRecoilEnabled then
+            -- Sao lưu thông số gốc trước khi ghi đè (chỉ sao lưu lần đầu)
+            if not OriginalRecoilSettings[SelectedGunName] then
+                OriginalRecoilSettings[SelectedGunName] = {
+                    Recoil = config1.Recoil,
+                    Spread = config1.Spread,
+                    CameraRecoilingEnabled = config1.CameraRecoilingEnabled,
+                    ViewmodelRecoilInfluence = config1.ViewmodelRecoilInfluence,
+                    AngleX_Min = config1.AngleX_Min,
+                    AngleX_Max = config1.AngleX_Max,
+                    AngleZ_Min = config1.AngleZ_Min,
+                    AngleZ_Max = config1.AngleZ_Max
+                }
+            end
+
+            -- Triệt tiêu hoàn toàn độ giật
+            config1.Recoil = 0
+            config1.Spread = 0
+            config1.CameraRecoilingEnabled = false
+            config1.ViewmodelRecoilInfluence = 0
+            config1.AngleX_Min = 0
+            config1.AngleX_Max = 0
+            config1.AngleZ_Min = 0
+            config1.AngleZ_Max = 0
+        else
+            -- Khôi phục lại thông số gốc nếu người dùng tắt Toggle
+            local orig = OriginalRecoilSettings[SelectedGunName]
+            if orig then
+                config1.Recoil = orig.Recoil
+                config1.Spread = orig.Spread
+                config1.CameraRecoilingEnabled = orig.CameraRecoilingEnabled
+                config1.ViewmodelRecoilInfluence = orig.ViewmodelRecoilInfluence
+                config1.AngleX_Min = orig.AngleX_Min
+                config1.AngleX_Max = orig.AngleX_Max
+                config1.AngleZ_Min = orig.AngleZ_Min
+                config1.AngleZ_Max = orig.AngleZ_Max
+            end
         end
     end
 end
@@ -608,7 +653,6 @@ local function getBackpackGuns()
     local backpack = LocalPlayer:FindFirstChild("Backpack")
     if backpack then
         for _, item in pairs(backpack:GetChildren()) do
-            -- Kiểm tra xem item có phải là súng (có thư mục Setting) không
             if item:IsA("Tool") and item:FindFirstChild("Setting") then
                 table.insert(guns, item.Name)
             end
@@ -619,7 +663,6 @@ local function getBackpackGuns()
     if char then
         for _, item in pairs(char:GetChildren()) do
             if item:IsA("Tool") and item:FindFirstChild("Setting") then
-                -- Tránh trùng lặp tên súng
                 local exists = false
                 for _, name in pairs(guns) do
                     if name == item.Name then exists = true break end
@@ -631,7 +674,6 @@ local function getBackpackGuns()
         end
     end
     
-    -- Nếu trống trơn thì hiển thị thông báo tạm thời
     if #guns == 0 then
         table.insert(guns, "Không tìm thấy súng trong balo!")
     end
@@ -639,24 +681,22 @@ local function getBackpackGuns()
 end
 
 -- =================================================================
--- CHÈN DROPDOWN & 3 TOGGLES VÀO TAB CỦA BẠN (Sử dụng TabGun)
+-- CHÈN DROPDOWN & 4 TOGGLES VÀO TAB CỦA BẠN (Sử dụng TabGun)
 -- =================================================================
 
 -- 1. Tạo Dropdown chọn súng trên TabGun
 local GunDropdown = TabGun:CreateDropdown({
-   Name = "Chọn khẩu súng muốn Mod",
-   Options = getBackpackGuns(), -- Lấy danh sách súng hiện tại trong Balo
+   Name = "Select a gun",
+   Options = getBackpackGuns(), 
    CurrentOption = "",
    MultipleOptions = false,
    Flag = "SelectedGunFlag",
    Callback = function(Option)
-      -- Option là một mảng (table) hoặc chuỗi tùy thư viện UI, chúng ta chuẩn hóa nó:
       local gunName = type(Option) == "table" and Option[1] or Option
       
       if gunName and gunName ~= "Không tìm thấy súng trong balo!" then
           SelectedGunName = gunName
-          print("Đã chọn súng: " .. SelectedGunName)
-          -- Áp dụng ngay các tùy chọn đã bật trước đó lên khẩu súng mới chọn
+          print("Choosed: " .. SelectedGunName)
           applyGunModifications()
       end
    end,
@@ -664,7 +704,7 @@ local GunDropdown = TabGun:CreateDropdown({
 
 -- Tạo nút làm mới danh sách súng trên TabGun
 TabGun:CreateButton({
-   Name = "Làm mới danh sách súng 🔁",
+   Name = "Refresh guns list🔁",
    Callback = function()
        if GunDropdown and GunDropdown.Refresh then
            GunDropdown:Refresh(getBackpackGuns(), true)
@@ -672,9 +712,9 @@ TabGun:CreateButton({
    end,
 })
 
--- 2. Toggle 1: Tự động nạp đạn (Auto Reload) trên TabGun
+-- 2. Toggle 1: Tự động nạp đạn (Auto Reload)
 TabGun:CreateToggle({
-   Name = "Tự động nạp đạn (Auto Reload)",
+   Name = "Auto Reload",
    CurrentValue = false,
    Flag = "GunAutoReloadFlag",
    Callback = function(Value)
@@ -683,9 +723,9 @@ TabGun:CreateToggle({
    end,
 })
 
--- 3. Toggle 2: Bắn liên thanh (Auto Fire) trên TabGun
+-- 3. Toggle 2: Bắn liên thanh (Auto Fire)
 TabGun:CreateToggle({
-   Name = "Bắn liên thanh (Auto Fire)",
+   Name = "Auto Fire",
    CurrentValue = false,
    Flag = "GunAutoFireFlag",
    Callback = function(Value)
@@ -694,13 +734,24 @@ TabGun:CreateToggle({
    end,
 })
 
--- 4. Toggle 3: Luôn giữ nhiệt độ nguội trên TabGun
+-- 4. Toggle 3: Luôn giữ nhiệt độ nguội
 TabGun:CreateToggle({
-   Name = "Luôn giữ súng mát (Không quá nhiệt)",
+   Name = "Always cool",
    CurrentValue = false,
    Flag = "GunAlwaysCoolFlag",
    Callback = function(Value)
       AlwaysCoolEnabled = Value
+      applyGunModifications()
+   end,
+})
+
+-- 5. Toggle 4: Không giật & Không nở tâm (No Recoil/Spread)
+TabGun:CreateToggle({
+   Name = "No Recoil/Spread",
+   CurrentValue = false,
+   Flag = "GunNoRecoilFlag",
+   Callback = function(Value)
+      NoRecoilEnabled = Value
       applyGunModifications()
    end,
 })
