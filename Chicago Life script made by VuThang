@@ -755,3 +755,138 @@ TabGun:CreateToggle({
       applyGunModifications()
    end,
 })
+local LocalPlayerTab = Window:CreateTab("LocalPlayer", 4483362458) -- ID Icon
+
+-- Biến kiểm soát trạng thái Bật/Tắt của ESP
+_G.ESP_Enabled = false
+
+-- Nút gạt (Toggle) của Rayfield để bật/tắt ESP
+local Toggle = LocalPlayerTab:CreateToggle({
+   Name = "Bật/Tắt Nhìn Xuyên Tường (ESP)",
+   CurrentValue = false,
+   Flag = "Toggle_ESP", -- Đặt tên flag duy nhất để lưu config nếu cần
+   Callback = function(Value)
+      _G.ESP_Enabled = Value
+      
+      -- Nếu tắt, xóa toàn bộ các Highlight và bảng tên đang có trên màn hình
+      if not Value then
+         for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
+            if player.Character then
+               local hl = player.Character:FindFirstChild("ESPHighlight")
+               if hl then hl:Destroy() end
+               
+               local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+               if hrp then
+                  local bill = hrp:FindFirstChild("ESP_Billboard")
+                  if bill then bill:Destroy() end
+               end
+            end
+         end
+      end
+   end,
+})
+
+-- Hàm tạo ESP (Bao gồm cả kiểm tra xem người dùng có đang BẬT Toggle hay không)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function applyESP(player)
+	if player == LocalPlayer then return end
+
+	local function onCharacterAdded(character)
+		local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 5)
+		local humanoid = character:WaitForChild("Humanoid", 5)
+		if not humanoidRootPart or not humanoid then return end
+		local playerData = player:WaitForChild("PlayerData", 5)
+
+		-- Vòng lặp kiểm tra liên tục để chỉ hiển thị khi _G.ESP_Enabled = true
+		task.spawn(function()
+			while character and character.Parent and humanoid.Health > 0 do
+				if _G.ESP_Enabled then
+					-- [Đoạn code tạo Highlight cũ của bạn]
+					local highlight = character:FindFirstChild("ESPHighlight")
+					if not highlight then
+						highlight = Instance.new("Highlight")
+						highlight.Name = "ESPHighlight"
+						highlight.FillColor = Color3.fromRGB(255, 0, 0)
+						highlight.FillTransparency = 0.6
+						highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+						highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+						highlight.Parent = character
+					end
+
+					-- [Đoạn code tạo BillboardGui cũ của bạn]
+					local billboard = humanoidRootPart:FindFirstChild("ESP_Billboard")
+					if not billboard then
+						billboard = Instance.new("BillboardGui")
+						billboard.Name = "ESP_Billboard"
+						billboard.Size = UDim2.new(0, 220, 0, 65)
+						billboard.StudsOffset = Vector3.new(0, 3.5, 0)
+						billboard.AlwaysOnTop = true
+						billboard.Parent = humanoidRootPart
+
+						-- Tạo nhãn chữ Dòng 1, Dòng 2, Dòng 3... 
+						-- (Để giữ code ngắn gọn, phần tạo chi tiết chữ mình viết gọn lại ở đây)
+						local nameLabel = Instance.new("TextLabel")
+						nameLabel.Size = UDim2.new(1, 0, 0.35, 0)
+						nameLabel.BackgroundTransparency = 1
+						nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+						nameLabel.TextSize = 13
+						nameLabel.Font = Enum.Font.SourceSansBold
+						nameLabel.Parent = billboard
+
+						local infoLabel = Instance.new("TextLabel")
+						infoLabel.Size = UDim2.new(1, 0, 0.3, 0)
+						infoLabel.Position = UDim2.new(0, 0, 0.35, 0)
+						infoLabel.BackgroundTransparency = 1
+						infoLabel.TextColor3 = Color3.fromRGB(255, 220, 100)
+						infoLabel.TextSize = 11
+						infoLabel.Font = Enum.Font.SourceSansBold
+						infoLabel.Parent = billboard
+
+						local hpLabel = Instance.new("TextLabel")
+						hpLabel.Size = UDim2.new(1, 0, 0.3, 0)
+						hpLabel.Position = UDim2.new(0, 0, 0.65, 0)
+						hpLabel.BackgroundTransparency = 1
+						hpLabel.TextSize = 11
+						hpLabel.Font = Enum.Font.SourceSansBold
+						hpLabel.Parent = billboard
+
+						-- Lắng nghe cập nhật thông tin liên tục
+						local function update()
+							local systemName = player.DisplayName or player.Name
+							local fn = playerData and playerData:FindFirstChild("FirstName") and playerData.FirstName.Value or "Chưa rõ"
+							local gd = playerData and playerData:FindFirstChild("Gender") and playerData.Gender.Value or "Chưa rõ"
+							local lv = playerData and playerData:FindFirstChild("Level") and playerData.Level.Value or 0
+							
+							nameLabel.Text = systemName .. " | " .. tostring(fn)
+							infoLabel.Text = tostring(gd) .. " | Lvl: " .. tostring(lv)
+							hpLabel.Text = "HP: " .. math.floor(humanoid.Health)
+							
+							if (humanoid.Health / humanoid.MaxHealth) < 0.3 then
+								hpLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+							else
+								hpLabel.TextColor3 = Color3.fromRGB(85, 255, 85)
+							end
+						end
+						
+						update()
+						humanoid.HealthChanged:Connect(update)
+						if playerData then
+							if playerData:FindFirstChild("FirstName") then playerData.FirstName.Changed:Connect(update) end
+							if playerData:FindFirstChild("Gender") then playerData.Gender.Changed:Connect(update) end
+							if playerData:FindFirstChild("Level") then playerData.Level.Changed:Connect(update) end
+						end
+					end
+				end
+				task.wait(1) -- Kiểm tra lại sau mỗi 1 giây để tránh lag
+			end
+		end)
+	end
+
+	if player.Character then onCharacterAdded(player.Character) end
+	player.CharacterAdded:Connect(onCharacterAdded)
+end
+
+for _, player in ipairs(Players:GetPlayers()) do applyESP(player) end
+Players.PlayerAdded:Connect(applyESP)
