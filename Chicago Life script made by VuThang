@@ -995,6 +995,7 @@ local RobToggle = RobTab:CreateToggle({
       end
    end,
 })
+local Paragraph = RobTab:CreateParagraph({Title = "Lưu ý:", Content = "Hãy đảm bảo tất cả các loại aim đã được tắt, bank CHƯA MỞ, và chắc chắn phải đảm bảo trong lúc cướp không bị ai giết!"})
 local TabGun = Window:CreateTab("Mod", 4483362458) -- Title, Image
 -- =================================================================
 -- HỆ THỐNG ĐIỀU KHIỂN SÚNG THÔNG MINH (DROPDOWN + 4 TOGGLES) -> TABGUN
