@@ -430,8 +430,8 @@ _G.StopOldUpdateLoop = function()
     UpdateActive = false
     FOVCircle_Drawing:Remove()
 end
-local Tab = Window:CreateTab("Auto Rob", 4483362458) -- Title, Image
-local Section = Tab:CreateSection("Van")
+local RobTab = Window:CreateTab("Auto Rob", 4483362458) -- Title, Image
+local Section = RobTab:CreateSection("Van")
 -- =================================================================
 -- LOGIC AUTO ROB VAN - ƯU TIÊN MỤC TIÊU GẦN NHẤT (SAU KHI RESPAWN)
 -- =================================================================
@@ -621,7 +621,7 @@ local function robTarget(target)
                 humanoid.PlatformStand = false
                 hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0) 
                 
-                task.wait(1.0) -- Đứng im đúng 1 giây để ổn định vị trí trên xe
+                task.wait(1.0) -- Đứng im đúng 1 giây để ổn định vị trí trên x
                 
                 -- Bấm nút cướp xe
                 for i = 1, 3 do
@@ -662,12 +662,337 @@ end)
 -- =================================================================
 -- CHÈN TRỰC TIẾP NÚT TOGGLE NÀY VÀO TAB CÓ SẴN CỦA BẠN
 -- =================================================================
-local RobVanToggle = Tab:CreateToggle({
+local RobVanToggle = RobTab:CreateToggle({
    Name = "Auto Rob Van",
    CurrentValue = false,
    Flag = "AutoRobVanFlag",
    Callback = function(Value)
       AutoRobEnabled = Value
+   end,
+})
+local Section = RobTab:CreateSection("Bank")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+local TWEEN_SPEED = 5 
+local CURRENT_LOOK_VECTOR = Vector3.new(0.02, -0.07, -1.00).Unit
+local NEW_LOOK_VECTOR = Vector3.new(1.00, -0.06, -0.01).Unit
+local SELL_LOOK_VECTOR = Vector3.new(1.00, 0.01, -0.01).Unit
+
+local cameraConnection = nil
+local isBotRunning = false 
+local bankNotificationConnection = nil 
+
+local function resetCamera()
+	if cameraConnection then cameraConnection:Disconnect() cameraConnection = nil end
+	camera.CameraType = Enum.CameraType.Custom
+end
+
+local function stopBotPermanently(reason)
+	if not isBotRunning then return end
+	isBotRunning = false
+	print("🚨 [HỆ THỐNG] " .. reason .. " -> DỪNG SCRIPT!")
+	resetCamera()
+	if bankNotificationConnection then 
+		bankNotificationConnection:Disconnect() 
+		bankNotificationConnection = nil 
+	end
+end
+
+-- Lắng nghe sự kiện Chết / Respawn khẩn cấp
+local function setupLifeCheck(character)
+	if not character then return end
+	local humanoid = character:WaitForChild("Humanoid", 5)
+	if humanoid then
+		humanoid.Died:Connect(function()
+			if isBotRunning then stopBotPermanently("Nhân vật đã bị chết") end
+		end)
+	end
+end
+
+LocalPlayer.CharacterAdded:Connect(function(newCharacter)
+	if isBotRunning then stopBotPermanently("Nhân vật đã Respawn") end
+	setupLifeCheck(newCharacter)
+end)
+if LocalPlayer.Character then setupLifeCheck(LocalPlayer.Character) end
+
+local function lockCameraToDirection(directionVector)
+	local character = LocalPlayer.Character
+	if not character or not isBotRunning then return end
+	local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 5)
+	if not humanoidRootPart then return end
+	
+	if cameraConnection then cameraConnection:Disconnect() end
+	camera.CameraType = Enum.CameraType.Scriptable
+	
+	local cameraDistance = 14 
+	local cameraOffset = -directionVector.Unit * cameraDistance
+	
+	cameraConnection = RunService.RenderStepped:Connect(function()
+		if isBotRunning and character and humanoidRootPart and humanoidRootPart.Parent then
+			local charPos = humanoidRootPart.Position
+			camera.CFrame = CFrame.lookAt(charPos + cameraOffset, charPos)
+		else
+			resetCamera()
+		end
+	end)
+end
+
+local function updateCameraDirection(newDirection)
+	if not isBotRunning then return end
+	CURRENT_LOOK_VECTOR = newDirection
+	lockCameraToDirection(CURRENT_LOOK_VECTOR)
+end
+
+local function getC4Targets()
+	local targets = {}
+	for _, child in ipairs(workspace:GetChildren()) do
+		if not isBotRunning then break end
+		if child:IsA("Model") and child.Name == "Model" then
+			local c4 = child:FindFirstChild("C4")
+			local c41 = c4 and c4:FindFirstChild("c41")
+			local attachment = c41 and c41:FindFirstChild("Attachment")
+			local prompt = attachment and attachment:FindFirstChildOfClass("ProximityPrompt")
+			if c41 and prompt then table.insert(targets, { TargetPart = c41, Prompt = prompt }) end
+		end
+	end
+	return targets
+end
+
+local function getBankTarget()
+	local bankFolder = workspace:FindFirstChild("BankRobberyType")
+	local xdPart = bankFolder and bankFolder:FindFirstChild("xd")
+	if xdPart and xdPart:IsA("BasePart") then
+		local prompt = xdPart:FindFirstChildOfClass("ProximityPrompt") or xdPart:FindFirstChildWhichIsA("ProximityPrompt", true)
+		return xdPart, prompt
+	end
+	return nil, nil
+end
+
+local function getCashTargets()
+	local cashTargets = {}
+	local moneyHolder = workspace:FindFirstChild("BankRobberyType") and workspace.BankRobberyType:FindFirstChild("MoneyPromptHolder")
+	local cashFolder = moneyHolder and moneyHolder:FindFirstChild("Cash")
+	if cashFolder then
+		for _, child in ipairs(cashFolder:GetChildren()) do
+			if not isBotRunning then break end
+			if child:IsA("Model") and child.Name == "Model" then
+				local cash1 = child:FindFirstChild("Cash1")
+				local prompt = cash1 and cash1:FindFirstChild("Cash")
+				if cash1 and prompt then table.insert(cashTargets, { TargetPart = cash1, Prompt = prompt }) end
+			end
+		end
+	end
+	return cashTargets
+end
+
+local function getGoldTargets()
+	local goldTargets = {}
+	local moneyHolder = workspace:FindFirstChild("BankRobberyType") and workspace.BankRobberyType:FindFirstChild("MoneyPromptHolder")
+	local goldFolder = moneyHolder and moneyHolder:FindFirstChild("Gold")
+	if goldFolder then
+		for _, child in ipairs(goldFolder:GetChildren()) do
+			if not isBotRunning then break end
+			if child:IsA("Model") and child.Name == "Model" then
+				local gold1 = child:FindFirstChild("Gold1")
+				local prompt = gold1 and gold1:FindFirstChild("Gold")
+				if gold1 and prompt then table.insert(goldTargets, { TargetPart = gold1, Prompt = prompt }) end
+			end
+		end
+	end
+	return goldTargets
+end
+
+local function getSellTarget()
+	local desk = workspace:FindFirstChild("Desk")
+	local sellpart = desk and desk:FindFirstChild("sellpart")
+	if sellpart and sellpart:IsA("BasePart") then
+		return sellpart, sellpart:FindFirstChild("ProximityPrompt")
+	end
+	return nil, nil
+end
+
+-- Hàm kiểm tra xem nhân vật hiện có đang sở hữu C4 hay không
+local function checkHasC4()
+	local character = LocalPlayer.Character
+	local backpack = LocalPlayer:FindFirstChild("Backpack")
+	
+	if character and character:FindFirstChild("C4") then return true end
+	if backpack and backpack:FindFirstChild("C4") then return true end
+	
+	return false
+end
+
+local function equipC4Tool()
+	if not isBotRunning then return false end
+	local character = LocalPlayer.Character
+	local backpack = LocalPlayer:FindFirstChild("Backpack")
+	if not character or not backpack then return false end
+	if character:FindFirstChild("C4") then return true end
+	local c4Tool = backpack:FindFirstChild("C4")
+	if c4Tool and c4Tool:IsA("Tool") then c4Tool.Parent = character task.wait(0.3) return true end
+	return false
+end
+
+local function tweenToTarget(targetPart)
+	if not isBotRunning then return false end
+	local character = LocalPlayer.Character
+	local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+	if not humanoidRootPart then return false end
+	
+	local distance = (humanoidRootPart.Position - targetPart.Position).Magnitude
+	local tween = TweenService:Create(humanoidRootPart, TweenInfo.new(distance / (100 / TWEEN_SPEED), Enum.EasingStyle.Linear), {CFrame = CFrame.new(targetPart.Position + Vector3.new(0, 2, 0))})
+	
+	local connection
+	connection = RunService.Heartbeat:Connect(function()
+		if not isBotRunning then tween:Cancel() if connection then connection:Disconnect() end end
+	end)
+	
+	tween:Play()
+	tween.Completed:Wait()
+	if connection then connection:Disconnect() end
+	
+	if not isBotRunning then return false end
+	task.wait(0.2)
+	return true
+end
+
+local function firePrompt(prompt)
+	if not prompt or not isBotRunning then return end
+	prompt.HoldDuration = 0
+	prompt:InputHoldBegin()
+	task.wait(0.05)
+	prompt:InputHoldEnd()
+end
+
+-- TIẾN TRÌNH ROB HOÀN CHỈNH
+local function startBotProcess()
+	print("🔓 [BOT] Bắt đầu chuỗi tiến trình Auto Rob Bank...")
+	lockCameraToDirection(CURRENT_LOOK_VECTOR)
+	task.wait(0.5)
+	
+	if not isBotRunning then return end
+	local targets = getC4Targets()
+	
+	for i, target in ipairs(targets) do
+		if not isBotRunning then break end
+		
+		-- Bước 1: Bay tới vị trí lấy bom C4
+		if tweenToTarget(target.TargetPart) and isBotRunning then
+			firePrompt(target.Prompt)
+			print("💣 [BOT] Đã kích hoạt nhặt C4, đang kiểm tra trạng thái túi đồ...")
+			
+			-- BƯỚC SỬA LỖI: Vòng lặp chờ xác nhận C4 đã vào túi đồ (đợi tối đa 3 giây)
+			local hasC4 = false
+			for _ = 1, 30 do
+				if not isBotRunning then break end
+				if checkHasC4() then
+					hasC4 = true
+					break
+				end
+				task.wait(0.1) -- Kiểm tra lại sau mỗi 100ms
+			end
+			
+			-- Nếu đã có C4 thì mới được phép chạy đến Ngân hàng để phá cửa
+			if hasC4 and isBotRunning then
+				print("✅ [BOT] Xác nhận đã sở hữu C4! Tiến hành di chuyển tới Cửa Ngân Hàng...")
+				
+				local bankPart, bankPrompt = getBankTarget()
+				if bankPart and tweenToTarget(bankPart) and isBotRunning then
+					equipC4Tool() -- Mang bom ra tay
+					if bankPrompt and isBotRunning then
+						firePrompt(bankPrompt) -- Đặt bom phá cửa
+						
+						for _ = 1, 60 do if not isBotRunning then break end task.wait(0.1) end -- Chờ két mở
+						
+						if not isBotRunning then break end
+						updateCameraDirection(NEW_LOOK_VECTOR)
+						task.wait(0.2)
+						
+						-- GOM TÀI SẢN (ĐẾM 5 LẦN)
+						local fireCount = 0
+						local cashList = getCashTargets()
+						for _, cashData in ipairs(cashList) do
+							if not isBotRunning or fireCount >= 5 then break end 
+							if tweenToTarget(cashData.TargetPart) and isBotRunning then
+								firePrompt(cashData.Prompt)
+								fireCount = fireCount + 1
+								task.wait(0.3)
+							end
+						end
+						
+						if isBotRunning and fireCount < 5 then
+							local goldList = getGoldTargets()
+							for _, goldData in ipairs(goldList) do
+								if not isBotRunning or fireCount >= 5 then break end
+								if tweenToTarget(goldData.TargetPart) and isBotRunning then
+									firePrompt(goldData.Prompt)
+									fireCount = fireCount + 1
+									task.wait(0.3)
+								end
+							end
+						end
+						
+						-- ĐI BÁN ĐỒ
+						if not isBotRunning then break end
+						updateCameraDirection(SELL_LOOK_VECTOR)
+						task.wait(0.2)
+						
+						local sellPart, sellPrompt = getSellTarget()
+						if sellPart and tweenToTarget(sellPart) and isBotRunning and sellPrompt then
+							firePrompt(sellPrompt)
+							print("✅ [BOT] Đã bán đồ xong! Đang chờ đợt tín hiệu tiếp theo...")
+							task.wait(1)
+						end
+					end
+				end
+				break -- Thoát khỏi vòng lặp lấy bom khi đã thực hiện xong một chuỗi Rob thành công
+			else
+				warn("⚠️ [BOT] Lỗi: Kích hoạt nhặt bom nhưng server chưa cấp C4. Thử lại mục tiêu bom tiếp theo...")
+			end
+		end
+	end
+	resetCamera()
+end
+
+-- HÀM LẮNG NGHE SỰ KIỆN QUA REPLICATED STORAGE REMOTEEVENT
+local function listenToBankEvents()
+	local replicatedStorage = game:GetService("ReplicatedStorage")
+	local remotesFolder = replicatedStorage:FindFirstChild("Remotes")
+	local notificationEvent = remotesFolder and remotesFolder:FindFirstChild("NotiPotifcation")
+	
+	if notificationEvent and notificationEvent:IsA("RemoteEvent") then
+		print("📡 [EVENT] Đang kết nối lắng nghe tín hiệu từ NotiPotifcation...")
+		
+		bankNotificationConnection = notificationEvent.OnClientEvent:Connect(function(statusType)
+			if isBotRunning and statusType == "Open" then
+				print("🔔 [EVENT] Nhận được tín hiệu 'Open'! Khởi động luồng Rob...")
+				task.spawn(startBotProcess)
+			end
+		end)
+	else
+		warn("❌ Không tìm thấy RemoteEvent tại ReplicatedStorage.Remotes.NotiPotifcation!")
+	end
+end
+
+-- =============================================================================
+-- RAYFIELD TOGGLE TÍNH HỢP
+-- =============================================================================
+local RobToggle = RobTab:CreateToggle({
+   Name = "Auto Rob Bank v1",
+   CurrentValue = false,
+   Flag = "AutoRobBankToggle", 
+   Callback = function(Value)
+      isBotRunning = Value
+      if Value then
+         listenToBankEvents()
+         print("▶️ Đã bật trạng thái chờ tín hiệu mở cửa Bank...")
+      else
+         stopBotPermanently("Tắt Toggle trên UI")
+      end
    end,
 })
 local TabGun = Window:CreateTab("Mod", 4483362458) -- Title, Image
