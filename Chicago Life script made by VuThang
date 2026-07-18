@@ -1358,3 +1358,81 @@ end
 
 for _, player in ipairs(Players:GetPlayers()) do applyESP(player) end
 Players.PlayerAdded:Connect(applyESP)
+-- Giả định bạn đã khởi tạo Tab trước đó trong script của mình
+-- local Tab = Window:CreateTab("Main", 4483362458)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local staminaConnection = nil
+local isStaminaEnabled = false
+local charAddedConnection = nil
+
+-- Hàm dừng loop và ngắt kết nối an toàn
+local function stopInfiniteStamina()
+	if staminaConnection then 
+		staminaConnection:Disconnect() 
+		staminaConnection = nil 
+	end
+	if charAddedConnection then
+		charAddedConnection:Disconnect()
+		charAddedConnection = nil
+	end
+	print("❌ [HỆ THỐNG] Đã tắt Infinite Stamina.")
+end
+
+-- Hàm kích hoạt logic khóa Stamina
+local function startInfiniteStamina()
+	if staminaConnection then staminaConnection:Disconnect() end
+	
+	print("⚡ [HỆ THỐNG] Đang tự động khóa Stamina cho: " .. LocalPlayer.Name)
+	
+	staminaConnection = RunService.Heartbeat:Connect(function()
+		if not isStaminaEnabled then 
+			if staminaConnection then staminaConnection:Disconnect() staminaConnection = nil end
+			return 
+		end
+		
+		-- Tìm đúng thư mục nhân vật của bạn trong workspace theo tên
+		local myCharacterFolder = workspace:FindFirstChild(LocalPlayer.Name)
+		local runningFolder = myCharacterFolder and myCharacterFolder:FindFirstChild("Running")
+		
+		if runningFolder then
+			local staminaValue = runningFolder:FindFirstChild("Stamina")
+			if staminaValue then
+				staminaValue.Value = math.huge
+			end
+		end
+	end)
+end
+
+-- =============================================================================
+-- RAYFIELD TOGGLE TÍNH HỢP
+-- =============================================================================
+local StaminaToggle = Tab:CreateToggle({
+   Name = "Infinite Stamina",
+   CurrentValue = false,
+   Flag = "InfStaminaToggle", 
+   Callback = function(Value)
+      isStaminaEnabled = Value
+      
+      if Value then
+         -- Lắng nghe sự kiện hồi sinh khi đang bật Toggle
+         charAddedConnection = LocalPlayer.CharacterAdded:Connect(function()
+            task.wait(1)
+            if isStaminaEnabled then
+               startInfiniteStamina()
+            end
+         end)
+         
+         -- Chạy ngay lập tức nếu nhân vật đã tồn tại
+         if LocalPlayer.Character then
+            startInfiniteStamina()
+         end
+      else
+         -- Tắt hoàn toàn khi gạt Toggle về false
+         stopInfiniteStamina()
+      end
+   end,
+})
