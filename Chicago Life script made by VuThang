@@ -1436,3 +1436,472 @@ local StaminaToggle = LocalPlayerTab:CreateToggle({
       end
    end,
 })
+local NguoiChoiDuocChon = ""
+local SungDuocChon = ""
+local DangKichHoat = false
+
+-- Cac service cua game
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+-- SUA LOI TAI DAY: Thay GetService bang WaitForChild de vao thu muc Remotes
+local Event = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("InflictTarget")
+
+-- Ham lay danh sach nguoi choi (loai tru ban than)
+local function LayDanhSachNguoiChoi()
+   local DanhSach = {}
+   for _, p in pairs(Players:GetPlayers()) do
+      if p ~= LocalPlayer then
+         table.insert(DanhSach, p.Name)
+      end
+   end
+   return DanhSach
+end
+
+-- Ham lay danh sach sung trong Backpack
+local function LayDanhSachSung()
+   local DanhSach = {}
+   local Backpack = LocalPlayer:FindFirstChild("Backpack")
+   if Backpack then
+      for _, item in pairs(Backpack:GetChildren()) do
+         if item:IsA("Tool") then
+            table.insert(DanhSach, item.Name)
+         end
+      end
+   end
+   return DanhSach
+end
+
+-- Tao dung ten KillTab (su dung bien Window da co san cua ban)
+local KillTab = Window:CreateTab("Kill(OP)", 4483362458)
+
+-- Dropdown chon Nguoi choi
+local DropdownNguoiChoi = KillTab:CreateDropdown({
+   Name = "Select Target Player",
+   Options = LayDanhSachNguoiChoi(),
+   CurrentOption = {""},
+   MultipleOptions = false,
+   Callback = function(Option)
+      NguoiChoiDuocChon = Option[1]
+   end,
+})
+
+-- Dropdown chon Sung
+local DropdownSung = KillTab:CreateDropdown({
+   Name = "Select Gun from Backpack",
+   Options = LayDanhSachSung(),
+   CurrentOption = {""},
+   MultipleOptions = false,
+   Callback = function(Option)
+      SungDuocChon = Option[1]
+   end,
+})
+
+-- Nut lam moi danh sach nguoi choi va sung
+KillTab:CreateButton({
+   Name = "Refresh Lists",
+   Callback = function()
+      DropdownNguoiChoi:Refresh(LayDanhSachNguoiChoi())
+      DropdownSung:Refresh(LayDanhSachSung())
+   end,
+})
+
+-- Ham thuc thi spam len muc tieu
+local function ThucThiSpam()
+   local MucTieuChar = workspace:FindFirstChild(NguoiChoiDuocChon)
+   local Backpack = LocalPlayer:FindFirstChild("Backpack")
+   local Sung = Backpack and Backpack:FindFirstChild(SungDuocChon)
+
+   if MucTieuChar and Sung then
+      local Humanoid = MucTieuChar:FindFirstChildOfClass("Humanoid")
+      local RootPart = MucTieuChar:FindFirstChild("HumanoidRootPart")
+      local Head = MucTieuChar:FindFirstChild("Head")
+
+      -- Chi kich hoat khi Muc tieu con song (Health > 0) va co du cac bo phan
+      if Humanoid and RootPart and Head and Humanoid.Health > 0 then
+         Event:InvokeServer(
+            "Gun",
+            Sung,
+            {
+               TacticalReloadAnimationSpeed = 1,
+               CanSpinPart = false,
+               AngleX_Min = 0,
+               Lifesteal = 0,
+               MeleeCriticalDamageEnabled = false,
+               VisibleBullet = true,
+               Spread = 0,
+               ExplosionCraterFadeTime = 1,
+               Accuracy = 0.1,
+               GoreSoundVolume = 1,
+               MeleeHitEffectEnabled = true,
+               ChargingSoundIncreasePitch = true,
+               WhizDistance = 25,
+               ProjectileMotion = false,
+               WhizSoundPitchMin = 1,
+               ReloadAnimationSpeed = 1,
+               MeleeDebuffChance = 100,
+               SpreadRedutionS = 0.6,
+               VisibleTime = 0.01,
+               HoldDownAnimationSpeed = 0.5,
+               DebuffName = "",
+               ScopeSwaySpeed = 15,
+               HoldingTime = 1,
+               HeatPerFireMax = 0,
+               MeleeBloodEnabled = true,
+               VMShotgunClipinAnimationSpeed = 1,
+               MeleeKnockback = 0,
+               StopBouncingOnHitHumanoid = false,
+               MeleeDamage = 20,
+               EquippedAnimationID = 1.1948208300982e+14,
+               VMSecondaryFireAnimationSpeed = 1,
+               MeleeBloodWoundTexture = { 2078626 },
+               EasingStyleNAD = Enum.EasingStyle.Quint,
+               LockOnRadius = 10,
+               SecondaryShotgunPumpinAnimationSpeed = 1,
+               BulletHoleVisibleTime = 3,
+               AltAnimationSpeed = 1,
+               AimIdleAnimationSpeed = 1,
+               MeleeHitSoundIDs = { 6000828622 },
+               PreShotgunReload = false,
+               BulletPerBurst = 3,
+               RicochetAmount = 0,
+               MeleeHitSoundPitchMin = 1,
+               ShotsForDepletion = 12,
+               AlignToAimPoint = true,
+               VMReloadAnimationSpeed = 1,
+               HitmarkerSoundID = { 3748776946, 3748777642, 3748780065 },
+               BulletBrightness = 400,
+               MuzzleLightEnabled = true,
+               RecoilRedution = 0.5,
+               EasingStyle = Enum.EasingStyle.Quint,
+               MotionBlur = true,
+               CrossExpansion = 100,
+               BloodWoundFadeTime = 1,
+               MeleeLifesteal = 0,
+               MeleeDebuff = false,
+               ExplosionSoundIDs = { 163064102 },
+               WindResistance = 1,
+               LockOnOnHovering = false,
+               TouchEventOnTimeout = false,
+               VMMeleeAttackAnimationSpeed = 1,
+               KeepAimingOnReloading = true,
+               ExplosionKnockbackMultiplierOnPlayer = 2,
+               VMShotgunPumpinAnimationSpeed = 1,
+               PenetrationAmount = 0,
+               ShotgunPumpinSpeed = 0.5,
+               PenetrationType = "HumanoidPenetration",
+               HitmarkerSoundPitchHS = 1,
+               LowAmmo = false,
+               BulletShellRotVelocity = 40,
+               MeleeBloodWoundFadeTime = 1,
+               EasingDirectionNAD = Enum.EasingDirection.Out,
+               Auto = true,
+               LightBrightness = 4,
+               ChamberAnimationID = 1.0724885692243e+14,
+               HitmarkerFadeTime = 0.4,
+               SelfKnockbackMultiplier = 2,
+               BulletHoleFadeTime = 1,
+               MaximumTime = 1,
+               ChargingTime = 1,
+               InspectAnimationSpeed = 1,
+               BulletSpeed = 2200,
+               SelfKnockback = false,
+               VMInspectAnimationSpeed = 1,
+               MeleeHitCharSndPitchMax = 1,
+               CrossScaleIS = 0.6,
+               DualFireEnabled = false,
+               SpreadPattern = {
+                  {0, -0.4}, {-0.35, 0.2}, {0.35, 0.2}, {0, 1},
+                  {0.95, 0.31}, {0.59, -0.81}, {-0.59, -0.81}, {-0.95, 0.31}
+               },
+               SmokeTrailEnabled = true,
+               MeleeAttackEnabled = false,
+               SniperEnabled = false,
+               BulletLifetime = 1,
+               AngleZ_Max = 0,
+               MinigunRevDownAnimationSpeed = 1,
+               DebuffChance = 100,
+               FieldOfViewIS = 50,
+               IdleAnimationSpeed = 1,
+               DelayBeforeFiring = 1,
+               ScopeSwayDamper = 0.65,
+               ShotgunReload = false,
+               VMReloadAnimationID = 5474084638,
+               TimeBeforeCooldown = 3,
+               MouseSensitiveS = 0.2,
+               ReloadAnimationID = 79777338797043,
+               VMFireAnimationID = 15696061196,
+               EquipTime = 1,
+               BurstFireEnabled = false,
+               MarkerPartColor = true,
+               MarkerEffectTexture = { 2078626 },
+               FireAnimationID = 1.1651566675386e+14,
+               ViewmodelRecoilInfluence = 0,
+               TweenLengthNAD = 0.8,
+               CriticalBaseChance = 5,
+               VMIdleAnimationSpeed = 1,
+               MeleeBloodWoundEnabled = true,
+               GoreEffectEnabled = false,
+               HoldDownAnimationID = 1.1214593741218e+14,
+               MeleeBloodWoundPartColor = true,
+               BurstRate = 0.075,
+               ShellTextureID = 5710577470,
+               BulletHoleTexture = { 359667865 },
+               AimAnimationsEnabled = false,
+               Recoil = 0,
+               MeleeAttackRange = 4,
+               HitCharSndPitchMax = 1,
+               BloodEnabled = true,
+               MaxHeat = 100,
+               Debuff = false,
+               HitmarkerSoundPitch = 1,
+               ScopeKnockbackSpeed = 15,
+               VMMinigunRevUpAnimationSpeed = 1,
+               ShotgunPumpinAnimationSpeed = 1,
+               HitEffectEnabled = true,
+               MeleeHeadshotEnabled = true,
+               Homing = false,
+               WhizSoundEnabled = false,
+               HoldAndReleaseEnabled = false,
+               AngleX_Max = 0,
+               Level1ChargingTime = 1,
+               VMTacticalReloadAnimationSpeed = 1,
+               VMMinigunRevDownAnimationSpeed = 1,
+               CriticalDamageEnabled = false,
+               AllowCollide = false,
+               BatteryEnabled = false,
+               ShotgunEnabled = false,
+               EasingDirection = Enum.EasingDirection.Out,
+               MouseSensitiveIS = 0.2,
+               Knockback = 0,
+               AimSecondaryFireAnimationSpeed = 1,
+               FullyGibbedLimbChance = 50,
+               MeleeHitCharSndIDs = { 6398015798, 6398016125, 6398016391, 6398016618 },
+               ShotgunPump = false,
+               AmmoPerMag = 15,
+               HitSoundPitchMax = 1.5,
+               HitscanMode = false,
+               MinigunEnabled = false,
+               MeleeCriticalBaseChance = 5,
+               BloodWoundVisibleTime = 3,
+               WhizSoundVolume = 1,
+               VMAltAnimationSpeed = 1,
+               ScopeSensitive = 0.25,
+               FireRate = 0.135,
+               CrossSpeed = 15,
+               BurstRates = { 0, 0.075, 0.075, 0 },
+               SelfDamageRedution = 0.5,
+               ChargingAnimationSpeed = 1,
+               HitCharSndVolume = 1,
+               MarkerEffectSize = 0.5,
+               MarkerEffectFadeTime = 1,
+               MeleeHitSoundVolume = 1,
+               MeleeCriticalDamageMultiplier = 3,
+               MeleeAttackAnimationSpeed = 1,
+               MeleeHitSoundPitchMax = 1.5,
+               MeleeBloodWoundSize = 0.5,
+               MeleeDebuffName = "",
+               ZeroDamageDistance = 10000,
+               AngleY_Max = 0,
+               BulletSize = 0.05,
+               AimFireAnimationSpeed = 1,
+               MaxAmmo = 45,
+               HitCharSndIDs = { 3802437008, 3802437361, 3802437696, 3802440043, 3802440388, 3802442962 },
+               VMHoldDownAnimationSpeed = 0.5,
+               IdleAnimationID = 1.0551823215165e+14,
+               ModuleName = "1",
+               VMSwitchAnimationSpeed = 1,
+               CrossDamper = 0.8,
+               HitmarkerColorHS = Color3.new(1, 0, 0),
+               OverheatTime = 2.5,
+               TurnRatePerSecond = 1,
+               ExplosionSoundPitchMax = 1.5,
+               LightColor = Color3.new(1, 1.1098039150238, 0),
+               AltTime = 1,
+               WhizSoundPitchMax = 1,
+               AngleZ_Min = 0,
+               ShellScale = Vector3.new(0.002, 0.002, 0.002),
+               ShellSize = Vector3.new(0.128, 0.064, 0.064),
+               AnimationKeyframes = {},
+               BounceElasticity = 1,
+               TweenLength = 0.8,
+               ChargingSoundPitchRange = { 1, 1.5 },
+               MeleeHeadshotDamageMultiplier = 2,
+               CriticalDamageMultiplier = 3,
+               ExplosiveEnabled = false,
+               SpreadRedutionIS = 0.6,
+               VMEquippedAnimationID = 5474070948,
+               VMSecondaryShotgunPumpinAnimationSpeed = 1,
+               FieldOfViewS = 12.5,
+               VMEquippedAnimationSpeed = 1,
+               CrossScaleS = 0,
+               FireModes = { 1, true },
+               ScopeDelay = 0,
+               SecondaryFireAnimationEnabled = false,
+               CooldownRate = 1,
+               PartColor = false,
+               MaximumRate = 4,
+               SilenceEffect = false,
+               SwitchAnimationID = 9812431414,
+               TacticalReloadTime = 3,
+               SpinY = 0,
+               SecondaryFireAnimationSpeed = 1,
+               GoreSoundIDs = { 1930359546 },
+               HitSoundIDs = { 186809061, 186809249, 186809250, 186809252 },
+               Ammo = 15,
+               ExplosionKnockback = false,
+               HitSoundVolume = 1,
+               SpinX = 3,
+               GoreSoundPitchMin = 1,
+               RaisePitch = false,
+               TacticalReloadAnimationEnabled = false,
+               BulletType = "Normal",
+               DisappearTime = 5,
+               BulletBloom = 0.005,
+               SelectiveFireEnabled = false,
+               MaxDepletion = 4,
+               FullDamageDistance = 1000,
+               HitSoundPitchMin = 1,
+               BulletHoleEnabled = true,
+               MeleeHitCharSndVolume = 1,
+               HomingDistance = 250,
+               HitCharSndPitchMin = 1,
+               CameraRecoilingEnabled = false,
+               SmokeTrailRateIncrement = 1,
+               ExplosionCraterSize = 3,
+               BloodWoundTexture = { 359667865 },
+               BloodWoundTextureColor = Color3.new(1, 0, 0),
+               AdvancedChargingTime = 5,
+               MeleeBloodWoundTextureColor = Color3.new(1, 0, 0),
+               BloodWoundPartColor = true,
+               NoExplosionWhileBouncing = false,
+               CustomExplosion = false,
+               VMMeleeAttackRange = 4,
+               GoreSoundPitchMax = 1.5,
+               MuzzleFlashEnabled = true,
+               ShotgunPattern = false,
+               LightRange = 15,
+               BulletShellEnabled = true,
+               ExplosionRadius = 8,
+               PenetrationDepth = 0,
+               BulletShellVelocity = 17,
+               ScopeKnockbackDamper = 0.65,
+               VMPreShotgunReloadAnimationSpeed = 1,
+               ShellMeshID = 5710574682,
+               ExplosionSoundEnabled = true,
+               ChargingAnimationEnabled = false,
+               DamageDropOffEnabled = true,
+               MinigunRevUpAnimationSpeed = 1,
+               BulletPerShot = 8,
+               WhizSoundID = { 3809084884, 3809085250, 3809085650, 3809085996, 3809086455 },
+               FireModeTexts = { "SEMI-AUTO", "AUTO" },
+               FireRates = { 0.135, 0.05, 0.05, 0.05 },
+               PreShotgunReloadSpeed = 0.5,
+               ChargedShotAdvanceEnabled = false,
+               ChamberAnimationSpeed = 1,
+               SecondaryShotgunPump = false,
+               VMAnimationKeyframes = {},
+               MarkerEffectVisibleTime = 3,
+               CustomHitEffect = false,
+               ExplosionKnockbackMultiplierOnTarget = 2,
+               HomeThroughWall = false,
+               ReloadTime = 2.38,
+               HitmarkerEnabled = false,
+               ExplosionCraterTexture = { 53875997 },
+               HoldDownEnabled = true,
+               MeleeBloodWoundVisibleTime = 3,
+               ShellClipinSpeed = 0.5,
+               PreShotgunReloadAnimationSpeed = 1,
+               RecoilSpeed = 35,
+               LightShadows = true,
+               HitmarkerColor = Color3.new(1, 1, 1),
+               VMChargingAnimationSpeed = 1,
+               CooldownTime = 0.05,
+               BulletHoleSize = 0.5,
+               ExplosionSoundVolume = 1,
+               ExplosionSoundPitchMin = 1,
+               FriendlyFire = true,
+               DamageBasedOnDistance = false,
+               SelfDamage = false,
+               MinDepletion = 2,
+               AngleY_Min = 0,
+               Level2ChargingTime = 2,
+               MagDrop = false,
+               WindSpeed = 10,
+               ExplosionCraterEnabled = true,
+               ExplosionKnockbackPower = 50,
+               BulletShellParticles = true,
+               BaseDamage = 17,
+               CustomMeleeHitEffect = false,
+               ExplosionCraterPartColor = false,
+               HitmarkerFadeTimeHS = 0.4,
+               BulletAcceleration = Vector3.new(0, -10, 0),
+               LimitedAmmoEnabled = true,
+               SecondaryShotgunPumpinSpeed = 0.5,
+               RecoilDamper = 0.65,
+               FireAnimationSpeed = 1.5,
+               SwitchAnimationSpeed = 1,
+               ProjectileType = "Bullet",
+               EquippedAnimationSpeed = 1,
+               VMFireAnimationSpeed = 1,
+               FrictionConstant = 0,
+               SpinZ = 0,
+               ExplosionCraterVisibleTime = 3,
+               BloodWoundSize = 0.2,
+               ScopeKnockbackMultiplier = 5,
+               ShotgunClipinAnimationSpeed = 1,
+               ChargeAlterTable = {},
+               MarkerEffectEnabled = true,
+               InspectAnimationEnabled = false,
+               AimChargingAnimationSpeed = 1,
+               ChargedShotEnabled = false,
+               BloodWoundEnabled = true,
+               HeadshotDamageMultiplier = 2,
+               MeleeHitCharSndPitchMin = 1,
+               HeatPerFireMin = 0,
+               OverheatAnimationSpeed = 1,
+               VMOverheatAnimationSpeed = 1,
+               IronsightEnabled = false,
+               BulletShellDelay = 0.1,
+               HeadshotEnabled = true,
+               SelfKnockbackPower = 50,
+               SelfKnockbackRedution = 0.8,
+               EchoEffect = true,
+               ReduceSelfDamageOnAirOnly = false,
+               SuperRicochet = false,
+               CrossSize = 7,
+               SwitchTime = 0.25
+            },
+            Humanoid,
+            RootPart,
+            Head,
+            {
+               ChargeLevel = 0,
+               HitEffectFolder = ReplicatedStorage.Miscs.GunVisualEffects.Common.HitEffect,
+               MuzzleFolder = ReplicatedStorage.Miscs.GunVisualEffects.Common.MuzzleEffect,
+               BloodEffectFolder = ReplicatedStorage.Miscs.GunVisualEffects.Common.BloodEffect,
+               ExplosionEffectFolder = ReplicatedStorage.Miscs.GunVisualEffects.Common.ExplosionEffect,
+               GoreEffect = ReplicatedStorage.Miscs.GunVisualEffects.Common.GoreEffect
+            },
+            19.332674026489
+         )
+      end
+   end
+end
+
+-- Vong lap Heartbeat chay moi khung hinh de bat muc tieu khi hoi sinh
+RunService.Heartbeat:Connect(function()
+   if DangKichHoat and NguoiChoiDuocChon ~= "" and SungDuocChon ~= "" then
+      ThucThiSpam()
+   end
+end)
+
+-- Tao Toggle "kill selected player"
+local ToggleKill = KillTab:CreateToggle({
+   Name = "Kill selected player",
+   CurrentValue = false,
+   Callback = function(Value)
+      DangKichHoat = Value
+   end,
+})
