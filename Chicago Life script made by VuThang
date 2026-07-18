@@ -1410,7 +1410,7 @@ end
 -- =============================================================================
 -- RAYFIELD TOGGLE TÍNH HỢP
 -- =============================================================================
-local StaminaToggle = Tab:CreateToggle({
+local StaminaToggle = LocalPlayerTab:CreateToggle({
    Name = "Infinite Stamina",
    CurrentValue = false,
    Flag = "InfStaminaToggle", 
