@@ -1419,11 +1419,18 @@ local function tweenToTarget(targetPart)
 end
 
 local function firePrompt(prompt)
-	if not prompt or not isBotRunning then return end
-	prompt.HoldDuration = 0
-	prompt:InputHoldBegin()
-	task.wait(0.05)
-	prompt:InputHoldEnd()
+    if not prompt or not isBotRunning then return end
+    
+    -- Nếu Executor có hàm chuyên dụng, dùng luôn để bypass Camera
+    if fireproximityprompt then
+        fireproximityprompt(prompt)
+    else
+        -- Phương án dự phòng cũ nếu Executor không hỗ trợ
+        prompt.HoldDuration = 0
+        prompt:InputHoldBegin()
+        task.wait(0.05)
+        prompt:InputHoldEnd()
+    end
 end
 
 -- TIẾN TRÌNH ROB HOÀN CHỈNH
