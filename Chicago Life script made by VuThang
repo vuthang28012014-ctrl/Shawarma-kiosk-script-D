@@ -2667,3 +2667,62 @@ LocalPlayerTab:CreateToggle({
        end
    end,
 })
+local Players = game:GetService("Players")
+local VirtualUser = game:GetService("VirtualUser")
+
+_G.AntiAFK = false
+local afkConnection = nil
+
+-- Hàm xử lý logic chống treo máy bằng cách giả lập thao tác chuột/phím ngầm
+local function startAntiAFK()
+    if afkConnection then return end -- Tránh chạy trùng nhiều vòng lặp
+    
+    local localPlayer = Players.LocalPlayer
+    if not localPlayer then return end
+    
+    -- Lắng nghe sự kiện khi tài khoản bị game gắn cờ chuẩn bị đá (Idled)
+    afkConnection = localPlayer.Idled:Connect(function()
+        if _G.AntiAFK then
+            -- Giả lập một cú click chuột ảo vào giữa màn hình để reset thời gian AFK của Roblox
+            VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+            task.wait(1)
+            VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+            print("🔄 [Anti-AFK] Đã giả lập tương tác chuột ảo để chống ngắt kết nối!")
+        else
+            if afkConnection then
+                afkConnection:Disconnect()
+                afkConnection = nil
+            end
+        end
+    end)
+end
+
+-- ==========================================
+-- ĐOẠN KHỞI TẠO TOGGLE TRONG RAYFIELD UI
+-- (Đổi 'Xóa_Cái_Này_Thay_Bằng_Tab_Của_Bạn' thành tên biến Tab của bạn nhé)
+-- ==========================================
+LocalPlayerTab:CreateToggle({
+   Name = "Anti AFK",
+   CurrentValue = false,
+   Flag = "Toggle_AntiAFK",
+   Callback = function(Value)
+       _G.AntiAFK = Value
+       
+       if Value then
+           print("🟢 [Rayfield] Anti-AFK: ON")
+           startAntiAFK()
+           
+           -- Mẹo phụ: Tự động tương tác nhẹ khi vừa bật để kích hoạt hệ thống
+           pcall(function()
+               VirtualUser:CaptureController()
+               VirtualUser:ClickButton2(Vector2.new(0, 0))
+           end)
+       else
+           print("🔴 [Rayfield] Anti-AFK: OFF")
+           if afkConnection then
+               afkConnection:Disconnect()
+               afkConnection = nil
+           end
+       end
+   end,
+})
