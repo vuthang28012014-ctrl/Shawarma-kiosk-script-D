@@ -1555,6 +1555,7 @@ local RobToggle = RobTab:CreateToggle({
 })
 local Paragraph = RobTab:CreateParagraph({Title = "Lưu ý:", Content = "Hãy đảm bảo tất cả các loại aim đã được tắt, bank CHƯA MỞ, và chắc chắn phải đảm bảo trong lúc cướp không bị ai giết!"})
 local TabGun = Window:CreateTab("Mod", 4483362458) -- Title, Image
+local Section = TabGun:CreateSection("Gun")
 -- =================================================================
 -- HỆ THỐNG ĐIỀU KHIỂN SÚNG THÔNG MINH (DROPDOWN + 4 TOGGLES) -> TABGUN
 -- =================================================================
@@ -2463,3 +2464,85 @@ local ToggleKill = KillTab:CreateToggle({
       DangKichHoat = Value
    end,
 })
+local Section = TabGun:CreateSection("Car")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local localPlayer = Players.LocalPlayer
+
+-- BIẾN ĐIỀU KHIỂN LOGIC
+local BoostEnabled = false 
+local BoostSpeed = 0.4     
+local TURN_SPEED = 2.5     
+
+----------------------------------------------------------------
+-- 1. TẠO TOGGLE (Bật/Tắt)
+----------------------------------------------------------------
+local Toggle = TabGun:CreateToggle({
+   Name = "Active speed boost",
+   CurrentValue = false,
+   Flag = "CarBoostToggle",
+   Callback = function(Value)
+      BoostEnabled = Value
+   end,
+})
+
+----------------------------------------------------------------
+-- 2. TẠO SLIDER (Chỉnh tốc độ - Theo đúng chuẩn của bạn)
+----------------------------------------------------------------
+local Slider = TabGun:CreateSlider({
+   Name = "Boost Speed",
+   Range = {0.1, 5.0}, -- Chỉnh từ 0.1 đến 5.0
+   Increment = 0.1,
+   Suffix = "Speed",
+   CurrentValue = 0.4,
+   Flag = "CarBoostSlider", 
+   Callback = function(Value)
+      BoostSpeed = Value
+   end,
+})
+
+----------------------------------------------------------------
+-- 3. CODE LOGIC DI CHUYỂN XE (Chạy ngầm liên tục)
+----------------------------------------------------------------
+RunService.Heartbeat:Connect(function()
+    if not BoostEnabled then return end
+    
+    local character = localPlayer.Character
+    if not character then return end
+    
+    local humanoid = character:FindFirstChildWhichIsA("Humanoid")
+    if humanoid and humanoid.SeatPart and humanoid.SeatPart:IsA("VehicleSeat") then
+        local seat = humanoid.SeatPart
+        local vehicle = seat:FindFirstAncestorOfClass("Model")
+        
+        if vehicle then
+            local currentPivot = vehicle:GetPivot()
+            
+            -- Tính góc xoay (Rẽ)
+            local turnAngle = 0
+            if seat.Steer == -1 then
+                turnAngle = TURN_SPEED
+            elseif seat.Steer == 1 then
+                turnAngle = -TURN_SPEED
+            end
+            
+            if turnAngle ~= 0 then
+                currentPivot = currentPivot * CFrame.Angles(0, math.rad(turnAngle), 0)
+            end
+            
+            -- Tính hướng tiến/lùi
+            local moveDirection = 0
+            if seat.Throttle == 1 then
+                moveDirection = 1
+            elseif seat.Throttle == -1 then
+                moveDirection = -0.5
+            end
+            
+            -- Cập nhật vị trí xe bằng PivotTo
+            if moveDirection ~= 0 or turnAngle ~= 0 then
+                local nextCFrame = currentPivot + (currentPivot.LookVector * (BoostSpeed * moveDirection))
+                vehicle:PivotTo(nextCFrame)
+            end
+        end
+    end
+end)
