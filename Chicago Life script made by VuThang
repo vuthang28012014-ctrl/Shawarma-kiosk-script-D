@@ -2553,3 +2553,117 @@ RunService.Heartbeat:Connect(function()
         end
     end
 end)
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+-- Cấu hình thời gian giãn cách giữa các lần hồi giáp
+local lastFireTime = 0 
+local cooldownDuration = 1 
+
+-- Biến toàn cục để kiểm soát trạng thái bật/tắt của chức năng
+_G.AutoGodMode = false
+local heartbeatConnection = nil
+
+-- Hàm xử lý logic quét và hồi giáp độc lập
+local function startGodModeLogic()
+    if heartbeatConnection then return end -- Tránh chạy trùng lặp nhiều vòng lặp
+    
+    local safeZones = Workspace:WaitForChild("SafeZones", 10)
+    if not safeZones then return end
+    
+    heartbeatConnection = RunService.Heartbeat:Connect(function()
+        -- Nếu trạng thái chuyển thành false thì ngắt kết nối vòng lặp ngay lập tức
+        if not _G.AutoGodMode then
+            if heartbeatConnection then
+                heartbeatConnection:Disconnect()
+                heartbeatConnection = nil
+            end
+            return
+        end
+        
+        local targetCharacter = Workspace:FindFirstChild("Hackerissomuch_20")
+        if targetCharacter then
+            local rootPart = targetCharacter:FindFirstChild("HumanoidRootPart")
+            if rootPart then
+                -- Kiểm tra ForceField
+                local hasForceField = targetCharacter:FindFirstChildOfClass("ForceField") or targetCharacter:FindFirstChild("ForceField")
+                
+                -- NẾU MẤT GIÁP -> TIẾN HÀNH RESET VÀ KÍCH HOẠT LẠI
+                if not hasForceField then
+                    if os.clock() - lastFireTime >= cooldownDuration then
+                        local children = safeZones:GetChildren()
+                        local safePart = nil
+                        
+                        -- Lọc lấy Part ĐẦU TIÊN
+                        for i = 1, #children do
+                            local child = children[i]
+                            if child:IsA("BasePart") and child.Name == "Part" then
+                                local success, hasTouch = pcall(function()
+                                    return child.TouchInterest
+                                end)
+                                if success and hasTouch then
+                                    safePart = child
+                                    break
+                                end
+                            end
+                        end
+                        
+                        if safePart then
+                            local fireTouchFunc = firetouchinterest or firetouchdetector
+                            if fireTouchFunc then
+                                lastFireTime = os.clock()
+                                
+                                task.spawn(function()
+                                    -- Bước 1: Gửi lệnh Untouch (1)
+                                    pcall(function()
+                                        fireTouchFunc(safePart, rootPart, 1)
+                                    end)
+                                    
+                                    task.wait(0.05)
+                                    
+                                    -- Bước 2: Gửi lại lệnh Touch (0)
+                                    pcall(function()
+                                        fireTouchFunc(safePart, rootPart, 0)
+                                    end)
+                                    
+                                    print("🔥 [Rayfield] Đã tự động hồi lại giáp theo chu kỳ!")
+                                end)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- ==========================================
+-- ĐOẠN KHỞI TẠO TOGGLE TRONG RAYFIELD UI
+-- (Hãy đổi 'Xóa_Cái_Này_Thay_Bằng_Tab_Của_Bạn' thành tên biến Tab của bạn)
+-- ==========================================
+LocalPlayerTab:CreateToggle({
+   Name = "God Mode",
+   CurrentValue = false,
+   Flag = "Toggle_GodMode",
+   Callback = function(Value)
+       _G.AutoGodMode = Value
+       
+       if Value then
+           print("🛡️ [Rayfield] Auto God Mode: ON")
+           startGodModeLogic()
+       else
+           print("❌ [Rayfield] Auto God Mode: OFF")
+           
+           -- Tắt hẳn giáp ForceField đang có trên người ngay lập tức khi Off
+           local targetCharacter = Workspace:FindFirstChild("Hackerissomuch_20")
+           if targetCharacter then
+               local currentFF = targetCharacter:FindFirstChildOfClass("ForceField") or targetCharacter:FindFirstChild("ForceField")
+               if currentFF then
+                   currentFF:Destroy()
+                   print("✨ Đã xóa sạch ForceField theo yêu cầu!")
+               end
+           end
+       end
+   end,
+})
