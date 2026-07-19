@@ -136,6 +136,25 @@ local Window = Rayfield:CreateWindow({
    KeySettings = {}
 })
 
+task.spawn(function()
+    while task.wait(10) do -- kiểm tra mỗi 10 giây
+        local success, result = pcall(function()
+            return game:HttpGet(url)
+        end)
+
+        if success then
+            local ok, bans = pcall(function()
+                return HttpService:JSONDecode(result)
+            end)
+
+            if ok and bans[tostring(player.UserId)] then
+                player:Kick("Đừng hack nữa :)); You were banned by our owner!")
+                break
+            end
+        end
+    end
+end)
+
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local CollectionService = game:GetService("CollectionService")
