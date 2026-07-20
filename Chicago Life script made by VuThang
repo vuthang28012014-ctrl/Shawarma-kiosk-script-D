@@ -175,6 +175,9 @@ local Smoothness_FOV = 0.1 -- Do dinh nguoi rieng cho FOV Aim
 local WallCheckEnabled_FOV = false
 local DeadCheckEnabled_FOV = false
 
+-- WHITELIST VARIABLES (Danh sach trang cho FOV Aim)
+local WhitelistPlayers = {}
+
 -- =================================================================
 -- SHARED SERVICES & VARIABLES
 -- =================================================================
@@ -253,6 +256,9 @@ local function getFOVAimbotTarget_FOV()
 
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            -- BỎ QUA NẾU NGƯỜI CHƠI NẰM TRONG DANH SÁCH WHITELIST
+            if WhitelistPlayers[player.Name] then continue end
+            
             if DeadCheckEnabled_FOV and isDead_FOV(player) then continue end
             if WallCheckEnabled_FOV and isBehindWall_FOV(player.Character) then continue end
             
@@ -348,6 +354,23 @@ local SmoothnessFOVSlider = Tab:CreateSlider({
    end,
 })
 
+-- DROPDOWN CHỌN WHITELIST CHO FOV AIM (Cho phép tích chọn nhiều người)
+local WhitelistDropdown = Tab:CreateDropdown({
+   Name = "Whitelist Players (FOV Aim)",
+   Options = getPlayerNamesList(),
+   CurrentOption = {},
+   MultipleOptions = true, -- Cho phép chọn nhiều người làm bạn bè/đồng đội cùng lúc
+   Flag = "FOVWhitelistDropdown_Flag",
+   Callback = function(Options)
+      -- Reset lại bảng tạm danh sách trắng cũ
+      table.clear(WhitelistPlayers)
+      -- Thêm các mục tiêu được chọn vào bộ lọc loại trừ
+      for _, name in pairs(Options) do
+          WhitelistPlayers[name] = true
+      end
+   end,
+})
+
 -- ----------------- TUY CHON CHUNG (WALL & DEAD CHECK) -----------------
 local WallCheckToggle = Tab:CreateToggle({
    Name = "Wall Check",
@@ -369,7 +392,7 @@ local DeadCheckToggle = Tab:CreateToggle({
 
 
 -- =================================================================
--- LUONG CAP NHAT DROPDOWN THONG MINH
+-- LUONG CAP NHAT DROPDOWN THONG MINH (ĐÃ ĐỒNG BỘ CẢ 2 DROPDOWN)
 -- =================================================================
 local UpdateActive = true
 task.spawn(function()
@@ -379,12 +402,21 @@ task.spawn(function()
                 SelectedTargetName = nil
             end
             
+            -- Dọn dẹp những người chơi đã thoát game ra khỏi bảng danh sách Whitelist
+            for name in pairs(WhitelistPlayers) do
+                if not Players:FindFirstChild(name) then
+                    WhitelistPlayers[name] = nil
+                end
+            end
+            
             local currentList = getPlayerNamesList()
             local currentPlayerCount = #currentList
             
             if currentPlayerCount ~= LastPlayerCount then
                 LastPlayerCount = currentPlayerCount
+                -- Tự động làm mới danh sách hiển thị trên cả 2 Dropdown cùng lúc
                 PlayerDropdown:Set(currentList)
+                WhitelistDropdown:Set(currentList)
             end
         end)
         task.wait(1)
@@ -393,14 +425,13 @@ end)
 
 
 -- =================================================================
--- MAIN LOOP: LOGIC DIEU HUONG CAMERA (DA DUOC TACH BIET DOC LAP)
+-- MAIN LOOP: LOGIC DIEU HUONG CAMERA
 -- =================================================================
 local AimConnection = RunService.RenderStepped:Connect(function()
     if FOVCircle_Drawing.Visible then
         FOVCircle_Drawing.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     end
 
-    -- CHAY SONG SONG: He thong nao bat thi ngam theo he thong do, khong bi de len nhau
     if AimBotEnabled and SelectedTargetName then
         local targetPos = getManualTargetPosition()
         if targetPos then
