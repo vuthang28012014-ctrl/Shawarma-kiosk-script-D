@@ -171,12 +171,13 @@ local LastPlayerCount = 0
 -- =================================================================
 local FOVAimEnabled_FOV = false
 local FOV_Radius_FOV = 150
-local Smoothness_FOV = 0.1 -- Do dinh nguoi rieng cho FOV Aim
+local Smoothness_FOV = 0.1 
 local WallCheckEnabled_FOV = false
 local DeadCheckEnabled_FOV = false
 
--- WHITELIST VARIABLES (Danh sach trang cho FOV Aim)
+-- WHITELIST VARIABLES & REFRESH GUARD (Biến khóa để chống tự chọn linh tinh)
 local WhitelistPlayers = {}
+local IsRefreshing = false 
 
 -- =================================================================
 -- SHARED SERVICES & VARIABLES
@@ -236,7 +237,7 @@ local function isDead_FOV(player)
     return true
 end
 
--- LAY VI TRI TARGET CHO PLAYER AIM (He thong 1 - Chon theo ten)
+-- LAY VI TRI TARGET CHO PLAYER AIM
 local function getManualTargetPosition()
     if not SelectedTargetName then return nil end
     local p = Players:FindFirstChild(SelectedTargetName)
@@ -248,7 +249,7 @@ local function getManualTargetPosition()
     return nil
 end
 
--- TU DONG QUET TIM NGUOI TRONG VONG TRON FOV (He thong 2 - KHONG can chon ten)
+-- TU DONG QUET TIM NGUOI TRONG VONG TRON FOV
 local function getFOVAimbotTarget_FOV()
     local closestPlayer = nil
     local shortestDistance = math.huge
@@ -256,9 +257,7 @@ local function getFOVAimbotTarget_FOV()
 
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-            -- BỎ QUA NẾU NGƯỜI CHƠI NẰM TRONG DANH SÁCH WHITELIST
             if WhitelistPlayers[player.Name] then continue end
-            
             if DeadCheckEnabled_FOV and isDead_FOV(player) then continue end
             if WallCheckEnabled_FOV and isBehindWall_FOV(player.Character) then continue end
             
@@ -284,7 +283,6 @@ end
 -- CAC PHAN TU MENU (Dat duoi bien Tab cua ban)
 -- =================================================================
 
--- ----------------- HỆ THỐNG 1: PLAYER AIM -----------------
 local AimToggle = Tab:CreateToggle({
    Name = "Player Aim",
    CurrentValue = false,
@@ -313,12 +311,14 @@ local PlayerDropdown = Tab:CreateDropdown({
    MultipleOptions = false,
    Flag = "PlayerDropdown_Flag", 
    Callback = function(Options)
+      -- NẾU ĐANG REFRESH THÌ KHÔNG NHẬN DỮ LIỆU SAI LỆCH
+      if IsRefreshing then return end
       SelectedTargetName = Options[1]
    end,
 })
 
 local Section = Tab:CreateSection("FOV Aim")
--- ----------------- HỆ THỐNG 2: FOV AIM (TU DONG QUET) -----------------
+
 local FOVToggle = Tab:CreateToggle({
    Name = "FOV Aim",
    CurrentValue = false,
@@ -354,24 +354,23 @@ local SmoothnessFOVSlider = Tab:CreateSlider({
    end,
 })
 
--- DROPDOWN CHỌN WHITELIST CHO FOV AIM (Cho phép tích chọn nhiều người)
 local WhitelistDropdown = Tab:CreateDropdown({
    Name = "Whitelist Players (FOV Aim)",
    Options = getPlayerNamesList(),
    CurrentOption = {},
-   MultipleOptions = true, -- Cho phép chọn nhiều người làm bạn bè/đồng đội cùng lúc
+   MultipleOptions = true, 
    Flag = "FOVWhitelistDropdown_Flag",
    Callback = function(Options)
-      -- Reset lại bảng tạm danh sách trắng cũ
+      -- NẾU ĐANG REFRESH THÌ KHÔNG ĐƯỢC RESET BẢNG WHITELIST CHÍNH XÁC CỦA NGƯỜI DÙNG
+      if IsRefreshing then return end
+      
       table.clear(WhitelistPlayers)
-      -- Thêm các mục tiêu được chọn vào bộ lọc loại trừ
       for _, name in pairs(Options) do
           WhitelistPlayers[name] = true
       end
    end,
 })
 
--- ----------------- TUY CHON CHUNG (WALL & DEAD CHECK) -----------------
 local WallCheckToggle = Tab:CreateToggle({
    Name = "Wall Check",
    CurrentValue = false,
@@ -392,17 +391,18 @@ local DeadCheckToggle = Tab:CreateToggle({
 
 
 -- =================================================================
--- LUONG CAP NHAT DROPDOWN THONG MINH (ĐÃ ĐỒNG BỘ CẢ 2 DROPDOWN)
+-- LUONG CAP NHAT DROPDOWN AN TOAN (ĐÃ FIX LỖI TỰ CHỌN LINH TINH)
 -- =================================================================
 local UpdateActive = true
 task.spawn(function()
     while UpdateActive do
         pcall(function()
+            -- Kiểm tra xem SelectedTarget cũ còn trong game không
             if SelectedTargetName and not Players:FindFirstChild(SelectedTargetName) then
                 SelectedTargetName = nil
             end
             
-            -- Dọn dẹp những người chơi đã thoát game ra khỏi bảng danh sách Whitelist
+            -- Dọn dẹp những người đã thoát khỏi Whitelist
             for name in pairs(WhitelistPlayers) do
                 if not Players:FindFirstChild(name) then
                     WhitelistPlayers[name] = nil
@@ -414,9 +414,18 @@ task.spawn(function()
             
             if currentPlayerCount ~= LastPlayerCount then
                 LastPlayerCount = currentPlayerCount
-                -- Tự động làm mới danh sách hiển thị trên cả 2 Dropdown cùng lúc
+                
+                -- BƯỚC KHÓA: Bật trạng thái Refresh để chặn đứng Callback lỗi của Rayfield
+                IsRefreshing = true
+                
                 PlayerDropdown:Set(currentList)
                 WhitelistDropdown:Set(currentList)
+                
+                -- Thêm một nhịp chờ cực ngắn để UI của Rayfield cập nhật xong xuôi giao diện
+                task.wait(0.1)
+                
+                -- MỞ KHÓA: Trả lại quyền điều khiển cho người chơi
+                IsRefreshing = false
             end
         end)
         task.wait(1)
@@ -449,7 +458,7 @@ local AimConnection = RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Don dep bo nho tranh loi re-execute
+-- Don dep bo nho
 if _G.GlobalAimConnection then _G.GlobalAimConnection:Disconnect() end
 if _G.GlobalFOVCircle then _G.GlobalFOVCircle:Remove() end
 
