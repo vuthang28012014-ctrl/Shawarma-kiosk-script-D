@@ -90,7 +90,7 @@ print("My ID:", id)
 print("Check ban:", bans[id])
 
 local ContentToKick = "Kicked because script is currently down (outage)"
-local Kick = true -- (IMPORTANT): CHANGE TO TRUE IF WANT TO KICK
+local Kick = false -- (IMPORTANT): CHANGE TO TRUE IF WANT TO KICK
 if executor == "Xeno" then
 Kick = true
 ContentToKick = "You were kicked because your executor is not supported!"
