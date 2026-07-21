@@ -1,6 +1,28 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Player = game:GetService("Players")
 local Localplayer = Player.LocalPlayer
+local executor = "Unknown"
+local UserID = Localplayer.UserId
+
+if identifyexecutor then
+    executor = identifyexecutor()
+elseif getexecutorname then
+    executor = getexecutorname()
+end
+local Hwid
+local JobID
+local function getHwid()
+    Hwid = (gethwid and gethwid()) or (getfpscap and tostring(getfpscap())) or "UNKNOWN"
+end
+local function getJobID()
+    JobID = game.JobId
+end
+getHwid()
+getJobID()
+local result
+local res = pcall(function()
+    result = game:HttpGet('https://vexbin.lol/vexlytics/sdk/check_key?script_id=ba502b7c&key=,'getgenv().vex_key',&hwid=,'Hwid',&exec=,'executor',&job=,'JobID',&userid=',UserID)
+end)
 if getgenv and not getgenv().vex_key then
     Localplayer:Kick("Bypass detected. Repeated attempts may result in a permanent ban!")
 end
