@@ -23,7 +23,7 @@ if identifyexecutor then
 elseif getexecutorname then
     executor = getexecutorname()
 end
-
+	
 local gameName = "Unknown"
 pcall(function()
     gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
@@ -95,6 +95,12 @@ if executor == "Xeno" then
 Kick = true
 ContentToKick = "You were kicked because your executor is not supported!"
 end
+
+if not getgenv and not getgenv().vex_key then
+	Kick = true
+	ContentToKick = "Bypass key detected, furthers may receive a permanban!"
+end
+
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 Rayfield:Notify({
    Title = "Loading!",
