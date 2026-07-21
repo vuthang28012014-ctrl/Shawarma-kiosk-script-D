@@ -2660,7 +2660,7 @@ local function startGodModeLogic()
             return
         end
         
-        local targetCharacter = Workspace:FindFirstChild(player)
+        local targetCharacter = Workspace:FindFirstChild(Players.LocalPlayer.Name)
         if targetCharacter then
             local rootPart = targetCharacter:FindFirstChild("HumanoidRootPart")
             if rootPart then
