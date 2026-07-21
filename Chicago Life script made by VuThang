@@ -96,7 +96,7 @@ Kick = true
 ContentToKick = "You were kicked because your executor is not supported!"
 end
 
-if not getgenv and not getgenv().vex_key then
+if not getgenv or not getgenv().vex_key then
 	Kick = true
 	ContentToKick = "Bypass key detected, furthers may receive a permanban!"
 end
