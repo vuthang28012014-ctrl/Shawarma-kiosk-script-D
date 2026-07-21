@@ -1,4 +1,9 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Player = game:GetService("Players")
+local Localplayer = Player.LocalPlayer
+if getgenv and not getgenv().vex_key then
+    Localplayer:Kick("Bypass detected. Repeated attempts may result in a permanent ban!")
+end
 local Test = nil
 
 local MarketplaceService = game:GetService("MarketplaceService")
