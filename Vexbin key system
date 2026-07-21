@@ -1,5 +1,5 @@
 local VexSDK = loadstring(game:HttpGet("https://vexbin.lol/vexlytics/sdk/main.lua"))()
-VexSDK.script_id = "16fd7551"
+VexSDK.script_id = "ba502b7c"
 
 -- Option A: Manual key check
 local status = VexSDK.check_key(getgenv().vex_key)
