@@ -140,6 +140,15 @@ Window:Notify({
    Content = "Script made by vuthang28012014",
    Duration = 6.5,
 })
+window:Popup({
+    title = "What's new",
+    subtitle = "Version 2.1",
+    boxes = {
+        { title = "Modal popups", description = "A new centred dialog.", icon = 93364949241311 },
+        { title = "Faster reveals", description = "Pages open instantly." },
+    },
+    options = { { text = "Got it", style = "primary" } },
+})
 if Kick == true then
     Rayfield:Destroy()
 end
