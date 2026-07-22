@@ -170,6 +170,55 @@ task.spawn(function()
         end
     end
 end)
+local StatTab = Window:CreateTab({ name = "Stats", icon = 93364949241311 })
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local KillNotification = ReplicatedStorage:WaitForChild("KillNotification")
+
+local KillCount = 0
+
+local kills = StatTab:CreateStat({
+    name = "Kills",
+    prefix = "",
+    value = KillCount,
+})
+
+KillNotification.OnClientEvent:Connect(function()
+    KillCount += 1
+    kills:Set(KillCount)
+end)
+local Players = game:GetService("Players")
+
+local LocalPlayer = Players.LocalPlayer
+local Cash = LocalPlayer:WaitForChild("PlayerData"):WaitForChild("Cash")
+
+-- Lưu số Cash lúc script bắt đầu
+local StartingCash = Cash.Value
+
+local cashStat = StatTab:CreateStat({
+    name = "Cash Earned",
+    prefix = "$",
+    value = 0,
+})
+
+Cash:GetPropertyChangedSignal("Value"):Connect(function()
+    local CurrentCash = Cash.Value
+
+    -- Số tiền kiếm được kể từ khi chạy script
+    local CashEarned = CurrentCash - StartingCash
+
+    -- Phần trăm tăng so với Cash ban đầu
+    local PercentIncrease = 0
+
+    if StartingCash > 0 then
+        PercentIncrease = (CashEarned / StartingCash) * 100
+    end
+
+    cashStat:Set(
+        CashEarned,
+        string.format("(+%.2f%%)", PercentIncrease)
+    )
+end)
 local Tab = Window:CreateTab({ name = "Aimbot", icon = 93364949241311 })
 Tab:CreateSection({ name = "Aim to a selected player", icon = 93364949241311 })
 -- =================================================================
