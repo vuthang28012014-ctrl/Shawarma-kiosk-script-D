@@ -171,7 +171,7 @@ task.spawn(function()
     end
 end)
 local Tab = Window:CreateTab({ name = "Aimbot", icon = 93364949241311 })
-local Section = Tab:CreateSection("Aim to a selected player")
+Tab:CreateSection({ name = "Aim to a selected player", icon = 93364949241311 })
 -- =================================================================
 -- SYSTEM 1: PLAYER AIM VARIABLES (He thong chon qua Dropdown)
 -- =================================================================
@@ -363,7 +363,7 @@ local RefreshPlayerAimButton = Tab:CreateButton({
 })
 
 
-local Section = Tab:CreateSection("FOV Aim")
+Tab:CreateSection({ name = "FOV Aim", icon = 93364949241311 })
 -- ----------------- HỆ THỐNG 2: FOV AIM (TU DONG QUET) -----------------
 local FOVToggle = Tab:CreateToggle({
    Name = "FOV Aim",
@@ -516,7 +516,7 @@ if _G.StopOldUpdateLoop then _G.StopOldUpdateLoop() end
 _G.StopOldUpdateLoop = function()
     FOVCircle_Drawing:Remove()
 end
-local Section = Tab:CreateSection("Silent Aim (OP)")
+Tab:CreateSection({ name = "Silent Aim", icon = 93364949241311 })
 -- ========================================================
 -- KHỞI TẠO CÁC DỊCH VỤ VÀ BIẾN CẤU HÌNH
 -- ========================================================
@@ -1075,7 +1075,7 @@ Tab:CreateToggle({
    end,
 })
 local RobTab = Window:CreateTab({ name = "Auto Rob", icon = 93364949241311 })
-local Section = RobTab:CreateSection("Van")
+RobTab:CreateSection({ name = "Van", icon = 93364949241311 })
 -- =================================================================
 -- LOGIC AUTO ROB VAN - ƯU TIÊN MỤC TIÊU GẦN NHẤT (SAU KHI RESPAWN)
 -- =================================================================
@@ -1314,7 +1314,7 @@ local RobVanToggle = RobTab:CreateToggle({
       AutoRobEnabled = Value
    end,
 })
-local Section = RobTab:CreateSection("Bank")
+RobTab:CreateSection({ name = "Bank", icon = 93364949241311 })
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -1647,7 +1647,7 @@ local RobToggle = RobTab:CreateToggle({
    end,
 })
 local TabGun = Window:CreateTab({ name = "Mod", icon = 93364949241311 })
-local Section = TabGun:CreateSection("Gun")
+TabGun:CreateSection({ name = "Gun", icon = 93364949241311 })
 -- =================================================================
 -- HỆ THỐNG ĐIỀU KHIỂN SÚNG THÔNG MINH (DROPDOWN + 4 TOGGLES) -> TABGUN
 -- =================================================================
@@ -2553,7 +2553,7 @@ local ToggleKill = KillTab:CreateToggle({
       DangKichHoat = Value
    end,
 })
-local Section = TabGun:CreateSection("Car")
+TabGun:CreateSection({ name = "Car", icon = 93364949241311 })
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local localPlayer = Players.LocalPlayer
