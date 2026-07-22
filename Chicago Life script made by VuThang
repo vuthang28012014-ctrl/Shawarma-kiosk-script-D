@@ -2127,28 +2127,25 @@ end
 -- Tao dung ten KillTab (su dung bien Window da co san cua ban)
 local KillTab = Window:CreateTab({ name = "Kill(OP)", icon = 93364949241311 })
 
--- Dropdown chon Nguoi choi
 local DropdownNguoiChoi = KillTab:CreateDropdown({
-   Name = "Select Target Player",
-   Options = LayDanhSachNguoiChoi(),
-   CurrentOption = {""},
-   MultipleOptions = false,
-   Callback = function(Option)
-      NguoiChoiDuocChon = Option[1]
-   end,
+    name = "Select Target Player",
+    options = LayDanhSachNguoiChoi(),
+    multiSelect = false,
+    value = {},
+    callback = function(selected)
+        NguoiChoiDuocChon = selected
+    end,
 })
 
--- Dropdown chon Sung
 local DropdownSung = KillTab:CreateDropdown({
-   Name = "Select Gun from Backpack",
-   Options = LayDanhSachSung(),
-   CurrentOption = {""},
-   MultipleOptions = false,
-   Callback = function(Option)
-      SungDuocChon = Option[1]
-   end,
+    name = "Select Gun from Backpack",
+    options = LayDanhSachSung(),
+    multiSelect = false,
+    value = {},
+    callback = function(selected)
+        SungDuocChon = selected
+    end,
 })
-
 -- Nut lam moi danh sach nguoi choi va sung
 KillTab:CreateButton({
    Name = "Refresh Lists",
