@@ -142,7 +142,7 @@ Window:Notify({
 })
 window:Popup({
     title = "What's new",
-    subtitle = "Version 2.1",
+    subtitle = "Version 0.2",
     boxes = {
         { title = "Modal popups", description = "A new centred dialog.", icon = 93364949241311 },
         { title = "Faster reveals", description = "Pages open instantly." },
