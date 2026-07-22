@@ -1126,7 +1126,7 @@ Tab:CreateToggle({
 local RobTab = Window:CreateTab({ name = "Auto Rob", icon = 93364949241311 })
 RobTab:CreateSection({ name = "Van", icon = 93364949241311 })
 -- =================================================================
--- LOGIC AUTO ROB VAN - ƯU TIÊN MỤC TIÊU GẦN NHẤT (SAU KHI RESPAWN)
+-- LOGIC AUTO ROB VAN - BAY 1 LẦN VÀ NEO LẠI (TẮT TOGGLE MỚI UNANCHOR)
 -- =================================================================
 
 -- Biến kiểm soát trạng thái hoạt động của Script
@@ -1172,14 +1172,13 @@ local function findNearestRobbableVans()
                         Car = object,
                         Glass = brokenGlass,
                         Prompt = prompt,
-                        Distance = distance -- Lưu lại khoảng cách để so sánh
+                        Distance = distance
                     })
                 end
             end
         end
     end
     
-    -- Sắp xếp danh sách xe: Xe nào khoảng cách nhỏ nhất (gần nhất) sẽ đứng đầu bảng
     table.sort(targets, function(a, b)
         return a.Distance < b.Distance
     end)
@@ -1237,6 +1236,7 @@ local function robTarget(target)
     healthConnection = humanoid.HealthChanged:Connect(function(health)
         if health <= 0 then
             stopSmoothCamera()
+            if hrp then hrp.Anchored = false end
             if tween1 then tween1:Cancel() end
             if tween2 then tween2:Cancel() end
             if tween3 then tween3:Cancel() end
@@ -1245,12 +1245,13 @@ local function robTarget(target)
         end
     end)
     
-    -- Xử lý ngắt Tween ngay lập tức nếu người dùng bấm TẮT Toggle giữa chừng
+    -- Xử lý ngắt Tween ngay lập tức nếu người dùng bấm TẮT Toggle giữa chừng (trong lúc đang bay)
     local toggleCheckConnection
     toggleCheckConnection = RunService.Heartbeat:Connect(function()
         if not AutoRobEnabled then
             stopSmoothCamera()
             if humanoid then humanoid.PlatformStand = false end
+            if hrp then hrp.Anchored = false end
             if tween1 then tween1:Cancel() end
             if tween2 then tween2:Cancel() end
             if tween3 then tween3:Cancel() end
@@ -1269,25 +1270,15 @@ local function robTarget(target)
     tween1:Play()
     
     tween1.Completed:Connect(function()
-        if not AutoRobEnabled or humanoid.Health <= 0 then 
-            if humanoid then humanoid.PlatformStand = false end
-            stopSmoothCamera()
-            p:Fire()
-            return 
-        end
+        if not AutoRobEnabled or humanoid.Health <= 0 then return end
         
-        -- CHẶNG 2: TWEEN BAY NGANG TRÊN KHÔNG TRUNG (Tốc độ 100)
+        -- CHẶNG 2: TWEEN BAY NGANG TRÊN KHÔNG TRUNG
         local tweenInfo2 = TweenInfo.new(durationHorizontal, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
         tween2 = TweenService:Create(hrp, tweenInfo2, {CFrame = skyEndCFrame})
         tween2:Play()
         
         tween2.Completed:Connect(function()
-            if not AutoRobEnabled or humanoid.Health <= 0 then 
-                if humanoid then humanoid.PlatformStand = false end
-                stopSmoothCamera()
-                p:Fire()
-                return 
-            end
+            if not AutoRobEnabled or humanoid.Health <= 0 then return end
             
             hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
@@ -1299,30 +1290,40 @@ local function robTarget(target)
             tween3:Play()
             
             tween3.Completed:Connect(function()
-                if healthConnection then healthConnection:Disconnect() end
+                -- Ngắt check toggle lúc bay đi, chuyển sang dùng while loop lúc đứng im
                 if toggleCheckConnection then toggleCheckConnection:Disconnect() end
                 
                 if not AutoRobEnabled or humanoid.Health <= 0 then 
                     if humanoid then humanoid.PlatformStand = false end
+                    if hrp then hrp.Anchored = false end
                     stopSmoothCamera()
                     p:Fire()
                     return 
                 end
                 
-                -- ĐÁP XE THÀNH CÔNG: ĐỨNG IM CHỜ ĐỒNG BỘ
+                -- ĐÁP XE THÀNH CÔNG: ĐÓNG BĂNG VĨNH VIỄN TẠI CHỖ
                 stopSmoothCamera()
                 humanoid.PlatformStand = false
                 hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0) 
+                hrp.Anchored = true
                 
-                task.wait(1.0) -- Đứng im đúng 1 giây để ổn định vị trí trên x
+                task.wait(0.5)
                 
-                -- Bấm nút cướp xe
-                for i = 1, 3 do
-                    if not AutoRobEnabled or humanoid.Health <= 0 then break end
-                    fireproximityprompt(target.Prompt)
-                    task.wait(0.25)
+                -- Vòng lặp kẹt tại đây cho đến khi tắt Toggle hoặc chết
+                while AutoRobEnabled and humanoid.Health > 0 do
+                    -- Nếu cái ProximityPrompt vẫn còn tồn tại thì cố gắng kích hoạt nó
+                    if target.Prompt and target.Prompt.Parent then
+                        pcall(function()
+                            target.Prompt.HoldDuration = 0
+                            target.Prompt.Enabled = true
+                            fireproximityprompt(target.Prompt)
+                        end)
+                    end
+                    task.wait(0.1)
                 end
                 
+                -- CHỈ UNANCHOR KHI ĐÃ TẮT TOGGLE (Vòng lặp trên bị phá vỡ)
+                if hrp then hrp.Anchored = false end
                 p:Fire()
             end)
         end)
@@ -1335,20 +1336,15 @@ end
 task.spawn(function()
     while true do
         if AutoRobEnabled then
-            -- Quét và sắp xếp danh sách xe theo thứ tự từ gần nhất đến xa nhất
             local sortedVanList = findNearestRobbableVans()
             if #sortedVanList > 0 then
-                -- Lấy chiếc xe gần nhất (vị trí số 1 trong danh sách đã sắp xếp) để cướp
+                -- Bay tới xe gần nhất. Khi đến nơi nó sẽ kẹt ở trong hàm robTarget (vì bị giữ lại bởi vòng lặp while) 
+                -- nên nó sẽ KHÔNG quét xe tiếp theo cho đến khi bạn tắt Toggle.
                 local nearestTarget = sortedVanList[1]
                 robTarget(nearestTarget)
-                
-                task.wait(1.5) -- Giãn cách nhẹ để tránh spam trước khi chuyển sang mục tiêu kế tiếp
-            else
-                task.wait(1) -- Nếu không tìm thấy xe nào, đợi 1 giây rồi quét lại
             end
-        else
-            task.wait(1) -- Nếu tắt Toggle, đợi 1 giây kiểm tra lại
         end
+        task.wait(1) 
     end
 end)
 
