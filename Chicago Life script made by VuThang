@@ -101,13 +101,7 @@ if getgenv and not getgenv().vex_key then
 	ContentToKick = "Bypass key detected, furthers may receive a permanban!"
 end
 
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-Rayfield:Notify({
-   Title = "Loading!",
-   Content = "Script made by vuthang28012014",
-   Duration = 6.5,
-   Image = 132863234944847,
-})
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
 if bans[id] == true then
     print("Kicked")
     player:Kick("You has been banned by our owner!")
@@ -141,6 +135,11 @@ local Window = Rayfield:CreateWindow({
    KeySystem = false,
    KeySettings = {}
 })
+Window:Notify({
+   Title = "Loading!",
+   Content = "Script made by vuthang28012014",
+   Duration = 6.5,
+})
 if Kick == true then
     Rayfield:Destroy()
 end
@@ -162,7 +161,7 @@ task.spawn(function()
         end
     end
 end)
-local Tab = Window:CreateTab("Aimbot", 4483362458) -- Title, Image
+local Tab = Window:CreateTab({ name = "Aimbot", icon = 93364949241311 })
 local Section = Tab:CreateSection("Aim to a selected player")
 -- =================================================================
 -- SYSTEM 1: PLAYER AIM VARIABLES (He thong chon qua Dropdown)
@@ -1066,7 +1065,7 @@ Tab:CreateToggle({
       VongTronFOV.Visible = Value
    end,
 })
-local RobTab = Window:CreateTab("Auto Rob", 4483362458) -- Title, Image
+local RobTab = Window:CreateTab({ name = "Auto Rob", icon = 93364949241311 })
 local Section = RobTab:CreateSection("Van")
 -- =================================================================
 -- LOGIC AUTO ROB VAN - ƯU TIÊN MỤC TIÊU GẦN NHẤT (SAU KHI RESPAWN)
@@ -1638,8 +1637,7 @@ local RobToggle = RobTab:CreateToggle({
       end
    end,
 })
-local Paragraph = RobTab:CreateParagraph({Title = "Lưu ý:", Content = "Hãy đảm bảo tất cả các loại aim đã được tắt, bank CHƯA MỞ, và chắc chắn phải đảm bảo trong lúc cướp không bị ai giết!"})
-local TabGun = Window:CreateTab("Mod", 4483362458) -- Title, Image
+local TabGun = Window:CreateTab({ name = "Mod", icon = 93364949241311 })
 local Section = TabGun:CreateSection("Gun")
 -- =================================================================
 -- HỆ THỐNG ĐIỀU KHIỂN SÚNG THÔNG MINH (DROPDOWN + 4 TOGGLES) -> TABGUN
@@ -1867,7 +1865,7 @@ TabGun:CreateToggle({
       applyGunModifications()
    end,
 })
-local LocalPlayerTab = Window:CreateTab("LocalPlayer", 4483362458) -- ID Icon
+local LocalPlayerTab = Window:CreateTab({ name = "LocalPlayer", icon = 93364949241311 })
 
 -- Biến kiểm soát trạng thái Bật/Tắt của ESP
 _G.ESP_Enabled = false
@@ -2118,7 +2116,7 @@ local function LayDanhSachSung()
 end
 
 -- Tao dung ten KillTab (su dung bien Window da co san cua ban)
-local KillTab = Window:CreateTab("Kill(OP)", 4483362458)
+local KillTab = Window:CreateTab({ name = "Kill(OP)", icon = 93364949241311 })
 
 -- Dropdown chon Nguoi choi
 local DropdownNguoiChoi = KillTab:CreateDropdown({
