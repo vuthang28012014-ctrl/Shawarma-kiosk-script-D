@@ -140,7 +140,7 @@ Window:Notify({
    Content = "Script made by vuthang28012014",
    Duration = 6.5,
 })
-window:Popup({
+Window:Popup({
     title = "What's new",
     subtitle = "Version 0.2",
     boxes = {
