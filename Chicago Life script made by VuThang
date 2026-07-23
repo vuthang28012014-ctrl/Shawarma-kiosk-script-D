@@ -1353,7 +1353,7 @@ local function robTarget(target)
                             fireproximityprompt(target.Prompt)
                         end)
                     end
-                    task.wait(0.1)
+                    task.wait()
                 end
                 
                 -- CHỈ UNANCHOR KHI ĐÃ TẮT TOGGLE (Vòng lặp trên bị phá vỡ)
