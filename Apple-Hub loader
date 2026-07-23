@@ -27,7 +27,6 @@ end)
 print(result)
 if not succ then
     warn("Request failed:", result)
-    return
 end
 pcall(function()
     local HttpService = game:GetService("HttpService")
