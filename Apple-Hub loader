@@ -3,6 +3,7 @@ local Player = game:GetService("Players")
 local Localplayer = Player.LocalPlayer
 local executor = "Unknown"
 local UserID = Localplayer.UserId
+local check = false
 
 if identifyexecutor then
     executor = identifyexecutor()
@@ -36,8 +37,10 @@ local data = HttpService:JSONDecode(json)
 
 local code = data.code
 local message = data.message
-if code ~= "KEY_VALID" and message ~= "Success" then
-    Localplayer:Kick("Bypass detected. Repeated attempts may result in a permanent ban!")
+if check == true then
+    if code ~= "KEY_VALID" and message ~= "Success" then
+        Localplayer:Kick("Bypass detected. Repeated attempts may result in a permanent ban!")
+    end
 end
 if getgenv and not getgenv().vex_key then
     Localplayer:Kick("Bypass detected. Repeated attempts may result in a permanent ban!")
