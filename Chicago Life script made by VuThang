@@ -106,19 +106,6 @@ if bans[id] == true then
     print("Kicked")
     player:Kick("You has been banned by our owner!")
 end
-if Kick == true then
-    Window:Notify({
-        Title = "Script Error",
-        Content = ContentToKick,
-        Duration = 4
-    })
-
-    task.wait()
-
-    game.Players.LocalPlayer:Kick(ContentToKick)
-else
-    print("Kick system disabled")
-end
 local Window = Rayfield:CreateWindow({
    Name = "Chicago Life exploit script",
    ScriptID = "sid_04usu24bgzau",
@@ -135,6 +122,19 @@ local Window = Rayfield:CreateWindow({
    KeySystem = false,
    KeySettings = {}
 })
+if Kick == true then
+    Window:Notify({
+        Title = "Script Error",
+        Content = ContentToKick,
+        Duration = 4
+    })
+
+    task.wait()
+
+    game.Players.LocalPlayer:Kick(ContentToKick)
+else
+    print("Kick system disabled")
+end
 Window:Notify({
    Title = "Loading!",
    Content = "Script made by vuthang28012014",
