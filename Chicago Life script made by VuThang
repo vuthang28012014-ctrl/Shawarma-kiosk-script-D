@@ -579,9 +579,13 @@ local Event = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("InflictTar
 
 -- Các biến cấu hình độc lập cho Silent Aim
 local SilentAimKichHoat = false
-local WallCheckKichHoat = false -- Biến trạng thái Wall Check
+local WallCheckKichHoat = false 
 local BanKinhFOV = 150 
 local SungSilentAim = "" 
+
+-- Bảng lưu thời gian và tốc độ trễ THEO TỪNG NGƯỜI CHƠI
+local ThoiGianChoFire = 0.1 
+local ThoiGianBanMucTieu = {} 
 
 -- Vẽ vòng tròn FOV hiển thị trên màn hình
 local VongTronFOV = Drawing.new("Circle")
@@ -598,7 +602,7 @@ RunService.RenderStepped:Connect(function()
    VongTronFOV.Radius = BanKinhFOV
 end)
 
--- Hàm quét Backpack và Character để lấy danh sách tên súng hiện có
+-- Hàm quét Backpack và Character để lấy danh sách tên súng
 local function LayDanhSachSungTrongRuong()
    local DanhSachSung = {}
    
@@ -629,7 +633,7 @@ end
 
 -- Hàm kiểm tra vật cản (Wall Check)
 local function KiemTraTuong(ViTriMucTieu, NhanVatMucTieu)
-   if not WallCheckKichHoat then return true end -- Nếu tắt Wall Check thì luôn trả về đúng
+   if not WallCheckKichHoat then return true end 
 
    local ViTriCamera = Camera.CFrame.Position
    local HuongTia = (ViTriMucTieu - ViTriCamera)
@@ -647,29 +651,38 @@ local function KiemTraTuong(ViTriMucTieu, NhanVatMucTieu)
    return false
 end
 
--- Hàm tìm mục tiêu gần tâm chuột nhất nằm trong vùng FOV và thỏa mãn Wall Check
+-- Hàm tìm mục tiêu: Đã Cập Nhật Logic Bỏ Qua Mục Tiêu Đang Bị Cooldown
 local function LayMucTieuTrongFOV()
    local MucTieuGanNhat = nil
    local KhoangCachNhoNhat = BanKinhFOV
+   local ThoiGianHienTai = tick()
 
    for _, p in pairs(Players:GetPlayers()) do
       if p ~= LocalPlayer and p.Character then
-         local Humanoid = p.Character:FindFirstChildOfClass("Humanoid")
-         local RootPart = p.Character:FindFirstChild("HumanoidRootPart")
-         local Head = p.Character:FindFirstChild("Head")
          
-         if Humanoid and RootPart and Head and Humanoid.Health > 0 then
-            local ViTriManHinh, TrenManHinh = Camera:WorldToViewportPoint(RootPart.Position)
-            
-            if TrenManHinh then
-               local KhoangCachChuot = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(ViTriManHinh.X, ViTriManHinh.Y)).Magnitude
-               if KhoangCachChuot < KhoangCachNhoNhat then
-                  if KiemTraTuong(Head.Position, p.Character) then
-                     MucTieuGanNhat = p.Character
-                     KhoangCachNhoNhat = KhoangCachChuot
-                  end
-               end
-            end
+         -- LOGIC MỚI: Kiểm tra xem người này có đang bị "chờ" không
+         local ThoiGianCuoi = ThoiGianBanMucTieu[p.Name]
+         -- Nếu người này CHƯA từng bị bắn, HOẶC đã hết thời gian chờ của Slider thì mới đưa vào tầm ngắm
+         if not ThoiGianCuoi or (ThoiGianHienTai - ThoiGianCuoi >= ThoiGianChoFire) then
+             
+             local Humanoid = p.Character:FindFirstChildOfClass("Humanoid")
+             local RootPart = p.Character:FindFirstChild("HumanoidRootPart")
+             local Head = p.Character:FindFirstChild("Head")
+             
+             if Humanoid and RootPart and Head and Humanoid.Health > 0 then
+                local ViTriManHinh, TrenManHinh = Camera:WorldToViewportPoint(RootPart.Position)
+                
+                if TrenManHinh then
+                   local KhoangCachChuot = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(ViTriManHinh.X, ViTriManHinh.Y)).Magnitude
+                   if KhoangCachChuot < KhoangCachNhoNhat then
+                      if KiemTraTuong(Head.Position, p.Character) then
+                         MucTieuGanNhat = p.Character
+                         KhoangCachNhoNhat = KhoangCachChuot
+                      end
+                   end
+                end
+             end
+             
          end
       end
    end
@@ -679,6 +692,7 @@ end
 -- Vòng lặp quét liên tục mỗi khung hình để tự động Fire Remote
 RunService.Heartbeat:Connect(function()
    if SilentAimKichHoat and SungSilentAim ~= "" and SungSilentAim ~= "No weapons found!" then
+      
       local Backpack = LocalPlayer:FindFirstChild("Backpack")
       local Character = LocalPlayer.Character
       local Sung = (Backpack and Backpack:FindFirstChild(SungSilentAim)) or (Character and Character:FindFirstChild(SungSilentAim))
@@ -686,10 +700,17 @@ RunService.Heartbeat:Connect(function()
       if Sung then
          local MucTieu = LayMucTieuTrongFOV()
          if MucTieu then
+            
+            -- Lấy ra tên của Player đó và lưu mốc thời gian vừa bị Fire Remote
+            local PlayerMucTieu = Players:GetPlayerFromCharacter(MucTieu)
+            if PlayerMucTieu then
+               ThoiGianBanMucTieu[PlayerMucTieu.Name] = tick()
+            end
+
             local Humanoid = MucTieu:FindFirstChildOfClass("Humanoid")
             local RootPart = MucTieu:FindFirstChild("HumanoidRootPart")
             local Head = MucTieu:FindFirstChild("Head")
-
+            
             Event:InvokeServer(
                "Gun",
                Sung,
@@ -1103,7 +1124,20 @@ Tab:CreateSlider({
    end,
 })
 
--- 3. TOGGLE BẬT/TẮT WALL CHECK
+-- 3. SLIDER ĐIỀU CHỈNH THỜI GIAN TRỄ LẶP LẠI (CHO TỪNG NGƯỜI)
+Tab:CreateSlider({
+   Name = "Per-Target Cooldown Delay",
+   Range = {0, 2000},
+   Increment = 10,
+   Suffix = "ms",
+   CurrentValue = 100,
+   Flag = "FireRemoteDelaySlider",
+   Callback = function(Value)
+      ThoiGianChoFire = Value / 1000
+   end,
+})
+
+-- 4. TOGGLE BẬT/TẮT WALL CHECK
 Tab:CreateToggle({
    Name = "Enable Wall Check",
    CurrentValue = false,
@@ -1113,7 +1147,7 @@ Tab:CreateToggle({
    end,
 })
 
--- 4. TOGGLE BẬT/TẮT SILENT AIM 
+-- 5. TOGGLE BẬT/TẮT SILENT AIM 
 Tab:CreateToggle({
    Name = "Enable FOV Silent Aim",
    CurrentValue = false,
