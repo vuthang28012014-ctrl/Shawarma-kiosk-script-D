@@ -29,22 +29,24 @@ if not succ then
     warn("Request failed:", result)
     return
 end
-local HttpService = game:GetService("HttpService")
-
-local json = result
-
-local data = HttpService:JSONDecode(json)
-
-local code = data.code
-local message = data.message
-if check == true then
-    if code ~= "KEY_VALID" and message ~= "Success" then
+pcall(function()
+    local HttpService = game:GetService("HttpService")
+    
+    local json = result
+    
+    local data = HttpService:JSONDecode(json)
+    
+    local code = data.code
+    local message = data.message
+    if check == true then
+        if code ~= "KEY_VALID" and message ~= "Success" then
+            Localplayer:Kick("Bypass detected. Repeated attempts may result in a permanent ban!")
+        end
+    end
+    if getgenv and not getgenv().vex_key then
         Localplayer:Kick("Bypass detected. Repeated attempts may result in a permanent ban!")
     end
-end
-if getgenv and not getgenv().vex_key then
-    Localplayer:Kick("Bypass detected. Repeated attempts may result in a permanent ban!")
-end
+end)
 local Test = nil
 
 local MarketplaceService = game:GetService("MarketplaceService")
