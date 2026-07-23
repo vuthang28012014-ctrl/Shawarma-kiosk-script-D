@@ -20,10 +20,25 @@ end
 getHwid()
 getJobID()
 local result
-local res = pcall(function()
-    result = game:HttpGet('https://vexbin.lol/vexlytics/sdk/check_key?script_id=ba502b7c&key=' .. getgenv().vex_key .. '&hwid=' .. Hwid,'&exec=' .. executor .. '&job=' .. JobID .. '&userid=' .. UserID)
+local succ, res = pcall(function()
+    result = game:HttpGet('https://vexbin.lol/vexlytics/sdk/check_key?script_id=ba502b7c&key=' .. getgenv().vex_key .. '&hwid=' .. Hwid .. '&exec=' .. executor .. '&job=' .. JobID .. '&userid=' .. UserID)
 end)
 print(result)
+if not succ then
+    warn("Request failed:", result)
+    return
+end
+local HttpService = game:GetService("HttpService")
+
+local json = result
+
+local data = HttpService:JSONDecode(json)
+
+local code = data.code
+local message = data.message
+if code ~= "KEY_VALID" and message ~= "Success" then
+    Localplayer:Kick("Bypass detected. Repeated attempts may result in a permanent ban!")
+end
 if getgenv and not getgenv().vex_key then
     Localplayer:Kick("Bypass detected. Repeated attempts may result in a permanent ban!")
 end
