@@ -85,7 +85,6 @@ Rayfield:Notify({
    Title = "Please wait for a moment!",
    Content = "Please wait while we are preparing things!",
    Duration = 6.5,
-   Image = 132863234944847,
 })
 
 local gameName = "Unknown"
