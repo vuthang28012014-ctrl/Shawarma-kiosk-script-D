@@ -1160,257 +1160,668 @@ Tab:CreateToggle({
 local RobTab = Window:CreateTab({ name = "Auto Rob", icon = 93364949241311 })
 RobTab:CreateSection({ name = "Van", icon = 93364949241311 })
 -- =================================================================
--- LOGIC AUTO ROB VAN - BAY 1 LẦN VÀ NEO LẠI (TẮT TOGGLE MỚI UNANCHOR)
+-- AUTO ROB VAN
+-- TWEEN 3 CHẶNG + KIỂM TRA VỊ TRÍ + ANCHOR
+-- TẮT TOGGLE = DỪNG VÀ UNANCHOR
 -- =================================================================
 
--- Biến kiểm soát trạng thái hoạt động của Script
+-- ================================================================
+-- SETTINGS / VARIABLES
+-- ================================================================
+
 local AutoRobEnabled = false
 local PromptFireAmount = 1000
 
--- Các dịch vụ hệ thống của Roblox
+-- Khoảng cách tối đa được coi là đã đáp đúng vị trí
+local PositionTolerance = 3
+
+-- Các dịch vụ
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+
 local LocalPlayer = Players.LocalPlayer
 
--- Khởi tạo thực thể nhân vật ban đầu
+-- ================================================================
+-- CHARACTER
+-- ================================================================
+
 local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local hrp = character:WaitForChild("HumanoidRootPart")
 
--- Tự động cập nhật lại thông tin khi nhân vật bị Reset/Hồi sinh (Tránh lỗi Adonis)
+-- Cập nhật Character khi respawn
 LocalPlayer.CharacterAdded:Connect(function(newCharacter)
     character = newCharacter
     humanoid = newCharacter:WaitForChild("Humanoid")
     hrp = newCharacter:WaitForChild("HumanoidRootPart")
 end)
 
--- 1. Hàm quét bản đồ và SẮP XẾP XE THEO KHOẢNG CÁCH (Gần nhất xếp đầu)
+-- ================================================================
+-- SLIDER
+-- ================================================================
+
+local RobVanSlider = RobTab:CreateSlider({
+    Name = "Fire Count",
+    Range = {1, 100000},
+    Increment = 50,
+    Suffix = " times",
+    CurrentValue = 1000,
+    Flag = "PromptFireAmount",
+
+    Callback = function(Value)
+        PromptFireAmount = Value
+    end,
+})
+
+-- ================================================================
+-- FIND NEAREST ROBBABLE VAN
+-- ================================================================
+
 local function findNearestRobbableVans()
     local targets = {}
-    if not hrp then return targets end
-    
+
+    if not hrp then
+        return targets
+    end
+
     local myPosition = hrp.Position
 
     for _, object in pairs(workspace:GetChildren()) do
+
         if object.Name == "Robbable Van" then
-            local stealModel = object:FindFirstChild("Steal Script") or object:FindFirstChild("StealScript")
+
+            local stealModel =
+                object:FindFirstChild("Steal Script")
+                or object:FindFirstChild("StealScript")
+
             if stealModel then
-                local brokenGlass = stealModel:FindFirstChild("Broken_glass")
-                local scriptsFolder = stealModel:FindFirstChild("Scripts")
-                local prompt = scriptsFolder and scriptsFolder:FindFirstChild("ProximityPrompt")
-                
+
+                local brokenGlass =
+                    stealModel:FindFirstChild("Broken_glass")
+
+                local scriptsFolder =
+                    stealModel:FindFirstChild("Scripts")
+
+                local prompt =
+                    scriptsFolder
+                    and scriptsFolder:FindFirstChild("ProximityPrompt")
+
                 if brokenGlass and prompt then
-                    -- Tính toán khoảng cách từ nhân vật đến xe
-                    local distance = (myPosition - brokenGlass.Position).Magnitude
+
+                    local distance =
+                        (myPosition - brokenGlass.Position).Magnitude
+
                     table.insert(targets, {
                         Car = object,
                         Glass = brokenGlass,
                         Prompt = prompt,
                         Distance = distance
                     })
+
                 end
             end
         end
     end
-    
+
+    -- Xe gần nhất lên đầu
     table.sort(targets, function(a, b)
         return a.Distance < b.Distance
     end)
-    
+
     return targets
 end
 
--- 2. Hàm thực hiện di chuyển 3 chặng Tween
-local function robTarget(target)
-    if not AutoRobEnabled then return end
-    if not humanoid or humanoid.Health <= 0 or not hrp then return end
+-- ================================================================
+-- TWEEN 3 CHẶNG
+-- ================================================================
 
-    local p = Instance.new("BindableEvent")
+local function tweenToTarget(target)
+
+    if not AutoRobEnabled then
+        return false
+    end
+
+    if not humanoid
+        or humanoid.Health <= 0
+        or not hrp
+        or not target
+        or not target.Glass
+        or not target.Glass.Parent then
+
+        return false
+    end
+
     local camera = workspace.CurrentCamera
-    
-    -- CẤU HÌNH TỐC ĐỘ DI CHUYỂN
-    local LiftSpeed = 15    
-    local SafeSpeed = 100   -- Tốc độ bay ngang
-    local LandSpeed = 12    
-    local HeightOffset = 35 
-    
+
+    -- ============================================================
+    -- SPEED SETTINGS
+    -- ============================================================
+
+    local LiftSpeed = 15
+    local SafeSpeed = 100
+    local LandSpeed = 12
+    local HeightOffset = 35
+
+    -- ============================================================
+    -- POSITIONS
+    -- ============================================================
+
     local startPos = hrp.Position
     local targetPos = target.Glass.Position
-    local originalRotation = hrp.CFrame - hrp.Position
-    
-    local skyStartCFrame = CFrame.new(startPos.X, startPos.Y + HeightOffset, startPos.Z) * originalRotation
-    local skyEndCFrame = CFrame.new(targetPos.X, targetPos.Y + HeightOffset, targetPos.Z) * originalRotation
-    local finalLandingCFrame = target.Glass.CFrame
-    
-    local durationLift = HeightOffset / LiftSpeed
-    local distanceHorizontal = (skyStartCFrame.Position - skyEndCFrame.Position).Magnitude
-    local durationHorizontal = distanceHorizontal / SafeSpeed
-    local durationVertical = HeightOffset / LandSpeed
-    
+
+    local originalRotation =
+        hrp.CFrame - hrp.Position
+
+    local skyStartCFrame =
+        CFrame.new(
+            startPos.X,
+            startPos.Y + HeightOffset,
+            startPos.Z
+        ) * originalRotation
+
+    local skyEndCFrame =
+        CFrame.new(
+            targetPos.X,
+            targetPos.Y + HeightOffset,
+            targetPos.Z
+        ) * originalRotation
+
+    local finalLandingCFrame =
+        target.Glass.CFrame
+
+    -- ============================================================
+    -- DURATIONS
+    -- ============================================================
+
+    local durationLift =
+        HeightOffset / LiftSpeed
+
+    local distanceHorizontal =
+        (skyStartCFrame.Position - skyEndCFrame.Position).Magnitude
+
+    local durationHorizontal =
+        distanceHorizontal / SafeSpeed
+
+    local durationVertical =
+        HeightOffset / LandSpeed
+
+    -- ============================================================
+    -- CAMERA
+    -- ============================================================
+
     local cameraConnection
+
     local function startSmoothCamera()
-        camera.CameraType = Enum.CameraType.Scriptable
-        cameraConnection = RunService.RenderStepped:Connect(function()
-            if hrp and character and humanoid and humanoid.Health > 0 then
-                local targetCameraPos = hrp.Position + Vector3.new(0, 8, 12) 
-                camera.CFrame = CFrame.new(targetCameraPos, hrp.Position)
-            end
-        end)
+
+        camera.CameraType =
+            Enum.CameraType.Scriptable
+
+        cameraConnection =
+            RunService.RenderStepped:Connect(function()
+
+                if hrp
+                    and character
+                    and humanoid
+                    and humanoid.Health > 0 then
+
+                    local targetCameraPos =
+                        hrp.Position
+                        + Vector3.new(0, 8, 12)
+
+                    camera.CFrame =
+                        CFrame.new(
+                            targetCameraPos,
+                            hrp.Position
+                        )
+                end
+            end)
     end
 
     local function stopSmoothCamera()
-        if cameraConnection then cameraConnection:Disconnect() end
-        camera.CameraType = Enum.CameraType.Custom
+
+        if cameraConnection then
+            cameraConnection:Disconnect()
+            cameraConnection = nil
+        end
+
+        camera.CameraType =
+            Enum.CameraType.Custom
     end
 
-    local tween1, tween2, tween3
-    local healthConnection
-    
-    -- Xử lý khi nhân vật bất ngờ bị chết/reset giữa đường bay
-    healthConnection = humanoid.HealthChanged:Connect(function(health)
-        if health <= 0 then
-            stopSmoothCamera()
-            if hrp then hrp.Anchored = false end
-            if tween1 then tween1:Cancel() end
-            if tween2 then tween2:Cancel() end
-            if tween3 then tween3:Cancel() end
-            if healthConnection then healthConnection:Disconnect() end
-            p:Fire()
+    -- ============================================================
+    -- TWEEN VARIABLES
+    -- ============================================================
+
+    local tween1
+    local tween2
+    local tween3
+
+    local stopped = false
+
+    -- ============================================================
+    -- CLEANUP
+    -- ============================================================
+
+    local function cleanup()
+
+        if stopped then
+            return
         end
-    end)
-    
-    -- Xử lý ngắt Tween ngay lập tức nếu người dùng bấm TẮT Toggle giữa chừng (trong lúc đang bay)
-    local toggleCheckConnection
-    toggleCheckConnection = RunService.Heartbeat:Connect(function()
-        if not AutoRobEnabled then
-            stopSmoothCamera()
-            if humanoid then humanoid.PlatformStand = false end
-            if hrp then hrp.Anchored = false end
-            if tween1 then tween1:Cancel() end
-            if tween2 then tween2:Cancel() end
-            if tween3 then tween3:Cancel() end
-            if healthConnection then healthConnection:Disconnect() end
-            if toggleCheckConnection then toggleCheckConnection:Disconnect() end
-            p:Fire()
+
+        stopped = true
+
+        if tween1 then
+            tween1:Cancel()
         end
-    end)
-    
-    startSmoothCamera()
-    humanoid.PlatformStand = true
-    
-    -- CHẶNG 1: TWEEN BAY THẲNG LÊN TRỜI
-    local tweenInfo1 = TweenInfo.new(durationLift, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-    tween1 = TweenService:Create(hrp, tweenInfo1, {CFrame = skyStartCFrame})
-    tween1:Play()
-    
-    tween1.Completed:Connect(function()
-        if not AutoRobEnabled or humanoid.Health <= 0 then return end
-        
-        -- CHẶNG 2: TWEEN BAY NGANG TRÊN KHÔNG TRUNG
-        local tweenInfo2 = TweenInfo.new(durationHorizontal, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-        tween2 = TweenService:Create(hrp, tweenInfo2, {CFrame = skyEndCFrame})
-        tween2:Play()
-        
-        tween2.Completed:Connect(function()
-            if not AutoRobEnabled or humanoid.Health <= 0 then return end
-            
-            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-            task.wait(0.05)
-            
-            -- CHẶNG 3: TWEEN HẠ CÁNH XUỐNG VỊ TRÍ XE
-            local tweenInfo3 = TweenInfo.new(durationVertical, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-            tween3 = TweenService:Create(hrp, tweenInfo3, {CFrame = finalLandingCFrame})
-            tween3:Play()
-            
-            tween3.Completed:Connect(function()
-                -- Ngắt check toggle lúc bay đi, chuyển sang dùng while loop lúc đứng im
-                if toggleCheckConnection then toggleCheckConnection:Disconnect() end
-                
-                if not AutoRobEnabled or humanoid.Health <= 0 then 
-                    if humanoid then humanoid.PlatformStand = false end
-                    if hrp then hrp.Anchored = false end
-                    stopSmoothCamera()
-                    p:Fire()
-                    return 
+
+        if tween2 then
+            tween2:Cancel()
+        end
+
+        if tween3 then
+            tween3:Cancel()
+        end
+
+        stopSmoothCamera()
+
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+
+        if hrp then
+            hrp.Anchored = false
+        end
+    end
+
+    -- ============================================================
+    -- CHECK TOGGLE WHILE TWEENING
+    -- ============================================================
+
+    local toggleConnection
+
+    toggleConnection =
+        RunService.Heartbeat:Connect(function()
+
+            if not AutoRobEnabled then
+
+                if toggleConnection then
+                    toggleConnection:Disconnect()
+                    toggleConnection = nil
                 end
-                
-                -- ĐÁP XE THÀNH CÔNG: ĐÓNG BĂNG VĨNH VIỄN TẠI CHỖ
-                stopSmoothCamera()
-                humanoid.PlatformStand = false
-                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0) 
-                hrp.Anchored = true
-                
-                task.wait(0.5)
-                
-                -- Vòng lặp kẹt tại đây cho đến khi tắt Toggle hoặc chết
-                while AutoRobEnabled and humanoid.Health > 0 do
-                    -- Nếu cái ProximityPrompt vẫn còn tồn tại thì cố gắng kích hoạt nó
-                    if target.Prompt and target.Prompt.Parent then
-                        pcall(function()
-							for i = 1, PromptFireAmount do
-								if not AutoRobEnabled then
-									break
-								end
-								
-                            	target.Prompt.HoldDuration = 0
-                            	target.Prompt.Enabled = true
-                            	fireproximityprompt(target.Prompt)
-							end
-                        end)
-                    end
-                    task.wait()
-                end
-                
-                -- CHỈ UNANCHOR KHI ĐÃ TẮT TOGGLE (Vòng lặp trên bị phá vỡ)
-                if hrp then hrp.Anchored = false end
-                p:Fire()
-            end)
+
+                cleanup()
+            end
         end)
-    end)
-    
-    p.Event:Wait()
+
+    -- ============================================================
+    -- HEALTH CHECK
+    -- ============================================================
+
+    local healthConnection
+
+    healthConnection =
+        humanoid.HealthChanged:Connect(function(health)
+
+            if health <= 0 then
+
+                if healthConnection then
+                    healthConnection:Disconnect()
+                    healthConnection = nil
+                end
+
+                if toggleConnection then
+                    toggleConnection:Disconnect()
+                    toggleConnection = nil
+                end
+
+                cleanup()
+            end
+        end)
+
+    -- ============================================================
+    -- START TWEEN
+    -- ============================================================
+
+    startSmoothCamera()
+
+    humanoid.PlatformStand = true
+
+    -- ============================================================
+    -- TWEEN 1: LIFT
+    -- ============================================================
+
+    local tweenInfo1 =
+        TweenInfo.new(
+            durationLift,
+            Enum.EasingStyle.Linear,
+            Enum.EasingDirection.Out
+        )
+
+    tween1 =
+        TweenService:Create(
+            hrp,
+            tweenInfo1,
+            {
+                CFrame = skyStartCFrame
+            }
+        )
+
+    tween1:Play()
+
+    local completed1 =
+        tween1.Completed:Wait()
+
+    if stopped
+        or not AutoRobEnabled
+        or humanoid.Health <= 0 then
+
+        cleanup()
+
+        if healthConnection then
+            healthConnection:Disconnect()
+        end
+
+        return false
+    end
+
+    -- ============================================================
+    -- TWEEN 2: HORIZONTAL
+    -- ============================================================
+
+    local tweenInfo2 =
+        TweenInfo.new(
+            durationHorizontal,
+            Enum.EasingStyle.Linear,
+            Enum.EasingDirection.InOut
+        )
+
+    tween2 =
+        TweenService:Create(
+            hrp,
+            tweenInfo2,
+            {
+                CFrame = skyEndCFrame
+            }
+        )
+
+    tween2:Play()
+
+    local completed2 =
+        tween2.Completed:Wait()
+
+    if stopped
+        or not AutoRobEnabled
+        or humanoid.Health <= 0 then
+
+        cleanup()
+
+        if healthConnection then
+            healthConnection:Disconnect()
+        end
+
+        return false
+    end
+
+    -- Dừng vận tốc
+    hrp.AssemblyLinearVelocity =
+        Vector3.new(0, 0, 0)
+
+    hrp.AssemblyAngularVelocity =
+        Vector3.new(0, 0, 0)
+
+    task.wait(0.05)
+
+    -- ============================================================
+    -- TWEEN 3: LANDING
+    -- ============================================================
+
+    local tweenInfo3 =
+        TweenInfo.new(
+            durationVertical,
+            Enum.EasingStyle.Linear,
+            Enum.EasingDirection.Out
+        )
+
+    tween3 =
+        TweenService:Create(
+            hrp,
+            tweenInfo3,
+            {
+                CFrame = finalLandingCFrame
+            }
+        )
+
+    tween3:Play()
+
+    local completed3 =
+        tween3.Completed:Wait()
+
+    if stopped
+        or not AutoRobEnabled
+        or humanoid.Health <= 0 then
+
+        cleanup()
+
+        if healthConnection then
+            healthConnection:Disconnect()
+        end
+
+        return false
+    end
+
+    -- ============================================================
+    -- KIỂM TRA VỊ TRÍ SAU KHI ĐÁP
+    -- ============================================================
+
+    task.wait(1)
+
+    local currentDistance =
+        (hrp.Position - target.Glass.Position).Magnitude
+
+    -- ============================================================
+    -- CLEANUP CONNECTIONS
+    -- ============================================================
+
+    if toggleConnection then
+        toggleConnection:Disconnect()
+        toggleConnection = nil
+    end
+
+    if healthConnection then
+        healthConnection:Disconnect()
+        healthConnection = nil
+    end
+
+    -- ============================================================
+    -- ĐÁP SAI VỊ TRÍ
+    -- ============================================================
+
+    if currentDistance > PositionTolerance then
+
+        stopSmoothCamera()
+
+        humanoid.PlatformStand = false
+
+        hrp.Anchored = false
+
+        return false
+    end
+
+    -- ============================================================
+    -- ĐÁP ĐÚNG VỊ TRÍ
+    -- ============================================================
+
+    stopSmoothCamera()
+
+    humanoid.PlatformStand = false
+
+    hrp.AssemblyLinearVelocity =
+        Vector3.new(0, 0, 0)
+
+    hrp.AssemblyAngularVelocity =
+        Vector3.new(0, 0, 0)
+
+    hrp.Anchored = true
+
+    return true
 end
 
--- 3. Vòng lặp Core Thread quản lý luồng quét xe và thực thi
+-- ================================================================
+-- ROB TARGET
+-- ================================================================
+
+local function robTarget(target)
+
+    if not AutoRobEnabled then
+        return
+    end
+
+    if not target
+        or not target.Glass
+        or not target.Glass.Parent then
+
+        return
+    end
+
+    -- ============================================================
+    -- THỬ TWEEN CHO ĐẾN KHI ĐÁP ĐÚNG VỊ TRÍ
+    -- ============================================================
+
+    local landedCorrectly = false
+
+    while AutoRobEnabled
+        and humanoid
+        and humanoid.Health > 0 do
+
+        landedCorrectly =
+            tweenToTarget(target)
+
+        -- Nếu đã đáp đúng vị trí
+        if landedCorrectly then
+            break
+        end
+
+        -- Nếu tắt toggle
+        if not AutoRobEnabled then
+            return
+        end
+
+        -- Đáp sai -> chờ một chút rồi Tween lại
+        task.wait(0.1)
+    end
+
+    -- Không đáp đúng hoặc đã tắt
+    if not landedCorrectly
+        or not AutoRobEnabled then
+
+        if hrp then
+            hrp.Anchored = false
+        end
+
+        return
+    end
+
+    -- ============================================================
+    -- FIRE PROMPT
+    -- ============================================================
+
+    while AutoRobEnabled
+        and humanoid
+        and humanoid.Health > 0 do
+
+        if target.Prompt
+            and target.Prompt.Parent then
+
+            pcall(function()
+
+                target.Prompt.HoldDuration = 0
+                target.Prompt.Enabled = true
+
+                for i = 1, PromptFireAmount do
+
+                    if not AutoRobEnabled then
+                        break
+                    end
+
+                    fireproximityprompt(
+                        target.Prompt
+                    )
+                end
+
+            end)
+        end
+
+        task.wait()
+    end
+
+    -- ============================================================
+    -- TẮT TOGGLE -> UNANCHOR
+    -- ============================================================
+
+    if hrp then
+        hrp.Anchored = false
+    end
+end
+
+-- ================================================================
+-- CORE LOOP
+-- ================================================================
+
 task.spawn(function()
+
     while true do
+
         if AutoRobEnabled then
-            local sortedVanList = findNearestRobbableVans()
+
+            local sortedVanList =
+                findNearestRobbableVans()
+
             if #sortedVanList > 0 then
-                -- Bay tới xe gần nhất. Khi đến nơi nó sẽ kẹt ở trong hàm robTarget (vì bị giữ lại bởi vòng lặp while) 
-                -- nên nó sẽ KHÔNG quét xe tiếp theo cho đến khi bạn tắt Toggle.
-                local nearestTarget = sortedVanList[1]
-                robTarget(nearestTarget)
+
+                local nearestTarget =
+                    sortedVanList[1]
+
+                robTarget(
+                    nearestTarget
+                )
             end
         end
-        task.wait(1) 
+
+        task.wait()
     end
 end)
 
-local RobVanSlider = RobTab:CreateSlider({
-    Name = "Fire Count",
-    Range = {1, 10000},
-    Increment = 100,
-    Suffix = " times",
-    CurrentValue = 1000,
-    Flag = "PromptFireAmount",
-    Callback = function(Value)
-        PromptFireAmount = Value
-    end,
-})
--- =================================================================
--- CHÈN TRỰC TIẾP NÚT TOGGLE NÀY VÀO TAB CÓ SẴN CỦA BẠN
--- =================================================================
-local RobVanToggle = RobTab:CreateToggle({
-   Name = "Auto Rob Van",
-   CurrentValue = false,
-   Flag = "AutoRobVanFlag",
-   Callback = function(Value)
-      AutoRobEnabled = Value
-   end,
-})
+-- ================================================================
+-- TOGGLE
+-- ================================================================
+
+local RobVanToggle =
+RobTab:CreateToggle({
+
+        Name = "RobVan",
+
+        CurrentValue = false,
+
+        Flag = "RobVanFlag",
+
+        Callback = function(Value)
+
+            AutoRobEnabled = Value
+
+            -- Tắt toggle -> unanchor ngay
+            if not Value then
+
+                if hrp then
+                    hrp.Anchored = false
+                end
+
+                if humanoid then
+                    humanoid.PlatformStand = false
+                end
+            end
+        end,
+    })
 RobTab:CreateSection({ name = "Bank", icon = 93364949241311 })
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
