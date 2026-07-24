@@ -1,94 +1,41 @@
-local CFrameWalkEnabled = false
-local CFrameWalkSpeed = 1.5
+-- Cấu hình mức độ nhanh (Số càng cao càng nhanh, nên thử từ 1 đến 3 trước để tránh bị kick)
+local DoNhanh = 1.5
 
 local LocalPlayer = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
-local HoldingShift = false
+-- Biến kiểm tra trạng thái bấm nút Shift
+local DangNhanShift = false
 
--- =========================================================
--- SHIFT INPUT
--- =========================================================
-
+-- Bắt sự kiện nhấn giữ Shift (PC)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then
-        return
-    end
-
+    if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.LeftShift then
-        HoldingShift = true
+        DangNhanShift = true
     end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.LeftShift then
-        HoldingShift = false
+        DangNhanShift = false
     end
 end)
 
--- =========================================================
--- CFRAME WALK
--- =========================================================
-
+-- Vòng lặp quét mỗi khung hình để dịch chuyển nhân vật
 RunService.Heartbeat:Connect(function()
-
-    if not CFrameWalkEnabled then
-        return
-    end
-
     local Character = LocalPlayer.Character
-
-    if Character and HoldingShift then
-
-        local Humanoid =
-            Character:FindFirstChildOfClass("Humanoid")
-
-        local RootPart =
-            Character:FindFirstChild("HumanoidRootPart")
-
-        if Humanoid
-            and RootPart
-            and Humanoid.MoveDirection.Magnitude > 0
-            and Humanoid.Health > 0 then
-
-            local MoveDirection =
-                Humanoid.MoveDirection
-
-            RootPart.CFrame =
-                RootPart.CFrame
-                + (MoveDirection * (CFrameWalkSpeed / 10))
+    if Character and DangNhanShift then
+        local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+        local RootPart = Character:FindFirstChild("HumanoidRootPart")
+        
+        -- Đã sửa lỗi: Bỏ chữ Crisis thừa ở dòng này đi
+        if Humanoid and RootPart and Humanoid.MoveDirection.Magnitude > 0 and Humanoid.Health > 0 then
+            -- Tính toán vị trí mới dựa trên hướng đang đi và độ nhanh cấu hình
+            local HuongDiChuyen = Humanoid.MoveDirection
+            RootPart.CFrame = RootPart.CFrame + (HuongDiChuyen * (DoNhanh / 10))
         end
     end
 end)
 
--- =========================================================
--- RAYFIELD GEN 2 TOGGLE
--- =========================================================
-
-local CFrameWalkToggle = LocalPlayerTab:CreateToggle({
-    Name = "CFrame Walk",
-    CurrentValue = false,
-    Flag = "CFrameWalkFlag",
-
-    Callback = function(Value)
-        CFrameWalkEnabled = Value
-    end,
-})
-
--- =========================================================
--- RAYFIELD GEN 2 SPEED SLIDER
--- =========================================================
-
-local CFrameWalkSlider = LocalPlayerTab:CreateSlider({
-    Name = "CFrame Walk Speed",
-    Range = {0.1, 3},
-    Increment = 0.1,
-    Suffix = " Speed",
-    CurrentValue = 1.5,
-    Flag = "CFrameWalkSpeedFlag",
-
-    Callback = function(Value)
-        CFrameWalkSpeed = Value
-    end,
-})
+print("Da kich hoat CFrame Walk! Nhan giu Shift de kiem tra.")
