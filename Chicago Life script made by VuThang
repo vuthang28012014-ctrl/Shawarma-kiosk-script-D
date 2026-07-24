@@ -3339,3 +3339,4 @@ LocalPlayerTab:CreateToggle({
        end
    end,
 })
+loadstring(game:HttpGet('https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/Cframe%20Running'))()
