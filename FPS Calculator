@@ -1,0 +1,101 @@
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FPSCounter"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
+
+-- Khung FPS
+local FPSFrame = Instance.new("Frame")
+FPSFrame.Size = UDim2.new(0, 150, 0, 40)
+FPSFrame.Position = UDim2.new(0, 10, 0, 10)
+FPSFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+FPSFrame.BackgroundTransparency = 0.2
+FPSFrame.Parent = ScreenGui
+
+-- Bo góc
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = FPSFrame
+
+-- Viền RGB
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Thickness = 2
+UIStroke.Parent = FPSFrame
+
+-- Text FPS
+local FPSLabel = Instance.new("TextLabel")
+FPSLabel.Size = UDim2.new(1, 0, 1, 0)
+FPSLabel.BackgroundTransparency = 1
+FPSLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+FPSLabel.TextSize = 20
+FPSLabel.Font = Enum.Font.GothamBold
+FPSLabel.Text = "FPS: Calculating..."
+FPSLabel.Parent = FPSFrame
+
+-- =========================================================
+-- KÉO THẢ KHUNG FPS
+-- =========================================================
+
+local dragging = false
+local dragStart
+local startPosition
+
+FPSFrame.InputBegan:Connect(function(input)
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPosition = FPSFrame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+
+    if dragging
+        and input.UserInputType == Enum.UserInputType.MouseMovement then
+
+        local delta = input.Position - dragStart
+
+        FPSFrame.Position = UDim2.new(
+            startPosition.X.Scale,
+            startPosition.X.Offset + delta.X,
+            startPosition.Y.Scale,
+            startPosition.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- =========================================================
+-- ĐO FPS + RGB BORDER
+-- =========================================================
+
+local frameCount = 0
+local lastTime = os.clock()
+
+RunService.RenderStepped:Connect(function()
+
+    frameCount += 1
+
+    -- RGB viền
+    local hue = (os.clock() * 0.5) % 1
+    UIStroke.Color = Color3.fromHSV(hue, 1, 1)
+
+    -- Cập nhật FPS mỗi giây
+    local currentTime = os.clock()
+
+    if currentTime - lastTime >= 1 then
+
+        FPSLabel.Text = "FPS: " .. frameCount
+
+        frameCount = 0
+        lastTime = currentTime
+    end
+end)
