@@ -167,13 +167,28 @@ function Nova:Notify(o)
 	o = o or {}
 	local duration = o.Duration or 4
 
+	local outer = create("Frame", {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		ClipsDescendants = true,
+		Parent = NotifyHolder,
+	})
+
 	local card = create("Frame", {
 		BackgroundColor3 = Theme.Surface,
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 0, 0),
+		Position = UDim2.new(1.15, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		Parent = NotifyHolder,
+		Parent = outer,
 	}, { corner(8), stroke(Theme.Stroke, 1), padding(12) })
+
+	local accentBar = create("Frame", {
+		BackgroundColor3 = Theme.Accent,
+		Size = UDim2.new(0, 3, 1, 0),
+		Parent = card,
+	}, { corner(2) })
 
 	create("TextLabel", {
 		Text = o.Title or "Notification", Font = Theme.FontBold, TextSize = 13, TextColor3 = Theme.Text,
@@ -187,11 +202,11 @@ function Nova:Notify(o)
 		Parent = card,
 	})
 
-	tween(card, { BackgroundTransparency = 0 }, 0.2)
+	tween(card, { BackgroundTransparency = 0, Position = UDim2.new(0, 0, 0, 0) }, 0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 	task.delay(duration, function()
-		local t = tween(card, { BackgroundTransparency = 1 }, 0.25)
-		t.Completed:Wait()
-		card:Destroy()
+		local t1 = tween(card, { Position = UDim2.new(1.15, 0, 0, 0), BackgroundTransparency = 1 }, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		t1.Completed:Wait()
+		outer:Destroy()
 	end)
 end
 
@@ -214,11 +229,13 @@ function Nova:Popup(o)
 		BackgroundColor3 = Theme.Surface,
 		Size = UDim2.fromOffset(340, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		Position = UDim2.fromScale(0.5, 0.45),
+		Position = UDim2.fromScale(0.5, 0.48),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		ZIndex = 51,
 		Parent = backdrop,
 	}, { corner(10), stroke(Theme.Stroke, 1), padding(18) })
+	local popScale = create("UIScale", { Scale = 0.8, Parent = card })
+	tween(popScale, { Scale = 1 }, 0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 
 	create("UIListLayout", { Padding = UDim.new(0, 10), Parent = card })
 
@@ -299,11 +316,20 @@ function Nova:CreateWindow(config)
 	Window._Elements = {}
 
 	local render = function()
+		local finalPos = UDim2.new(0.5, -size.X.Offset / 2, 0.5, -size.Y.Offset / 2)
 		local Main = create("Frame", {
-			Name = "Main", Size = size,
-			Position = UDim2.new(0.5, -size.X.Offset / 2, 0.5, -size.Y.Offset / 2),
-			BackgroundColor3 = Theme.Background, Parent = ScreenGui,
+			Name = "Main", Size = UDim2.new(0, size.X.Offset * 0.85, 0, size.Y.Offset * 0.85),
+			Position = finalPos,
+			AnchorPoint = Vector2.new(0, 0),
+			BackgroundColor3 = Theme.Background,
+			BackgroundTransparency = 1,
+			ClipsDescendants = true,
+			Parent = ScreenGui,
 		}, { corner(10), stroke(Theme.Stroke, 1) })
+		-- recenter the shrunk frame, then pop it open
+		Main.Position = UDim2.new(0.5, -Main.Size.X.Offset / 2, 0.5, -Main.Size.Y.Offset / 2)
+		tween(Main, { BackgroundTransparency = 0 }, 0.18)
+		tween(Main, { Size = size, Position = finalPos }, 0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 
 		local TopBar = create("Frame", {
 			Name = "TopBar", Size = UDim2.new(1, 0, 0, 46), BackgroundColor3 = Theme.Surface, Parent = Main,
@@ -348,11 +374,16 @@ function Nova:CreateWindow(config)
 		local minimized = false
 		MinBtn.MouseButton1Click:Connect(function()
 			minimized = not minimized
-			tween(Main, { Size = minimized and UDim2.new(0, size.X.Offset, 0, 46) or size }, 0.18)
+			tween(Main, {
+				Size = minimized and UDim2.new(0, size.X.Offset, 0, 46) or size,
+			}, 0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 		end)
 		CloseBtn.MouseButton1Click:Connect(function()
-			tween(Main, { Size = UDim2.fromOffset(0, 0) }, 0.15)
-			task.delay(0.16, function() Main.Visible = false end)
+			tween(Main, {
+				Size = UDim2.new(0, size.X.Offset * 0.85, 0, size.Y.Offset * 0.85),
+				BackgroundTransparency = 1,
+			}, 0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+			task.delay(0.19, function() Main.Visible = false end)
 		end)
 
 		makeDraggable(TopBar, Main)
@@ -534,6 +565,9 @@ function Nova:CreateWindow(config)
 			})
 			btn.MouseEnter:Connect(function() tween(row, { BackgroundColor3 = Theme.SurfaceAlt }, 0.12) end)
 			btn.MouseLeave:Connect(function() tween(row, { BackgroundColor3 = Theme.Surface }, 0.12) end)
+			local rowScale = create("UIScale", { Scale = 1, Parent = row })
+			btn.MouseButton1Down:Connect(function() tween(rowScale, { Scale = 0.97 }, 0.08) end)
+			btn.MouseButton1Up:Connect(function() tween(rowScale, { Scale = 1 }, 0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out) end)
 			btn.MouseButton1Click:Connect(function() if o.Callback then task.spawn(o.Callback) end end)
 			return { Instance = row }
 		end
@@ -563,8 +597,10 @@ function Nova:CreateWindow(config)
 			function Toggle:Set(value)
 				state = value
 				registerFlag(o.Flag, state)
-				tween(switch, { BackgroundColor3 = state and Theme.Accent or Theme.SurfaceAlt }, 0.15)
-				tween(knob, { Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8) }, 0.15)
+				tween(switch, { BackgroundColor3 = state and Theme.Accent or Theme.SurfaceAlt }, 0.18)
+				tween(knob, {
+					Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8),
+				}, 0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 				if o.Callback then task.spawn(o.Callback, state) end
 			end
 			click.MouseButton1Click:Connect(function() Toggle:Set(not state) end)
