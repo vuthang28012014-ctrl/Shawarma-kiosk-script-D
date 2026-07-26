@@ -133,7 +133,7 @@ Window:Notify({
    Content = "Script made by vuthang28012014",
    Duration = 6.5,
 })
-local tag = window:CreateTag({
+local Tag = Window:CreateTag({
     text = "Freemium",
     color = Color3.fromRGB(255, 175, 15),
 })
