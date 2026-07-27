@@ -3224,7 +3224,6 @@ end
 
 -- ==========================================
 -- ĐOẠN KHỞI TẠO TOGGLE TRONG RAYFIELD UI
--- (Hãy đổi 'Xóa_Cái_Này_Thay_Bằng_Tab_Của_Bạn' thành tên biến Tab của bạn)
 -- ==========================================
 LocalPlayerTab:CreateToggle({
    Name = "God Mode",
@@ -3239,13 +3238,31 @@ LocalPlayerTab:CreateToggle({
        else
            print("❌ [Rayfield] Auto God Mode: OFF")
            
-           -- Tắt hẳn giáp ForceField đang có trên người ngay lập tức khi Off
-           local targetCharacter = Workspace:FindFirstChild("Hackerissomuch_20")
+           -- KHI OFF: Sử dụng firetouch với tham số 1 để bỏ khiên thay vì dùng :Destroy()
+           local targetCharacter = Workspace:FindFirstChild(Players.LocalPlayer.Name)
            if targetCharacter then
-               local currentFF = targetCharacter:FindFirstChildOfClass("ForceField") or targetCharacter:FindFirstChild("ForceField")
-               if currentFF then
-                   currentFF:Destroy()
-                   print("✨ Đã xóa sạch ForceField theo yêu cầu!")
+               local rootPart = targetCharacter:FindFirstChild("HumanoidRootPart")
+               local safeZones = Workspace:FindFirstChild("SafeZones")
+               
+               if rootPart and safeZones then
+                   local safePart = nil
+                   for _, child in ipairs(safeZones:GetChildren()) do
+                       if child:IsA("BasePart") and child.Name == "Part" then
+                           safePart = child
+                           break
+                       end
+                   end
+                   
+                   if safePart then
+                       local fireTouchFunc = firetouchinterest or firetouchdetector
+                       if fireTouchFunc then
+                           pcall(function()
+                               -- Gửi tín hiệu 1 (rời/tắt chạm) để bỏ khiên
+                               fireTouchFunc(safePart, rootPart, 1)
+                               print("✨ Đã gọi firetouch với tham số 1 để bỏ khiên thành công!")
+                           end)
+                       end
+                   end
                end
            end
        end
