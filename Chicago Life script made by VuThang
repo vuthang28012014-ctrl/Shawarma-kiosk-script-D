@@ -2456,7 +2456,7 @@ TabGun:CreateToggle({
 
 -- MỚI: Toggle Đạn nổ / Đạn đuổi
 TabGun:CreateToggle({
-    Name = "Explosive/Homing bullets",
+    Name = "Explosive/Homing bullets/Lifesteal",
     CurrentValue = false,
     Flag = "GunExplosiveHomingFlag",
     Callback = function(Value)
