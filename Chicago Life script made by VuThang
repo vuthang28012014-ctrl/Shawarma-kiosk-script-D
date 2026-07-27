@@ -2320,14 +2320,16 @@ local function applyGunModifications()
                     Homing = config1.Homing,
                     HomingDistance = config1.HomingDistance,
                     TurnRatePerSecond = config1.TurnRatePerSecond,
-                    HomeThroughWall = config1.HomeThroughWall
+                    HomeThroughWall = config1.HomeThroughWall,
+					Lifesteal = config1.Lifesteal
                 }
             end
             
             -- Ép bật đạn nổ
             config1.ExplosiveEnabled = true
             if config1.ExplosionRadius ~= nil then config1.ExplosionRadius = 15 end -- Chỉnh bán kính nổ to
-            
+			if config1.Lifesteal ~= nil then config1.Lifesteal = 100 end
+
             -- Ép bật đạn đuổi mục tiêu
             config1.Homing = true
             if config1.HomingDistance ~= nil then config1.HomingDistance = 1500 end -- Tăng tầm đuổi xa
@@ -2343,6 +2345,7 @@ local function applyGunModifications()
                 if config1.HomingDistance ~= nil then config1.HomingDistance = origBomb.HomingDistance end
                 if config1.TurnRatePerSecond ~= nil then config1.TurnRatePerSecond = origBomb.TurnRatePerSecond end
                 if config1.HomeThroughWall ~= nil then config1.HomeThroughWall = origBomb.HomeThroughWall end
+				if config1.Lifesteal ~= nil then config1.Lifesteal = origBomb.Lifesteal end
             end
         end
     end
