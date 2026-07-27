@@ -1,0 +1,3502 @@
+local Players = game:GetService("Players")
+local PlayerIsExecuting = Players.LocalPlayer.Name
+loadstring(game:HttpGet("https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/Welcome%20user"))()
+wait(2)
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local player = Players.LocalPlayer
+local config = loadstring(game:HttpGet("https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/config.lua"))()
+local webhook = config.webhook
+local executor = "Unknown"
+
+if identifyexecutor then
+    executor = identifyexecutor()
+elseif getexecutorname then
+    executor = getexecutorname()
+end
+	
+local gameName = "Unknown"
+pcall(function()
+    gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
+end)
+
+local data = {
+    ["content"] = "",
+    ["embeds"] = {{
+        ["title"] = "Script Execution Log",
+        ["color"] = 65280,
+        ["fields"] = {
+            {
+                ["name"] = "Username",
+                ["value"] = player.Name,
+                ["inline"] = true
+            },
+            {
+                ["name"] = "UserId",
+                ["value"] = tostring(player.UserId),
+                ["inline"] = true
+            },
+            {
+                ["name"] = "Executor",
+                ["value"] = executor,
+                ["inline"] = true
+            },
+            {
+                ["name"] = "PlaceId",
+                ["value"] = tostring(game.PlaceId),
+                ["inline"] = true
+            },
+			{
+                ["name"] = "Game Name",
+                ["value"] = gameName,
+                ["inline"] = true
+            }
+        }
+    }}
+}
+
+local json = HttpService:JSONEncode(data)
+
+request({
+    Url = webhook,
+    Method = "POST",
+    Headers = {
+        ["Content-Type"] = "application/json"
+    },
+    Body = json
+})
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+
+local player = Players.LocalPlayer
+
+local url = "https://raw.githubusercontent.com/vuthang28012014-ctrl/Ban-list---AppleHub/main/Banlist.json"
+
+local data = game:HttpGet(url)
+local bans = HttpService:JSONDecode(data)
+
+local id = tostring(player.UserId)
+
+print("My ID:", id)
+print("Check ban:", bans[id])
+
+local ContentToKick = "Kicked because script is currently down (outage)"
+local Kick = false -- (IMPORTANT): CHANGE TO TRUE IF WANT TO KICK
+if executor == "Xeno" then
+Kick = true
+ContentToKick = "You were kicked because your executor is not supported!"
+end
+
+if getgenv and not getgenv().vex_key then
+	Kick = true
+	ContentToKick = "Bypass key detected, furthers may receive a permanban!"
+end
+
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
+if bans[id] == true then
+    print("Kicked")
+    player:Kick("You has been banned by our owner!")
+end
+local Window = Rayfield:CreateWindow({
+   Name = "Chicago Life exploit script",
+   ScriptID = "sid_04usu24bgzau",
+   Icon = 0,
+   LoadingTitle = "Chicago Life script",
+   LoadingSubtitle = "made by Hackerissomuch_20",
+   ShowText = "Chicago Life exploit script",
+   Theme = "Default",
+   ToggleUIKeybind = "K",
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false,
+   ConfigurationSaving = { Enabled = false, FolderName = nil, FileName = "Big Hub" },
+   Discord = { Enabled = false, Invite = "noinvitelink", RememberJoins = true },
+   KeySystem = false,
+   KeySettings = {}
+})
+if Kick == true then
+    Window:Notify({
+        Title = "Script Error",
+        Content = ContentToKick,
+        Duration = 4
+    })
+
+    task.wait()
+
+    game.Players.LocalPlayer:Kick(ContentToKick)
+else
+    print("Kick system disabled")
+end
+Window:Notify({
+   Title = "Loading!",
+   Content = "Script made by vuthang28012014",
+   Duration = 6.5,
+})
+local Tag = Window:CreateTag({
+    text = "Freemium",
+    color = Color3.fromRGB(255, 175, 15),
+})
+if Kick == true then
+    Rayfield:Destroy()
+end
+task.spawn(function()
+    while task.wait(10) do -- kiểm tra mỗi 10 giây
+        local success, result = pcall(function()
+            return game:HttpGet(url)
+        end)
+
+        if success then
+            local ok, bans = pcall(function()
+                return HttpService:JSONDecode(result)
+            end)
+
+            if ok and bans[tostring(player.UserId)] then
+                player:Kick("You were banned by our owner!")
+                break
+            end
+        end
+    end
+end)
+local StatTab = Window:CreateTab({ name = "Stats", icon = 93364949241311 })
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local KillNotification = ReplicatedStorage:WaitForChild("KillNotification")
+
+local KillCount = 0
+
+local kills = StatTab:CreateStat({
+    name = "Kills",
+    prefix = "",
+    value = KillCount,
+})
+
+KillNotification.OnClientEvent:Connect(function()
+    KillCount += 1
+    kills:Set(KillCount)
+end)
+local Players = game:GetService("Players")
+
+local LocalPlayer = Players.LocalPlayer
+local Cash = LocalPlayer:WaitForChild("PlayerData"):WaitForChild("Cash")
+
+-- Lưu số Cash lúc script bắt đầu
+local StartingCash = Cash.Value
+
+local cashStat = StatTab:CreateStat({
+    name = "Cash Earned",
+    prefix = "$",
+    value = 0,
+})
+
+Cash:GetPropertyChangedSignal("Value"):Connect(function()
+    local CurrentCash = Cash.Value
+
+    -- Số tiền kiếm được kể từ khi chạy script
+    local CashEarned = CurrentCash - StartingCash
+
+    -- Phần trăm tăng so với Cash ban đầu
+    local PercentIncrease = 0
+
+    if StartingCash > 0 then
+        PercentIncrease = (CashEarned / StartingCash) * 100
+    end
+
+    cashStat:Set(
+        CashEarned,
+        string.format("(+%.2f%%)", PercentIncrease)
+    )
+end)
+local Tab = Window:CreateTab({ name = "Aimbot", icon = 93364949241311 })
+Tab:CreateSection({ name = "Aim to a selected player", icon = 93364949241311 })
+-- =================================================================
+-- SYSTEM 1: PLAYER AIM VARIABLES (He thong chon qua Dropdown)
+-- =================================================================
+local AimBotEnabled = false
+local Smoothness = 0.1
+local SelectedTargetName = nil
+
+-- =================================================================
+-- SYSTEM 2: FOV AIM VARIABLES (Tu dong quet nguoi trong vong tron FOV)
+-- =================================================================
+local FOVAimEnabled_FOV = false
+local FOV_Radius_FOV = 150
+local Smoothness_FOV = 0.1 
+local WallCheckEnabled_FOV = false
+local DeadCheckEnabled_FOV = false
+local WhitelistPlayers = {} -- Lưu trữ: { ["Tên Người Chơi"] = true }
+
+-- BIẾN KHÓA NGĂN RAYFIELD TỰ CHỌN LINH TINH KHI REFRESH BUTTON KHỞI ĐỘNG
+local IsRefreshing = false 
+
+-- =================================================================
+-- SHARED SERVICES & VARIABLES
+-- =================================================================
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+
+-- Khoi tao vong tron FOV Drawing
+local FOVCircle_Drawing = Drawing.new("Circle")
+FOVCircle_Drawing.Thickness = 1.5
+FOVCircle_Drawing.NumSides = 60
+FOVCircle_Drawing.Radius = FOV_Radius_FOV
+FOVCircle_Drawing.Filled = false
+FOVCircle_Drawing.Color = Color3.fromRGB(255, 85, 85)
+FOVCircle_Drawing.Visible = false
+
+-- =================================================================
+-- UTILITY FUNCTIONS
+-- =================================================================
+local function getPlayerNamesList()
+    local list = {}
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            table.insert(list, p.Name)
+        end
+    end
+    return list
+end
+
+local function isBehindWall_FOV(targetCharacter)
+    if not targetCharacter or not targetCharacter:FindFirstChild("Head") then return true end
+    local head = targetCharacter.Head
+    local origin = Camera.CFrame.Position
+    local direction = (head.Position - origin).Unit * (head.Position - origin).Magnitude
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, targetCharacter}
+    raycastParams.IgnoreWater = true
+    
+    local raycastResult = workspace:Raycast(origin, direction, raycastParams)
+    if raycastResult then
+        return true
+    end
+    return false
+end
+
+local function isDead_FOV(player)
+    if player.Character then
+        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid and humanoid.Health > 0 then
+            return false
+        end
+    end
+    return true
+end
+
+-- LAY VI TRI TARGET CHO PLAYER AIM (He thong 1 - Chon theo ten)
+local function getManualTargetPosition()
+    if not SelectedTargetName then return nil end
+    local p = Players:FindFirstChild(SelectedTargetName)
+    if p and p.Character and p.Character:FindFirstChild("Head") then
+        if DeadCheckEnabled_FOV and isDead_FOV(p) then return nil end
+        if WallCheckEnabled_FOV and isBehindWall_FOV(p.Character) then return nil end
+        return p.Character.Head.Position
+    end
+    return nil
+end
+
+-- TU DONG QUET TIM NGUOI TRONG VONG TRON FOV (He thong 2 - KHONG can chon ten)
+local function getFOVAimbotTarget_FOV()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    local centerScreen = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            
+            -- CHẶN AIM VÀO WHITELIST: Kiểm tra chuẩn xác theo bảng dữ liệu thực tế
+            if WhitelistPlayers[player.Name] == true then 
+                continue 
+            end
+            
+            if DeadCheckEnabled_FOV and isDead_FOV(player) then continue end
+            if WallCheckEnabled_FOV and isBehindWall_FOV(player.Character) then continue end
+            
+            local pos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position)
+            if onScreen then
+                local distance = (Vector2.new(pos.X, pos.Y) - centerScreen).Magnitude
+                if distance < shortestDistance and distance < FOV_Radius_FOV then
+                    closestPlayer = player
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+    
+    if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
+        return closestPlayer.Character.Head.Position
+    end
+    return nil
+end
+
+
+-- =================================================================
+-- CAC PHAN TU MENU (Dat duoi bien Tab cua ban)
+-- =================================================================
+
+-- ----------------- HỆ THỐNG 1: PLAYER AIM -----------------
+local AimToggle = Tab:CreateToggle({
+   Name = "Player Aim",
+   CurrentValue = false,
+   Flag = "PlayerAimToggle_Flag", 
+   Callback = function(Value)
+      AimBotEnabled = Value
+   end,
+})
+
+local SmoothnessSlider = Tab:CreateSlider({
+   Name = "Smoothness",
+   Range = {5, 100},
+   Increment = 5,
+   Suffix = "%",
+   CurrentValue = 10,
+   Flag = "SmoothnessSlider_Flag",
+   Callback = function(Value)
+      Smoothness = Value / 100
+   end,
+})
+
+local PlayerDropdown = Tab:CreateDropdown({
+   Name = "Choose a player",
+   Options = getPlayerNamesList(),
+   CurrentOption = {}, 
+   MultipleOptions = false,
+   Flag = "PlayerDropdown_Flag", 
+   Callback = function(Options)
+      if IsRefreshing then return end
+      SelectedTargetName = Options[1]
+   end,
+})
+
+-- NÚT REFRESH HỆ THỐNG 1
+local RefreshPlayerAimButton = Tab:CreateButton({
+   Name = "🔄 Refresh Target List",
+   Callback = function()
+        -- Nếu người chơi cũ đã thoát thì reset mục tiêu về nil
+        if SelectedTargetName and not Players:FindFirstChild(SelectedTargetName) then
+            SelectedTargetName = nil 
+        end
+        
+        local currentList = getPlayerNamesList()
+        IsRefreshing = true
+        
+        PlayerDropdown.Options = currentList
+        if PlayerDropdown.DropdownBackground and PlayerDropdown.DropdownBackground:FindFirstChild("Selected") then
+            local selectedText = PlayerDropdown.DropdownBackground.Selected:FindFirstChild("DropdownSelectedText")
+            if selectedText then 
+                selectedText.Text = SelectedTargetName or "Choose a player" 
+            end
+        end
+        PlayerDropdown:Refresh(currentList, true) 
+        
+        task.wait(0.05)
+        IsRefreshing = false
+        print("⚡ [Rayfield] Đã làm mới danh sách mục tiêu!")
+   end,
+})
+
+
+Tab:CreateSection({ name = "FOV Aim", icon = 93364949241311 })
+-- ----------------- HỆ THỐNG 2: FOV AIM (TU DONG QUET) -----------------
+local FOVToggle = Tab:CreateToggle({
+   Name = "FOV Aim",
+   CurrentValue = false,
+   Flag = "FOVAimToggle_Flag_FOV", 
+   Callback = function(Value)
+      FOVAimEnabled_FOV = Value
+      FOVCircle_Drawing.Visible = Value
+   end,
+})
+
+local FOVSlider = Tab:CreateSlider({
+   Name = "FOV Size",
+   Range = {30, 600},
+   Increment = 10,
+   Suffix = "Pixels",
+   CurrentValue = 150,
+   Flag = "FOVSlider_Flag_FOV",
+   Callback = function(Value)
+      FOV_Radius_FOV = Value
+      FOVCircle_Drawing.Radius = Value
+   end,
+})
+
+local SmoothnessFOVSlider = Tab:CreateSlider({
+   Name = "Smoothness-FOV",
+   Range = {5, 100},
+   Increment = 5,
+   Suffix = "%",
+   CurrentValue = 10,
+   Flag = "FOVSmoothness_Flag_FOV",
+   Callback = function(Value)
+      Smoothness_FOV = Value / 100
+   end,
+})
+
+local WhitelistDropdown = Tab:CreateDropdown({
+   Name = "Whitelist Players (FOV Aim)",
+   Options = getPlayerNamesList(),
+   CurrentOption = {},
+   MultipleOptions = true, 
+   Flag = "FOVWhitelistDropdown_Flag",
+   Callback = function(Options)
+      if IsRefreshing then return end
+      
+      table.clear(WhitelistPlayers)
+      for _, name in pairs(Options) do
+          WhitelistPlayers[name] = true
+      end
+   end,
+})
+
+-- NÚT REFRESH HỆ THỐNG 2 (SỬA ĐỔI ĐỒNG BỘ ĐỂ KHÔNG BỊ LỖI WHITELIST)
+local RefreshFOVButton = Tab:CreateButton({
+   Name = "🔄 Refresh Whitelist List",
+   Callback = function()
+        local currentList = getPlayerNamesList()
+        
+        -- Dọn dẹp Whitelist nội bộ: chỉ xóa những ai đã thực sự out server
+        local updatedWhitelist = {}
+        local validCurrentOptions = {}
+        
+        for name, _ in pairs(WhitelistPlayers) do
+            if Players:FindFirstChild(name) then
+                updatedWhitelist[name] = true
+                table.insert(validCurrentOptions, name)
+            end
+        end
+        WhitelistPlayers = updatedWhitelist -- Cập nhật lại danh sách sạch
+        
+        IsRefreshing = true
+        
+        -- Cập nhật danh sách hiển thị cho UI
+        WhitelistDropdown.Options = currentList
+        WhitelistDropdown.CurrentOption = validCurrentOptions
+        
+        -- Cập nhật chữ hiển thị trên thanh Dropdown đa chọn
+        if WhitelistDropdown.DropdownBackground and WhitelistDropdown.DropdownBackground:FindFirstChild("Selected") then
+            local selectedText = WhitelistDropdown.DropdownBackground.Selected:FindFirstChild("DropdownSelectedText")
+            if selectedText then 
+                if #validCurrentOptions > 0 then
+                    selectedText.Text = table.concat(validCurrentOptions, ", ")
+                else
+                    selectedText.Text = "Whitelist Players (FOV Aim)"
+                end
+            end
+        end
+        
+        WhitelistDropdown:Refresh(currentList, true)
+        
+        task.wait(0.05)
+        IsRefreshing = false
+        print("⚡ [Rayfield] Đã đồng bộ Whitelist thành công!")
+   end,
+})
+
+-- ----------------- TUY CHON CHUNG (WALL & DEAD CHECK) -----------------
+local WallCheckToggle = Tab:CreateToggle({
+   Name = "Wall Check",
+   CurrentValue = false,
+   Flag = "WallCheckToggle_Flag_FOV",
+   Callback = function(Value)
+      WallCheckEnabled_FOV = Value
+   end,
+})
+
+local DeadCheckToggle = Tab:CreateToggle({
+   Name = "Dead Check",
+   CurrentValue = false,
+   Flag = "DeadCheckToggle_Flag_FOV",
+   Callback = function(Value)
+      DeadCheckEnabled_FOV = Value
+   end
+})
+
+
+-- =================================================================
+-- MAIN LOOP: LOGIC DIEU HUONG CAMERA
+-- =================================================================
+local AimConnection = RunService.RenderStepped:Connect(function()
+    if FOVCircle_Drawing.Visible then
+        FOVCircle_Drawing.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    end
+
+    if AimBotEnabled and SelectedTargetName then
+        local targetPos = getManualTargetPosition()
+        if targetPos then
+            local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPos)
+            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, Smoothness)
+        end
+    end
+    
+    if FOVAimEnabled_FOV then
+        local targetPos = getFOVAimbotTarget_FOV()
+        if targetPos then
+            local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPos)
+            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, Smoothness_FOV)
+        end
+    end
+end)
+
+-- Don dep bo nho tranh loi re-execute
+if _G.GlobalAimConnection then _G.GlobalAimConnection:Disconnect() end
+if _G.GlobalFOVCircle then _G.GlobalFOVCircle:Remove() end
+
+_G.GlobalAimConnection = AimConnection
+_G.GlobalFOVCircle = FOVCircle_Drawing
+
+if _G.StopOldUpdateLoop then _G.StopOldUpdateLoop() end
+_G.StopOldUpdateLoop = function()
+    FOVCircle_Drawing:Remove()
+end
+Tab:CreateSection({ name = "Silent Aim", icon = 93364949241311 })
+-- ========================================================
+-- KHỞI TẠO CÁC DỊCH VỤ VÀ BIẾN CẤU HÌNH
+-- ========================================================
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local Event = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("InflictTarget")
+
+-- Các biến cấu hình độc lập cho Silent Aim
+local SilentAimKichHoat = false
+local WallCheckKichHoat = false 
+local BanKinhFOV = 150 
+local SungSilentAim = "" 
+
+-- Bảng lưu thời gian và tốc độ trễ THEO TỪNG NGƯỜI CHƠI
+local ThoiGianChoFire = 0.1 
+local ThoiGianBanMucTieu = {} 
+
+-- Vẽ vòng tròn FOV hiển thị trên màn hình
+local VongTronFOV = Drawing.new("Circle")
+VongTronFOV.Visible = false
+VongTronFOV.Color = Color3.fromRGB(255, 255, 255)
+VongTronFOV.Thickness = 1
+VongTronFOV.NumSides = 64
+VongTronFOV.Radius = BanKinhFOV
+VongTronFOV.Filled = false
+
+-- Cập nhật vị trí vòng tròn FOV bám sát theo con trỏ chuột liên tục
+RunService.RenderStepped:Connect(function()
+   VongTronFOV.Position = Vector2.new(Mouse.X, Mouse.Y + 36)
+   VongTronFOV.Radius = BanKinhFOV
+end)
+
+-- Hàm quét Backpack và Character để lấy danh sách tên súng
+local function LayDanhSachSungTrongRuong()
+   local DanhSachSung = {}
+   
+   local Backpack = LocalPlayer:FindFirstChild("Backpack")
+   if Backpack then
+      for _, Tool in pairs(Backpack:GetChildren()) do
+         if Tool:IsA("Tool") and not table.find(DanhSachSung, Tool.Name) then
+            table.insert(DanhSachSung, Tool.Name)
+         end
+      end
+   end
+   
+   local Character = LocalPlayer.Character
+   if Character then
+      for _, Tool in pairs(Character:GetChildren()) do
+         if Tool:IsA("Tool") and not table.find(DanhSachSung, Tool.Name) then
+            table.insert(DanhSachSung, Tool.Name)
+         end
+      end
+   end
+   
+   if #DanhSachSung == 0 then
+      table.insert(DanhSachSung, "No weapons found!")
+   end
+   
+   return DanhSachSung
+end
+
+-- Hàm kiểm tra vật cản (Wall Check)
+local function KiemTraTuong(ViTriMucTieu, NhanVatMucTieu)
+   if not WallCheckKichHoat then return true end 
+
+   local ViTriCamera = Camera.CFrame.Position
+   local HuongTia = (ViTriMucTieu - ViTriCamera)
+   
+   local ThamSoRaycast = RaycastParams.new()
+   ThamSoRaycast.FilterType = Enum.RaycastFilterType.Exclude
+   ThamSoRaycast.FilterDescendantsInstances = {LocalPlayer.Character, NhanVatMucTieu, Camera}
+   ThamSoRaycast.IgnoreWater = true
+
+   local KetQuaRaycast = workspace:Raycast(ViTriCamera, HuongTia, ThamSoRaycast)
+   
+   if not KetQuaRaycast then
+      return true
+   end
+   return false
+end
+
+-- Hàm tìm mục tiêu: Đã Cập Nhật Logic Bỏ Qua Mục Tiêu Đang Bị Cooldown
+local function LayMucTieuTrongFOV()
+   local MucTieuGanNhat = nil
+   local KhoangCachNhoNhat = BanKinhFOV
+   local ThoiGianHienTai = tick()
+
+   for _, p in pairs(Players:GetPlayers()) do
+      if p ~= LocalPlayer and p.Character then
+         
+         -- LOGIC MỚI: Kiểm tra xem người này có đang bị "chờ" không
+         local ThoiGianCuoi = ThoiGianBanMucTieu[p.Name]
+         -- Nếu người này CHƯA từng bị bắn, HOẶC đã hết thời gian chờ của Slider thì mới đưa vào tầm ngắm
+         if not ThoiGianCuoi or (ThoiGianHienTai - ThoiGianCuoi >= ThoiGianChoFire) then
+             
+             local Humanoid = p.Character:FindFirstChildOfClass("Humanoid")
+             local RootPart = p.Character:FindFirstChild("HumanoidRootPart")
+             local Head = p.Character:FindFirstChild("Head")
+             
+             if Humanoid and RootPart and Head and Humanoid.Health > 0 then
+                local ViTriManHinh, TrenManHinh = Camera:WorldToViewportPoint(RootPart.Position)
+                
+                if TrenManHinh then
+                   local KhoangCachChuot = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(ViTriManHinh.X, ViTriManHinh.Y)).Magnitude
+                   if KhoangCachChuot < KhoangCachNhoNhat then
+                      if KiemTraTuong(Head.Position, p.Character) then
+                         MucTieuGanNhat = p.Character
+                         KhoangCachNhoNhat = KhoangCachChuot
+                      end
+                   end
+                end
+             end
+             
+         end
+      end
+   end
+   return MucTieuGanNhat
+end
+
+-- Vòng lặp quét liên tục mỗi khung hình để tự động Fire Remote
+RunService.Heartbeat:Connect(function()
+   if SilentAimKichHoat and SungSilentAim ~= "" and SungSilentAim ~= "No weapons found!" then
+      
+      local Backpack = LocalPlayer:FindFirstChild("Backpack")
+      local Character = LocalPlayer.Character
+      local Sung = (Backpack and Backpack:FindFirstChild(SungSilentAim)) or (Character and Character:FindFirstChild(SungSilentAim))
+      
+      if Sung then
+         local MucTieu = LayMucTieuTrongFOV()
+         if MucTieu then
+            
+            -- Lấy ra tên của Player đó và lưu mốc thời gian vừa bị Fire Remote
+            local PlayerMucTieu = Players:GetPlayerFromCharacter(MucTieu)
+            if PlayerMucTieu then
+               ThoiGianBanMucTieu[PlayerMucTieu.Name] = tick()
+            end
+
+            local Humanoid = MucTieu:FindFirstChildOfClass("Humanoid")
+            local RootPart = MucTieu:FindFirstChild("HumanoidRootPart")
+            local Head = MucTieu:FindFirstChild("Head")
+            
+            Event:InvokeServer(
+               "Gun",
+               Sung,
+               {
+                  TacticalReloadAnimationSpeed = 1,
+                  CanSpinPart = false,
+                  AngleX_Min = 0,
+                  Lifesteal = 0,
+                  MeleeCriticalDamageEnabled = false,
+                  VisibleBullet = true,
+                  Spread = 0,
+                  ExplosionCraterFadeTime = 1,
+                  Accuracy = 0.1,
+                  GoreSoundVolume = 1,
+                  MeleeHitEffectEnabled = true,
+                  ChargingSoundIncreasePitch = true,
+                  WhizDistance = 25,
+                  ProjectileMotion = false,
+                  WhizSoundPitchMin = 1,
+                  ReloadAnimationSpeed = 1,
+                  MeleeDebuffChance = 100,
+                  SpreadRedutionS = 0.6,
+                  VisibleTime = 0.01,
+                  HoldDownAnimationSpeed = 0.5,
+                  DebuffName = "",
+                  ScopeSwaySpeed = 15,
+                  HoldingTime = 1,
+                  HeatPerFireMax = 0,
+                  MeleeBloodEnabled = true,
+                  VMShotgunClipinAnimationSpeed = 1,
+                  MeleeKnockback = 0,
+                  StopBouncingOnHitHumanoid = false,
+                  MeleeDamage = 20,
+                  EquippedAnimationID = 1.1948208300982e+14,
+                  VMSecondaryFireAnimationSpeed = 1,
+                  MeleeBloodWoundTexture = { 2078626 },
+                  EasingStyleNAD = Enum.EasingStyle.Quint,
+                  LockOnRadius = 10,
+                  SecondaryShotgunPumpinAnimationSpeed = 1,
+                  BulletHoleVisibleTime = 3,
+                  AltAnimationSpeed = 1,
+                  AimIdleAnimationSpeed = 1,
+                  MeleeHitSoundIDs = { 6000828622 },
+                  PreShotgunReload = false,
+                  BulletPerBurst = 3,
+                  RicochetAmount = 0,
+                  MeleeHitSoundPitchMin = 1,
+                  ShotsForDepletion = 12,
+                  AlignToAimPoint = true,
+                  VMReloadAnimationSpeed = 1,
+                  HitmarkerSoundID = { 3748776946, 3748777642, 3748780065 },
+                  BulletBrightness = 400,
+                  MuzzleLightEnabled = true,
+                  RecoilRedution = 0.5,
+                  EasingStyle = Enum.EasingStyle.Quint,
+                  MotionBlur = true,
+                  CrossExpansion = 100,
+                  BloodWoundFadeTime = 1,
+                  MeleeLifesteal = 0,
+                  MeleeDebuff = false,
+                  ExplosionSoundIDs = { 163064102 },
+                  WindResistance = 1,
+                  LockOnOnHovering = false,
+                  TouchEventOnTimeout = false,
+                  VMMeleeAttackAnimationSpeed = 1,
+                  KeepAimingOnReloading = true,
+                  ExplosionKnockbackMultiplierOnPlayer = 2,
+                  VMShotgunPumpinAnimationSpeed = 1,
+                  PenetrationAmount = 0,
+                  ShotgunPumpinSpeed = 0.5,
+                  PenetrationType = "HumanoidPenetration",
+                  HitmarkerSoundPitchHS = 1,
+                  LowAmmo = false,
+                  BulletShellRotVelocity = 40,
+                  MeleeBloodWoundFadeTime = 1,
+                  EasingDirectionNAD = Enum.EasingDirection.Out,
+                  Auto = true,
+                  LightBrightness = 4,
+                  ChamberAnimationID = 1.0724885692243e+14,
+                  HitmarkerFadeTime = 0.4,
+                  SelfKnockbackMultiplier = 2,
+                  BulletHoleFadeTime = 1,
+                  MaximumTime = 1,
+                  ChargingTime = 1,
+                  InspectAnimationSpeed = 1,
+                  BulletSpeed = 2200,
+                  SelfKnockback = false,
+                  VMInspectAnimationSpeed = 1,
+                  MeleeHitCharSndPitchMax = 1,
+                  CrossScaleIS = 0.6,
+                  DualFireEnabled = false,
+                  SpreadPattern = {
+                     {0, -0.4}, {-0.35, 0.2}, {0.35, 0.2}, {0, 1},
+                     {0.95, 0.31}, {0.59, -0.81}, {-0.59, -0.81}, {-0.95, 0.31}
+                  },
+                  SmokeTrailEnabled = true,
+                  MeleeAttackEnabled = false,
+                  SniperEnabled = false,
+                  BulletLifetime = 1,
+                  AngleZ_Max = 0,
+                  MinigunRevDownAnimationSpeed = 1,
+                  DebuffChance = 100,
+                  FieldOfViewIS = 50,
+                  IdleAnimationSpeed = 1,
+                  DelayBeforeFiring = 1,
+                  ScopeSwayDamper = 0.65,
+                  ShotgunReload = false,
+                  VMReloadAnimationID = 5474084638,
+                  TimeBeforeCooldown = 3,
+                  MouseSensitiveS = 0.2,
+                  ReloadAnimationID = 79777338797043,
+                  VMFireAnimationID = 15696061196,
+                  EquipTime = 1,
+                  BurstFireEnabled = false,
+                  MarkerPartColor = true,
+                  MarkerEffectTexture = { 2078626 },
+                  FireAnimationID = 1.1651566675386e+14,
+                  ViewmodelRecoilInfluence = 0,
+                  TweenLengthNAD = 0.8,
+                  CriticalBaseChance = 5,
+                  VMIdleAnimationSpeed = 1,
+                  MeleeBloodWoundEnabled = true,
+                  GoreEffectEnabled = false,
+                  HoldDownAnimationID = 1.1214593741218e+14,
+                  MeleeBloodWoundPartColor = true,
+                  BurstRate = 0.075,
+                  ShellTextureID = 5710577470,
+                  BulletHoleTexture = { 359667865 },
+                  AimAnimationsEnabled = false,
+                  Recoil = 0,
+                  MeleeAttackRange = 4,
+                  HitCharSndPitchMax = 1,
+                  BloodEnabled = true,
+                  MaxHeat = 100,
+                  Debuff = false,
+                  HitmarkerSoundPitch = 1,
+                  ScopeKnockbackSpeed = 15,
+                  VMMinigunRevUpAnimationSpeed = 1,
+                  ShotgunPumpinAnimationSpeed = 1,
+                  HitEffectEnabled = true,
+                  MeleeHeadshotEnabled = true,
+                  Homing = false,
+                  WhizSoundEnabled = false,
+                  HoldAndReleaseEnabled = false,
+                  AngleX_Max = 0,
+                  Level1ChargingTime = 1,
+                  VMTacticalReloadAnimationSpeed = 1,
+                  VMMinigunRevDownAnimationSpeed = 1,
+                  CriticalDamageEnabled = false,
+                  AllowCollide = false,
+                  BatteryEnabled = false,
+                  ShotgunEnabled = false,
+                  EasingDirection = Enum.EasingDirection.Out,
+                  MouseSensitiveIS = 0.2,
+                  Knockback = 0,
+                  AimSecondaryFireAnimationSpeed = 1,
+                  FullyGibbedLimbChance = 50,
+                  MeleeHitCharSndIDs = { 6398015798, 6398016125, 6398016391, 6398016618 },
+                  ShotgunPump = false,
+                  AmmoPerMag = 15,
+                  HitSoundPitchMax = 1.5,
+                  HitscanMode = false,
+                  MinigunEnabled = false,
+                  MeleeCriticalBaseChance = 5,
+                  BloodWoundVisibleTime = 3,
+                  WhizSoundVolume = 1,
+                  VMAltAnimationSpeed = 1,
+                  ScopeSensitive = 0.25,
+                  FireRate = 0.135,
+                  CrossSpeed = 15,
+                  BurstRates = { 0, 0.075, 0.075, 0 },
+                  SelfDamageRedution = 0.5,
+                  ChargingAnimationSpeed = 1,
+                  HitCharSndVolume = 1,
+                  MarkerEffectSize = 0.5,
+                  MarkerEffectFadeTime = 1,
+                  MeleeHitSoundVolume = 1,
+                  MeleeCriticalDamageMultiplier = 3,
+                  MeleeAttackAnimationSpeed = 1,
+                  MeleeHitSoundPitchMax = 1.5,
+                  MeleeBloodWoundSize = 0.5,
+                  MeleeDebuffName = "",
+                  ZeroDamageDistance = 10000,
+                  AngleY_Max = 0,
+                  BulletSize = 0.05,
+                  AimFireAnimationSpeed = 1,
+                  MaxAmmo = 45,
+                  HitCharSndIDs = { 3802437008, 3802437361, 3802437696, 3802440043, 3802440388, 3802442962 },
+                  VMHoldDownAnimationSpeed = 0.5,
+                  IdleAnimationID = 1.0551823215165e+14,
+                  ModuleName = "1",
+                  VMSwitchAnimationSpeed = 1,
+                  CrossDamper = 0.8,
+                  HitmarkerColorHS = Color3.new(1, 0, 0),
+                  OverheatTime = 2.5,
+                  TurnRatePerSecond = 1,
+                  ExplosionSoundPitchMax = 1.5,
+                  LightColor = Color3.new(1, 1.1098039150238, 0),
+                  AltTime = 1,
+                  WhizSoundPitchMax = 1,
+                  AngleZ_Min = 0,
+                  ShellScale = Vector3.new(0.002, 0.002, 0.002),
+                  ShellSize = Vector3.new(0.128, 0.064, 0.064),
+                  AnimationKeyframes = {},
+                  BounceElasticity = 1,
+                  TweenLength = 0.8,
+                  ChargingSoundPitchRange = { 1, 1.5 },
+                  MeleeHeadshotDamageMultiplier = 2,
+                  CriticalDamageMultiplier = 3,
+                  ExplosiveEnabled = false,
+                  SpreadRedutionIS = 0.6,
+                  VMEquippedAnimationID = 5474070948,
+                  VMSecondaryShotgunPumpinAnimationSpeed = 1,
+                  FieldOfViewS = 12.5,
+                  VMEquippedAnimationSpeed = 1,
+                  CrossScaleS = 0,
+                  FireModes = { 1, true },
+                  ScopeDelay = 0,
+                  SecondaryFireAnimationEnabled = false,
+                  CooldownRate = 1,
+                  PartColor = false,
+                  MaximumRate = 4,
+                  SilenceEffect = false,
+                  SwitchAnimationID = 9812431414,
+                  TacticalReloadTime = 3,
+                  SpinY = 0,
+                  SecondaryFireAnimationSpeed = 1,
+                  GoreSoundIDs = { 1930359546 },
+                  HitSoundIDs = { 186809061, 186809249, 186809250, 186809252 },
+                  Ammo = 15,
+                  ExplosionKnockback = false,
+                  HitSoundVolume = 1,
+                  SpinX = 3,
+                  GoreSoundPitchMin = 1,
+                  RaisePitch = false,
+                  TacticalReloadAnimationEnabled = false,
+                  BulletType = "Normal",
+                  DisappearTime = 5,
+                  BulletBloom = 0.005,
+                  SelectiveFireEnabled = false,
+                  MaxDepletion = 4,
+                  FullDamageDistance = 1000,
+                  HitSoundPitchMin = 1,
+                  BulletHoleEnabled = true,
+                  MeleeHitCharSndVolume = 1,
+                  HomingDistance = 250,
+                  HitCharSndPitchMin = 1,
+                  CameraRecoilingEnabled = false,
+                  SmokeTrailRateIncrement = 1,
+                  ExplosionCraterSize = 3,
+                  BloodWoundTexture = { 359667865 },
+                  BloodWoundTextureColor = Color3.new(1, 0, 0),
+                  AdvancedChargingTime = 5,
+                  MeleeBloodWoundTextureColor = Color3.new(1, 0, 0),
+                  BloodWoundPartColor = true,
+                  NoExplosionWhileBouncing = false,
+                  CustomExplosion = false,
+                  VMMeleeAttackRange = 4,
+                  GoreSoundPitchMax = 1.5,
+                  MuzzleFlashEnabled = true,
+                  ShotgunPattern = false,
+                  LightRange = 15,
+                  BulletShellEnabled = true,
+                  ExplosionRadius = 8,
+                  PenetrationDepth = 0,
+                  BulletShellVelocity = 17,
+                  ScopeKnockbackDamper = 0.65,
+                  VMPreShotgunReloadAnimationSpeed = 1,
+                  ShellMeshID = 5710574682,
+                  ExplosionSoundEnabled = true,
+                  ChargingAnimationEnabled = false,
+                  DamageDropOffEnabled = true,
+                  MinigunRevUpAnimationSpeed = 1,
+                  BulletPerShot = 8,
+                  WhizSoundID = { 3809084884, 3809085250, 3809085650, 3809085996, 3809086455 },
+                  FireModeTexts = { "SEMI-AUTO", "AUTO" },
+                  FireRates = { 0.135, 0.05, 0.05, 0.05 },
+                  PreShotgunReloadSpeed = 0.5,
+                  ChargedShotAdvanceEnabled = false,
+                  ChamberAnimationSpeed = 1,
+                  SecondaryShotgunPump = false,
+                  VMAnimationKeyframes = {},
+                  MarkerEffectVisibleTime = 3,
+                  CustomHitEffect = false,
+                  ExplosionKnockbackMultiplierOnTarget = 2,
+                  HomeThroughWall = false,
+                  ReloadTime = 2.38,
+                  HitmarkerEnabled = false,
+                  ExplosionCraterTexture = { 53875997 },
+                  HoldDownEnabled = true,
+                  MeleeBloodWoundVisibleTime = 3,
+                  ShellClipinSpeed = 0.5,
+                  PreShotgunReloadAnimationSpeed = 1,
+                  RecoilSpeed = 35,
+                  LightShadows = true,
+                  HitmarkerColor = Color3.new(1, 1, 1),
+                  VMChargingAnimationSpeed = 1,
+                  CooldownTime = 0.05,
+                  BulletHoleSize = 0.5,
+                  ExplosionSoundVolume = 1,
+                  ExplosionSoundPitchMin = 1,
+                  FriendlyFire = true,
+                  DamageBasedOnDistance = false,
+                  SelfDamage = false,
+                  MinDepletion = 2,
+                  AngleY_Min = 0,
+                  Level2ChargingTime = 2,
+                  MagDrop = false,
+                  WindSpeed = 10,
+                  ExplosionCraterEnabled = true,
+                  ExplosionKnockbackPower = 50,
+                  BulletShellParticles = true,
+                  BaseDamage = 17,
+                  CustomMeleeHitEffect = false,
+                  ExplosionCraterPartColor = false,
+                  HitmarkerFadeTimeHS = 0.4,
+                  BulletAcceleration = Vector3.new(0, -10, 0),
+                  LimitedAmmoEnabled = true,
+                  SecondaryShotgunPumpinSpeed = 0.5,
+                  RecoilDamper = 0.65,
+                  FireAnimationSpeed = 1.5,
+                  SwitchAnimationSpeed = 1,
+                  ProjectileType = "Bullet",
+                  EquippedAnimationSpeed = 1,
+                  VMFireAnimationSpeed = 1,
+                  FrictionConstant = 0,
+                  SpinZ = 0,
+                  ExplosionCraterVisibleTime = 3,
+                  BloodWoundSize = 0.2,
+                  ScopeKnockbackMultiplier = 5,
+                  ShotgunClipinAnimationSpeed = 1,
+                  ChargeAlterTable = {},
+                  MarkerEffectEnabled = true,
+                  InspectAnimationEnabled = false,
+                  AimChargingAnimationSpeed = 1,
+                  ChargedShotEnabled = false,
+                  BloodWoundEnabled = true,
+                  HeadshotDamageMultiplier = 2,
+                  MeleeHitCharSndPitchMin = 1,
+                  HeatPerFireMin = 0,
+                  OverheatAnimationSpeed = 1,
+                  VMOverheatAnimationSpeed = 1,
+                  IronsightEnabled = false,
+                  BulletShellDelay = 0.1,
+                  HeadshotEnabled = true,
+                  SelfKnockbackPower = 50,
+                  SelfKnockbackRedution = 0.8,
+                  EchoEffect = true,
+                  ReduceSelfDamageOnAirOnly = false,
+                  SuperRicochet = false,
+                  CrossSize = 7,
+                  SwitchTime = 0.25
+               },
+               Humanoid,
+               RootPart,
+               Head,
+               {
+                  ChargeLevel = 0,
+                  HitEffectFolder = ReplicatedStorage.Miscs.GunVisualEffects.Common.HitEffect,
+                  MuzzleFolder = ReplicatedStorage.Miscs.GunVisualEffects.Common.MuzzleEffect,
+                  BloodEffectFolder = ReplicatedStorage.Miscs.GunVisualEffects.Common.BloodEffect,
+                  ExplosionEffectFolder = ReplicatedStorage.Miscs.GunVisualEffects.Common.ExplosionEffect,
+                  GoreEffect = ReplicatedStorage.Miscs.GunVisualEffects.Common.GoreEffect
+               },
+               19.332674026489
+            )
+         end
+      end
+   end
+end)
+
+-- ========================================================
+-- THIẾT KẾ GIAO DIỆN HỘP THOẠI (SỬ DỤNG BIẾN TAB CHUẨN)
+-- ========================================================
+
+-- 1. DROPDOWN CHỌN SÚNG TỰ ĐỘNG
+local GiaoDienDropdownSilentAim = Tab:CreateDropdown({
+   Name = "Select Silent Aim Weapon",
+   Options = LayDanhSachSungTrongRuong(),
+   CurrentOption = "",
+   MultipleOptions = false,
+   Flag = "SilentAimWeaponDropdown",
+   Callback = function(Option)
+      if type(Option) == "table" then
+         SungSilentAim = Option[1]
+      else
+         SungSilentAim = Option
+      end
+   end,
+})
+
+-- NÚT BẤM CẬP NHẬT LẠI BALO
+Tab:CreateButton({
+   Name = "🔄 Refresh Backpack Weapon List",
+   Callback = function()
+      local DanhSachMoi = LayDanhSachSungTrongRuong()
+      GiaoDienDropdownSilentAim:Refresh(DanhSachMoi, true)
+   end,
+})
+
+-- 2. SLIDER ĐIỀU CHỈNH KÍCH THƯỚC VÒNG TRÒN FOV
+Tab:CreateSlider({
+   Name = "Silent Aim Radius (FOV)",
+   Range = {30, 500},
+   Increment = 5,
+   Suffix = "Pixels",
+   CurrentValue = 150,
+   Flag = "SilentAimFOV_Slider",
+   Callback = function(Value)
+      BanKinhFOV = Value
+   end,
+})
+
+-- 3. SLIDER ĐIỀU CHỈNH THỜI GIAN TRỄ LẶP LẠI (CHO TỪNG NGƯỜI)
+Tab:CreateSlider({
+   Name = "Per-Target Cooldown Delay",
+   Range = {0, 2000},
+   Increment = 10,
+   Suffix = "ms",
+   CurrentValue = 100,
+   Flag = "FireRemoteDelaySlider",
+   Callback = function(Value)
+      ThoiGianChoFire = Value / 1000
+   end,
+})
+
+-- 4. TOGGLE BẬT/TẮT WALL CHECK
+Tab:CreateToggle({
+   Name = "Enable Wall Check",
+   CurrentValue = false,
+   Flag = "WallCheckToggle",
+   Callback = function(Value)
+      WallCheckKichHoat = Value
+   end,
+})
+
+-- 5. TOGGLE BẬT/TẮT SILENT AIM 
+Tab:CreateToggle({
+   Name = "Enable FOV Silent Aim",
+   CurrentValue = false,
+   Flag = "SilentAimToggle",
+   Callback = function(Value)
+      SilentAimKichHoat = Value
+      VongTronFOV.Visible = Value
+   end,
+})
+local RobTab = Window:CreateTab({ name = "Auto Rob", icon = 93364949241311 })
+RobTab:CreateSection({ name = "Van", icon = 93364949241311 })
+-- =================================================================
+-- AUTO ROB VAN
+-- TWEEN 3 CHẶNG + KIỂM TRA VỊ TRÍ + ANCHOR
+-- TẮT TOGGLE = DỪNG VÀ UNANCHOR
+-- =================================================================
+
+-- ================================================================
+-- SETTINGS / VARIABLES
+-- ================================================================
+
+local AutoRobEnabled = false
+local PromptFireAmount = 1000
+
+-- Khoảng cách tối đa được coi là đã đáp đúng vị trí
+local PositionTolerance = 3
+
+-- Các dịch vụ
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- ================================================================
+-- CHARACTER
+-- ================================================================
+
+local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local hrp = character:WaitForChild("HumanoidRootPart")
+
+-- Cập nhật Character khi respawn
+LocalPlayer.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    humanoid = newCharacter:WaitForChild("Humanoid")
+    hrp = newCharacter:WaitForChild("HumanoidRootPart")
+end)
+
+-- ================================================================
+-- SLIDER
+-- ================================================================
+
+local RobVanSlider = RobTab:CreateSlider({
+    Name = "Fire Count",
+    Range = {1, 100000},
+    Increment = 50,
+    Suffix = " times",
+    CurrentValue = 1000,
+    Flag = "PromptFireAmount",
+
+    Callback = function(Value)
+        PromptFireAmount = Value
+    end,
+})
+
+-- ================================================================
+-- FIND NEAREST ROBBABLE VAN
+-- ================================================================
+
+local function findNearestRobbableVans()
+    local targets = {}
+
+    if not hrp then
+        return targets
+    end
+
+    local myPosition = hrp.Position
+
+    for _, object in pairs(workspace:GetChildren()) do
+
+        if object.Name == "Robbable Van" then
+
+            local stealModel =
+                object:FindFirstChild("Steal Script")
+                or object:FindFirstChild("StealScript")
+
+            if stealModel then
+
+                local brokenGlass =
+                    stealModel:FindFirstChild("Broken_glass")
+
+                local scriptsFolder =
+                    stealModel:FindFirstChild("Scripts")
+
+                local prompt =
+                    scriptsFolder
+                    and scriptsFolder:FindFirstChild("ProximityPrompt")
+
+                if brokenGlass and prompt then
+
+                    local distance =
+                        (myPosition - brokenGlass.Position).Magnitude
+
+                    table.insert(targets, {
+                        Car = object,
+                        Glass = brokenGlass,
+                        Prompt = prompt,
+                        Distance = distance
+                    })
+
+                end
+            end
+        end
+    end
+
+    -- Xe gần nhất lên đầu
+    table.sort(targets, function(a, b)
+        return a.Distance < b.Distance
+    end)
+
+    return targets
+end
+
+-- ================================================================
+-- TWEEN 3 CHẶNG
+-- ================================================================
+
+local function tweenToTarget(target)
+
+    if not AutoRobEnabled then
+        return false
+    end
+
+    if not humanoid
+        or humanoid.Health <= 0
+        or not hrp
+        or not target
+        or not target.Glass
+        or not target.Glass.Parent then
+
+        return false
+    end
+
+    local camera = workspace.CurrentCamera
+
+    -- ============================================================
+    -- SPEED SETTINGS
+    -- ============================================================
+
+    local LiftSpeed = 15
+    local SafeSpeed = 100
+    local LandSpeed = 12
+    local HeightOffset = 35
+
+    -- ============================================================
+    -- POSITIONS
+    -- ============================================================
+
+    local startPos = hrp.Position
+    local targetPos = target.Glass.Position
+
+    local originalRotation =
+        hrp.CFrame - hrp.Position
+
+    local skyStartCFrame =
+        CFrame.new(
+            startPos.X,
+            startPos.Y + HeightOffset,
+            startPos.Z
+        ) * originalRotation
+
+    local skyEndCFrame =
+        CFrame.new(
+            targetPos.X,
+            targetPos.Y + HeightOffset,
+            targetPos.Z
+        ) * originalRotation
+
+    local finalLandingCFrame =
+        target.Glass.CFrame
+
+    -- ============================================================
+    -- DURATIONS
+    -- ============================================================
+
+    local durationLift =
+        HeightOffset / LiftSpeed
+
+    local distanceHorizontal =
+        (skyStartCFrame.Position - skyEndCFrame.Position).Magnitude
+
+    local durationHorizontal =
+        distanceHorizontal / SafeSpeed
+
+    local durationVertical =
+        HeightOffset / LandSpeed
+
+    -- ============================================================
+    -- CAMERA
+    -- ============================================================
+
+    local cameraConnection
+
+    local function startSmoothCamera()
+
+        camera.CameraType =
+            Enum.CameraType.Scriptable
+
+        cameraConnection =
+            RunService.RenderStepped:Connect(function()
+
+                if hrp
+                    and character
+                    and humanoid
+                    and humanoid.Health > 0 then
+
+                    local targetCameraPos =
+                        hrp.Position
+                        + Vector3.new(0, 8, 12)
+
+                    camera.CFrame =
+                        CFrame.new(
+                            targetCameraPos,
+                            hrp.Position
+                        )
+                end
+            end)
+    end
+
+    local function stopSmoothCamera()
+
+        if cameraConnection then
+            cameraConnection:Disconnect()
+            cameraConnection = nil
+        end
+
+        camera.CameraType =
+            Enum.CameraType.Custom
+    end
+
+    -- ============================================================
+    -- TWEEN VARIABLES
+    -- ============================================================
+
+    local tween1
+    local tween2
+    local tween3
+
+    local stopped = false
+
+    -- ============================================================
+    -- CLEANUP
+    -- ============================================================
+
+    local function cleanup()
+
+        if stopped then
+            return
+        end
+
+        stopped = true
+
+        if tween1 then
+            tween1:Cancel()
+        end
+
+        if tween2 then
+            tween2:Cancel()
+        end
+
+        if tween3 then
+            tween3:Cancel()
+        end
+
+        stopSmoothCamera()
+
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+
+        if hrp then
+            hrp.Anchored = false
+        end
+    end
+
+    -- ============================================================
+    -- CHECK TOGGLE WHILE TWEENING
+    -- ============================================================
+
+    local toggleConnection
+
+    toggleConnection =
+        RunService.Heartbeat:Connect(function()
+
+            if not AutoRobEnabled then
+
+                if toggleConnection then
+                    toggleConnection:Disconnect()
+                    toggleConnection = nil
+                end
+
+                cleanup()
+            end
+        end)
+
+    -- ============================================================
+    -- HEALTH CHECK
+    -- ============================================================
+
+    local healthConnection
+
+    healthConnection =
+        humanoid.HealthChanged:Connect(function(health)
+
+            if health <= 0 then
+
+                if healthConnection then
+                    healthConnection:Disconnect()
+                    healthConnection = nil
+                end
+
+                if toggleConnection then
+                    toggleConnection:Disconnect()
+                    toggleConnection = nil
+                end
+
+                cleanup()
+            end
+        end)
+
+    -- ============================================================
+    -- START TWEEN
+    -- ============================================================
+
+    startSmoothCamera()
+
+    humanoid.PlatformStand = true
+
+    -- ============================================================
+    -- TWEEN 1: LIFT
+    -- ============================================================
+
+    local tweenInfo1 =
+        TweenInfo.new(
+            durationLift,
+            Enum.EasingStyle.Linear,
+            Enum.EasingDirection.Out
+        )
+
+    tween1 =
+        TweenService:Create(
+            hrp,
+            tweenInfo1,
+            {
+                CFrame = skyStartCFrame
+            }
+        )
+
+    tween1:Play()
+
+    local completed1 =
+        tween1.Completed:Wait()
+
+    if stopped
+        or not AutoRobEnabled
+        or humanoid.Health <= 0 then
+
+        cleanup()
+
+        if healthConnection then
+            healthConnection:Disconnect()
+        end
+
+        return false
+    end
+
+    -- ============================================================
+    -- TWEEN 2: HORIZONTAL
+    -- ============================================================
+
+    local tweenInfo2 =
+        TweenInfo.new(
+            durationHorizontal,
+            Enum.EasingStyle.Linear,
+            Enum.EasingDirection.InOut
+        )
+
+    tween2 =
+        TweenService:Create(
+            hrp,
+            tweenInfo2,
+            {
+                CFrame = skyEndCFrame
+            }
+        )
+
+    tween2:Play()
+
+    local completed2 =
+        tween2.Completed:Wait()
+
+    if stopped
+        or not AutoRobEnabled
+        or humanoid.Health <= 0 then
+
+        cleanup()
+
+        if healthConnection then
+            healthConnection:Disconnect()
+        end
+
+        return false
+    end
+
+    -- Dừng vận tốc
+    hrp.AssemblyLinearVelocity =
+        Vector3.new(0, 0, 0)
+
+    hrp.AssemblyAngularVelocity =
+        Vector3.new(0, 0, 0)
+
+    task.wait(0.05)
+
+    -- ============================================================
+    -- TWEEN 3: LANDING
+    -- ============================================================
+
+    local tweenInfo3 =
+        TweenInfo.new(
+            durationVertical,
+            Enum.EasingStyle.Linear,
+            Enum.EasingDirection.Out
+        )
+
+    tween3 =
+        TweenService:Create(
+            hrp,
+            tweenInfo3,
+            {
+                CFrame = finalLandingCFrame
+            }
+        )
+
+    tween3:Play()
+
+    local completed3 =
+        tween3.Completed:Wait()
+
+    if stopped
+        or not AutoRobEnabled
+        or humanoid.Health <= 0 then
+
+        cleanup()
+
+        if healthConnection then
+            healthConnection:Disconnect()
+        end
+
+        return false
+    end
+
+    -- ============================================================
+    -- KIỂM TRA VỊ TRÍ SAU KHI ĐÁP
+    -- ============================================================
+
+    task.wait(1)
+
+    local currentDistance =
+        (hrp.Position - target.Glass.Position).Magnitude
+
+    -- ============================================================
+    -- CLEANUP CONNECTIONS
+    -- ============================================================
+
+    if toggleConnection then
+        toggleConnection:Disconnect()
+        toggleConnection = nil
+    end
+
+    if healthConnection then
+        healthConnection:Disconnect()
+        healthConnection = nil
+    end
+
+    -- ============================================================
+    -- ĐÁP SAI VỊ TRÍ
+    -- ============================================================
+
+    if currentDistance > PositionTolerance then
+
+        stopSmoothCamera()
+
+        humanoid.PlatformStand = false
+
+        hrp.Anchored = false
+
+        return false
+    end
+
+    -- ============================================================
+    -- ĐÁP ĐÚNG VỊ TRÍ
+    -- ============================================================
+
+    stopSmoothCamera()
+
+    humanoid.PlatformStand = false
+
+    hrp.AssemblyLinearVelocity =
+        Vector3.new(0, 0, 0)
+
+    hrp.AssemblyAngularVelocity =
+        Vector3.new(0, 0, 0)
+
+    hrp.Anchored = true
+
+    return true
+end
+
+-- ================================================================
+-- ROB TARGET
+-- ================================================================
+
+local function robTarget(target)
+
+    if not AutoRobEnabled then
+        return
+    end
+
+    if not target
+        or not target.Glass
+        or not target.Glass.Parent then
+
+        return
+    end
+
+    -- ============================================================
+    -- THỬ TWEEN CHO ĐẾN KHI ĐÁP ĐÚNG VỊ TRÍ
+    -- ============================================================
+
+    local landedCorrectly = false
+
+    while AutoRobEnabled
+        and humanoid
+        and humanoid.Health > 0 do
+
+        landedCorrectly =
+            tweenToTarget(target)
+
+        -- Nếu đã đáp đúng vị trí
+        if landedCorrectly then
+            break
+        end
+
+        -- Nếu tắt toggle
+        if not AutoRobEnabled then
+            return
+        end
+
+        -- Đáp sai -> chờ một chút rồi Tween lại
+        task.wait(0.1)
+    end
+
+    -- Không đáp đúng hoặc đã tắt
+    if not landedCorrectly
+        or not AutoRobEnabled then
+
+        if hrp then
+            hrp.Anchored = false
+        end
+
+        return
+    end
+
+    -- ============================================================
+    -- FIRE PROMPT
+    -- ============================================================
+
+    while AutoRobEnabled
+        and humanoid
+        and humanoid.Health > 0 do
+
+        if target.Prompt
+            and target.Prompt.Parent then
+
+            pcall(function()
+
+                target.Prompt.HoldDuration = 0
+                target.Prompt.Enabled = true
+
+                for i = 1, PromptFireAmount do
+
+                    if not AutoRobEnabled then
+                        break
+                    end
+
+                    fireproximityprompt(
+                        target.Prompt
+                    )
+                end
+
+            end)
+        end
+
+        task.wait()
+    end
+
+    -- ============================================================
+    -- TẮT TOGGLE -> UNANCHOR
+    -- ============================================================
+
+    if hrp then
+        hrp.Anchored = false
+    end
+end
+
+-- ================================================================
+-- CORE LOOP
+-- ================================================================
+
+task.spawn(function()
+
+    while true do
+
+        if AutoRobEnabled then
+
+            local sortedVanList =
+                findNearestRobbableVans()
+
+            if #sortedVanList > 0 then
+
+                local nearestTarget =
+                    sortedVanList[1]
+
+                robTarget(
+                    nearestTarget
+                )
+            end
+        end
+
+        task.wait()
+    end
+end)
+
+-- ================================================================
+-- TOGGLE
+-- ================================================================
+
+local RobVanToggle =
+RobTab:CreateToggle({
+
+        Name = "RobVan",
+
+        CurrentValue = false,
+
+        Flag = "RobVanFlag",
+
+        Callback = function(Value)
+
+            AutoRobEnabled = Value
+
+            -- Tắt toggle -> unanchor ngay
+            if not Value then
+
+                if hrp then
+                    hrp.Anchored = false
+                end
+
+                if humanoid then
+                    humanoid.PlatformStand = false
+                end
+            end
+        end,
+    })
+RobTab:CreateSection({ name = "Bank", icon = 93364949241311 })
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+local TWEEN_SPEED = 5 
+local CURRENT_LOOK_VECTOR = Vector3.new(0.02, -0.07, -1.00).Unit
+local NEW_LOOK_VECTOR = Vector3.new(1.00, -0.06, -0.01).Unit
+local SELL_LOOK_VECTOR = Vector3.new(1.00, 0.01, -0.01).Unit
+
+local cameraConnection = nil
+local isBotRunning = false 
+local bankNotificationConnection = nil 
+
+local function resetCamera()
+	if cameraConnection then cameraConnection:Disconnect() cameraConnection = nil end
+	camera.CameraType = Enum.CameraType.Custom
+end
+
+local function stopBotPermanently(reason)
+	if not isBotRunning then return end
+	isBotRunning = false
+	print("🚨 [HỆ THỐNG] " .. reason .. " -> DỪNG SCRIPT!")
+	resetCamera()
+	if bankNotificationConnection then 
+		bankNotificationConnection:Disconnect() 
+		bankNotificationConnection = nil 
+	end
+end
+
+-- Lắng nghe sự kiện Chết / Respawn khẩn cấp
+local function setupLifeCheck(character)
+	if not character then return end
+	local humanoid = character:WaitForChild("Humanoid", 5)
+	if humanoid then
+		humanoid.Died:Connect(function()
+			if isBotRunning then stopBotPermanently("Nhân vật đã bị chết") end
+		end)
+	end
+end
+
+LocalPlayer.CharacterAdded:Connect(function(newCharacter)
+	if isBotRunning then stopBotPermanently("Nhân vật đã Respawn") end
+	setupLifeCheck(newCharacter)
+end)
+if LocalPlayer.Character then setupLifeCheck(LocalPlayer.Character) end
+
+local function lockCameraToDirection(directionVector)
+	local character = LocalPlayer.Character
+	if not character or not isBotRunning then return end
+	local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 5)
+	if not humanoidRootPart then return end
+	
+	if cameraConnection then cameraConnection:Disconnect() end
+	camera.CameraType = Enum.CameraType.Scriptable
+	
+	local cameraDistance = 14 
+	local cameraOffset = -directionVector.Unit * cameraDistance
+	
+	cameraConnection = RunService.RenderStepped:Connect(function()
+		if isBotRunning and character and humanoidRootPart and humanoidRootPart.Parent then
+			local charPos = humanoidRootPart.Position
+			camera.CFrame = CFrame.lookAt(charPos + cameraOffset, charPos)
+		else
+			resetCamera()
+		end
+	end)
+end
+
+local function updateCameraDirection(newDirection)
+	if not isBotRunning then return end
+	CURRENT_LOOK_VECTOR = newDirection
+	lockCameraToDirection(CURRENT_LOOK_VECTOR)
+end
+
+local function getC4Targets()
+	local targets = {}
+	for _, child in ipairs(workspace:GetChildren()) do
+		if not isBotRunning then break end
+		if child:IsA("Model") and child.Name == "Model" then
+			local c4 = child:FindFirstChild("C4")
+			local c41 = c4 and c4:FindFirstChild("c41")
+			local attachment = c41 and c41:FindFirstChild("Attachment")
+			local prompt = attachment and attachment:FindFirstChildOfClass("ProximityPrompt")
+			if c41 and prompt then table.insert(targets, { TargetPart = c41, Prompt = prompt }) end
+		end
+	end
+	return targets
+end
+
+local function getBankTarget()
+	local bankFolder = workspace:FindFirstChild("BankRobberyType")
+	local xdPart = bankFolder and bankFolder:FindFirstChild("xd")
+	if xdPart and xdPart:IsA("BasePart") then
+		local prompt = xdPart:FindFirstChildOfClass("ProximityPrompt") or xdPart:FindFirstChildWhichIsA("ProximityPrompt", true)
+		return xdPart, prompt
+	end
+	return nil, nil
+end
+
+local function getCashTargets()
+	local cashTargets = {}
+	local moneyHolder = workspace:FindFirstChild("BankRobberyType") and workspace.BankRobberyType:FindFirstChild("MoneyPromptHolder")
+	local cashFolder = moneyHolder and moneyHolder:FindFirstChild("Cash")
+	if cashFolder then
+		for _, child in ipairs(cashFolder:GetChildren()) do
+			if not isBotRunning then break end
+			if child:IsA("Model") and child.Name == "Model" then
+				local cash1 = child:FindFirstChild("Cash1")
+				local prompt = cash1 and cash1:FindFirstChild("Cash")
+				if cash1 and prompt then table.insert(cashTargets, { TargetPart = cash1, Prompt = prompt }) end
+			end
+		end
+	end
+	return cashTargets
+end
+
+local function getGoldTargets()
+	local goldTargets = {}
+	local moneyHolder = workspace:FindFirstChild("BankRobberyType") and workspace.BankRobberyType:FindFirstChild("MoneyPromptHolder")
+	local goldFolder = moneyHolder and moneyHolder:FindFirstChild("Gold")
+	if goldFolder then
+		for _, child in ipairs(goldFolder:GetChildren()) do
+			if not isBotRunning then break end
+			if child:IsA("Model") and child.Name == "Model" then
+				local gold1 = child:FindFirstChild("Gold1")
+				local prompt = gold1 and gold1:FindFirstChild("Gold")
+				if gold1 and prompt then table.insert(goldTargets, { TargetPart = gold1, Prompt = prompt }) end
+			end
+		end
+	end
+	return goldTargets
+end
+
+local function getSellTarget()
+	local desk = workspace:FindFirstChild("Desk")
+	local sellpart = desk and desk:FindFirstChild("sellpart")
+	if sellpart and sellpart:IsA("BasePart") then
+		return sellpart, sellpart:FindFirstChild("ProximityPrompt")
+	end
+	return nil, nil
+end
+
+-- Hàm kiểm tra xem nhân vật hiện có đang sở hữu C4 hay không
+local function checkHasC4()
+	local character = LocalPlayer.Character
+	local backpack = LocalPlayer:FindFirstChild("Backpack")
+	
+	if character and character:FindFirstChild("C4") then return true end
+	if backpack and backpack:FindFirstChild("C4") then return true end
+	
+	return false
+end
+
+local function equipC4Tool()
+	if not isBotRunning then return false end
+	local character = LocalPlayer.Character
+	local backpack = LocalPlayer:FindFirstChild("Backpack")
+	if not character or not backpack then return false end
+	if character:FindFirstChild("C4") then return true end
+	local c4Tool = backpack:FindFirstChild("C4")
+	if c4Tool and c4Tool:IsA("Tool") then c4Tool.Parent = character task.wait(0.3) return true end
+	return false
+end
+
+local function tweenToTarget(targetPart)
+	if not isBotRunning then return false end
+	local character = LocalPlayer.Character
+	local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+	if not humanoidRootPart then return false end
+	
+	local distance = (humanoidRootPart.Position - targetPart.Position).Magnitude
+	local tween = TweenService:Create(humanoidRootPart, TweenInfo.new(distance / (100 / TWEEN_SPEED), Enum.EasingStyle.Linear), {CFrame = CFrame.new(targetPart.Position + Vector3.new(0, 2, 0))})
+	
+	local connection
+	connection = RunService.Heartbeat:Connect(function()
+		if not isBotRunning then tween:Cancel() if connection then connection:Disconnect() end end
+	end)
+	
+	tween:Play()
+	tween.Completed:Wait()
+	if connection then connection:Disconnect() end
+	
+	if not isBotRunning then return false end
+	task.wait(0.2)
+	return true
+end
+
+local function firePrompt(prompt)
+    if not prompt or not isBotRunning then return end
+    
+    -- Nếu Executor có hàm chuyên dụng, dùng luôn để bypass Camera
+    if fireproximityprompt then
+        fireproximityprompt(prompt)
+    else
+        -- Phương án dự phòng cũ nếu Executor không hỗ trợ
+        prompt.HoldDuration = 0
+        prompt:InputHoldBegin()
+        task.wait(0.05)
+        prompt:InputHoldEnd()
+    end
+end
+
+-- TIẾN TRÌNH ROB HOÀN CHỈNH
+local function startBotProcess()
+	print("🔓 [BOT] Bắt đầu chuỗi tiến trình Auto Rob Bank...")
+	lockCameraToDirection(CURRENT_LOOK_VECTOR)
+	task.wait(0.5)
+	
+	if not isBotRunning then return end
+	local targets = getC4Targets()
+	
+	for i, target in ipairs(targets) do
+		if not isBotRunning then break end
+		
+		-- Bước 1: Bay tới vị trí lấy bom C4
+		if tweenToTarget(target.TargetPart) and isBotRunning then
+			firePrompt(target.Prompt)
+			print("💣 [BOT] Đã kích hoạt nhặt C4, đang kiểm tra trạng thái túi đồ...")
+			
+			-- BƯỚC SỬA LỖI: Vòng lặp chờ xác nhận C4 đã vào túi đồ (đợi tối đa 3 giây)
+			local hasC4 = false
+			for _ = 1, 30 do
+				if not isBotRunning then break end
+				if checkHasC4() then
+					hasC4 = true
+					break
+				end
+				task.wait(0.1) -- Kiểm tra lại sau mỗi 100ms
+			end
+			
+			-- Nếu đã có C4 thì mới được phép chạy đến Ngân hàng để phá cửa
+			if hasC4 and isBotRunning then
+				print("✅ [BOT] Xác nhận đã sở hữu C4! Tiến hành di chuyển tới Cửa Ngân Hàng...")
+				
+				local bankPart, bankPrompt = getBankTarget()
+				if bankPart and tweenToTarget(bankPart) and isBotRunning then
+					equipC4Tool() -- Mang bom ra tay
+					if bankPrompt and isBotRunning then
+						firePrompt(bankPrompt) -- Đặt bom phá cửa
+						
+						for _ = 1, 60 do if not isBotRunning then break end task.wait(0.1) end -- Chờ két mở
+						
+						if not isBotRunning then break end
+						updateCameraDirection(NEW_LOOK_VECTOR)
+						task.wait(0.2)
+						
+						-- GOM TÀI SẢN (ĐẾM 5 LẦN)
+						local fireCount = 0
+						local cashList = getCashTargets()
+						for _, cashData in ipairs(cashList) do
+							if not isBotRunning or fireCount >= 5 then break end 
+							if tweenToTarget(cashData.TargetPart) and isBotRunning then
+								firePrompt(cashData.Prompt)
+								fireCount = fireCount + 1
+								task.wait(0.3)
+							end
+						end
+						
+						if isBotRunning and fireCount < 5 then
+							local goldList = getGoldTargets()
+							for _, goldData in ipairs(goldList) do
+								if not isBotRunning or fireCount >= 5 then break end
+								if tweenToTarget(goldData.TargetPart) and isBotRunning then
+									firePrompt(goldData.Prompt)
+									fireCount = fireCount + 1
+									task.wait(0.3)
+								end
+							end
+						end
+						
+						-- ĐI BÁN ĐỒ
+						if not isBotRunning then break end
+						updateCameraDirection(SELL_LOOK_VECTOR)
+						task.wait(0.2)
+						
+						local sellPart, sellPrompt = getSellTarget()
+						if sellPart and tweenToTarget(sellPart) and isBotRunning and sellPrompt then
+							firePrompt(sellPrompt)
+							print("✅ [BOT] Đã bán đồ xong! Đang chờ đợt tín hiệu tiếp theo...")
+							task.wait(1)
+						end
+					end
+				end
+				break -- Thoát khỏi vòng lặp lấy bom khi đã thực hiện xong một chuỗi Rob thành công
+			else
+				warn("⚠️ [BOT] Lỗi: Kích hoạt nhặt bom nhưng server chưa cấp C4. Thử lại mục tiêu bom tiếp theo...")
+			end
+		end
+	end
+	resetCamera()
+end
+
+-- HÀM LẮNG NGHE SỰ KIỆN QUA REPLICATED STORAGE REMOTEEVENT
+local function listenToBankEvents()
+	local replicatedStorage = game:GetService("ReplicatedStorage")
+	local remotesFolder = replicatedStorage:FindFirstChild("Remotes")
+	local notificationEvent = remotesFolder and remotesFolder:FindFirstChild("NotiPotifcation")
+	
+	if notificationEvent and notificationEvent:IsA("RemoteEvent") then
+		print("📡 [EVENT] Đang kết nối lắng nghe tín hiệu từ NotiPotifcation...")
+		
+		bankNotificationConnection = notificationEvent.OnClientEvent:Connect(function(statusType)
+			if isBotRunning and statusType == "Open" then
+				print("🔔 [EVENT] Nhận được tín hiệu 'Open'! Khởi động luồng Rob...")
+				task.spawn(startBotProcess)
+			end
+		end)
+	else
+		warn("❌ Không tìm thấy RemoteEvent tại ReplicatedStorage.Remotes.NotiPotifcation!")
+	end
+end
+
+-- =============================================================================
+-- RAYFIELD TOGGLE TÍNH HỢP
+-- =============================================================================
+local RobToggle = RobTab:CreateToggle({
+   Name = "Auto Rob Bank v1",
+   CurrentValue = false,
+   Flag = "AutoRobBankToggle", 
+   Callback = function(Value)
+      isBotRunning = Value
+      if Value then
+         listenToBankEvents()
+         print("▶️ Đã bật trạng thái chờ tín hiệu mở cửa Bank...")
+      else
+         stopBotPermanently("Tắt Toggle trên UI")
+      end
+   end,
+})
+local TabGun = Window:CreateTab({ name = "Mod", icon = 93364949241311 })
+TabGun:CreateSection({ name = "Gun", icon = 93364949241311 })
+-- =================================================================
+-- HỆ THỐNG ĐIỀU KHIỂN SÚNG THÔNG MINH (DROPDOWN + 5 TOGGLES) -> TABGUN
+-- =================================================================
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Các biến lưu trữ trạng thái cấu hình súng
+local SelectedGunName = nil
+local AutoReloadEnabled = false
+local AutoFireEnabled = false
+local AlwaysCoolEnabled = false
+local NoRecoilEnabled = false 
+local ExplosiveHomingEnabled = false -- Biến trạng thái mới cho Đạn nổ/Đạn đuổi
+
+-- Lưu lại cấu hình gốc của súng để khôi phục khi tắt Toggle
+local OriginalRecoilSettings = {}
+local OriginalReloadSettings = {} 
+local OriginalFireRateSettings = {} 
+local OriginalExplosiveHomingSettings = {} -- Lưu cấu hình gốc của đạn
+
+-- Hàm hỗ trợ tìm kiếm cấu hình Setting của khẩu súng đang chọn
+local function getGunConfig(gunName)
+    if not gunName then return nil, nil end
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    if not backpack then return nil, nil end
+    
+    local gun = backpack:FindFirstChild(gunName)
+    if not gun then
+        local char = LocalPlayer.Character
+        if char then
+            gun = char:FindFirstChild(gunName)
+        end
+    end
+    
+    if gun then
+        local settingFolder = gun:FindFirstChild("Setting")
+        if settingFolder then
+            local configCommon = require(settingFolder)
+            local config1 = nil
+            local gunModule1 = settingFolder:FindFirstChild("1")
+            if gunModule1 then
+                config1 = require(gunModule1)
+            end
+            return configCommon, config1
+        end
+    end
+    return nil, nil
+end
+
+-- Hàm cập nhật các tính năng dựa theo trạng thái hiện tại của các Toggle
+local function applyGunModifications()
+    if not SelectedGunName then return end
+    
+    local configCommon, config1 = getGunConfig(SelectedGunName)
+    if not configCommon and not config1 then return end
+
+    -- 1. Xử lý Toggle: Auto Reload 
+    if configCommon then
+        configCommon.AutoReload = AutoReloadEnabled
+    end
+
+    if config1 then
+        if AutoReloadEnabled then
+            if not OriginalReloadSettings[SelectedGunName] then
+                OriginalReloadSettings[SelectedGunName] = {
+                    ReloadTime = config1.ReloadTime,
+                    TacticalReloadTime = config1.TacticalReloadTime
+                }
+            end
+            config1.ReloadTime = 0
+            config1.TacticalReloadTime = 0
+        else
+            local origReload = OriginalReloadSettings[SelectedGunName]
+            if origReload then
+                config1.ReloadTime = origReload.ReloadTime
+                config1.TacticalReloadTime = origReload.TacticalReloadTime
+            end
+        end
+    end
+
+    -- 2. Xử lý Toggle: Auto Fire 
+    if config1 then
+        if AutoFireEnabled then
+            if not OriginalFireRateSettings[SelectedGunName] then
+                OriginalFireRateSettings[SelectedGunName] = {
+                    Auto = config1.Auto,
+                    FireRate = config1.FireRate,
+                    RPM = config1.RPM,
+                    Cooldown = config1.Cooldown,
+                    ShotDelay = config1.ShotDelay,
+					EquipTime = config1.EquipTime
+                }
+            end
+            config1.Auto = true
+            if config1.FireRate ~= nil then config1.FireRate = 0 end
+            if config1.RPM ~= nil then config1.RPM = 999999 end 
+            if config1.Cooldown ~= nil then config1.Cooldown = 0 end
+            if config1.ShotDelay ~= nil then config1.ShotDelay = 0 end
+        	if config1.EquipTime ~= nil then config1.EquipTime = 0 end
+		else
+            local origFire = OriginalFireRateSettings[SelectedGunName]
+            if origFire then
+                if config1.Auto ~= nil and origFire.Auto ~= nil then config1.Auto = origFire.Auto end
+                if config1.FireRate ~= nil and origFire.FireRate ~= nil then config1.FireRate = origFire.FireRate end
+                if config1.RPM ~= nil and origFire.RPM ~= nil then config1.RPM = origFire.RPM end
+                if config1.Cooldown ~= nil and origFire.Cooldown ~= nil then config1.Cooldown = origFire.Cooldown end
+                if config1.ShotDelay ~= nil and origFire.ShotDelay ~= nil then config1.ShotDelay = origFire.ShotDelay end
+            	if config1.EquipTime ~= nil and origFire.EquipTime ~= nil then config1.EquipTime = origFire.EquipTime end
+			else
+                config1.Auto = false
+            end
+        end
+    end
+
+    -- 3. Xử lý Toggle: Luôn luôn mát 
+    if config1 then
+        if AlwaysCoolEnabled then
+            config1.BatteryEnabled = false
+            config1.HeatPerFireMin = 0
+            config1.HeatPerFireMax = 0
+        else
+            config1.BatteryEnabled = true
+        end
+    end
+
+    -- 4. Xử lý Toggle: Không giật & Không nở tâm 
+    if config1 then
+        if NoRecoilEnabled then
+            if not OriginalRecoilSettings[SelectedGunName] then
+                OriginalRecoilSettings[SelectedGunName] = {
+                    Recoil = config1.Recoil,
+                    Spread = config1.Spread,
+                    CameraRecoilingEnabled = config1.CameraRecoilingEnabled,
+                    ViewmodelRecoilInfluence = config1.ViewmodelRecoilInfluence,
+                    AngleX_Min = config1.AngleX_Min,
+                    AngleX_Max = config1.AngleX_Max,
+                    AngleZ_Min = config1.AngleZ_Min,
+                    AngleZ_Max = config1.AngleZ_Max
+                }
+            end
+
+            config1.Recoil = 0
+            config1.Spread = 0
+            config1.CameraRecoilingEnabled = false
+            config1.ViewmodelRecoilInfluence = 0
+            config1.AngleX_Min = 0
+            config1.AngleX_Max = 0
+            config1.AngleZ_Min = 0
+            config1.AngleZ_Max = 0
+        else
+            local orig = OriginalRecoilSettings[SelectedGunName]
+            if orig then
+                config1.Recoil = orig.Recoil
+                config1.Spread = orig.Spread
+                config1.CameraRecoilingEnabled = orig.CameraRecoilingEnabled
+                config1.ViewmodelRecoilInfluence = orig.ViewmodelRecoilInfluence
+                config1.AngleX_Min = orig.AngleX_Min
+                config1.AngleX_Max = orig.AngleX_Max
+                config1.AngleZ_Min = orig.AngleZ_Min
+                config1.AngleZ_Max = orig.AngleZ_Max
+            end
+        end
+    end
+
+    -- 5. Xử lý Toggle: Đạn nổ / Đạn tự đuổi (Explosive / Homing)
+    if config1 then
+        if ExplosiveHomingEnabled then
+            -- Sao lưu gốc
+            if not OriginalExplosiveHomingSettings[SelectedGunName] then
+                OriginalExplosiveHomingSettings[SelectedGunName] = {
+                    ExplosiveEnabled = config1.ExplosiveEnabled,
+                    ExplosionRadius = config1.ExplosionRadius,
+                    Homing = config1.Homing,
+                    HomingDistance = config1.HomingDistance,
+                    TurnRatePerSecond = config1.TurnRatePerSecond,
+                    HomeThroughWall = config1.HomeThroughWall,
+					Lifesteal = config1.Lifesteal
+                }
+            end
+            
+            -- Ép bật đạn nổ
+            config1.ExplosiveEnabled = true
+            if config1.ExplosionRadius ~= nil then config1.ExplosionRadius = 15 end -- Chỉnh bán kính nổ to
+			if config1.Lifesteal ~= nil then config1.Lifesteal = 100 end
+
+            -- Ép bật đạn đuổi mục tiêu
+            config1.Homing = true
+            if config1.HomingDistance ~= nil then config1.HomingDistance = 1500 end -- Tăng tầm đuổi xa
+            if config1.TurnRatePerSecond ~= nil then config1.TurnRatePerSecond = 50 end -- Bẻ lái cực gắt
+            if config1.HomeThroughWall ~= nil then config1.HomeThroughWall = true end -- Cho phép đuổi xuyên tường
+        else
+            -- Khôi phục trạng thái ban đầu
+            local origBomb = OriginalExplosiveHomingSettings[SelectedGunName]
+            if origBomb then
+                config1.ExplosiveEnabled = origBomb.ExplosiveEnabled
+                if config1.ExplosionRadius ~= nil then config1.ExplosionRadius = origBomb.ExplosionRadius end
+                config1.Homing = origBomb.Homing
+                if config1.HomingDistance ~= nil then config1.HomingDistance = origBomb.HomingDistance end
+                if config1.TurnRatePerSecond ~= nil then config1.TurnRatePerSecond = origBomb.TurnRatePerSecond end
+                if config1.HomeThroughWall ~= nil then config1.HomeThroughWall = origBomb.HomeThroughWall end
+				if config1.Lifesteal ~= nil then config1.Lifesteal = origBomb.Lifesteal end
+            end
+        end
+    end
+end
+
+-- Hàm quét nhanh Backpack để lấy danh sách súng
+local function getBackpackGuns()
+    local guns = {}
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    if backpack then
+        for _, item in pairs(backpack:GetChildren()) do
+            if item:IsA("Tool") and item:FindFirstChild("Setting") then
+                table.insert(guns, item.Name)
+            end
+        end
+    end
+    
+    local char = LocalPlayer.Character
+    if char then
+        for _, item in pairs(char:GetChildren()) do
+            if item:IsA("Tool") and item:FindFirstChild("Setting") then
+                local exists = false
+                for _, name in pairs(guns) do
+                    if name == item.Name then exists = true break end
+                end
+                if not exists then
+                    table.insert(guns, item.Name)
+                end
+            end
+        end
+    end
+    
+    if #guns == 0 then
+        table.insert(guns, "Không tìm thấy súng trong balo!")
+    end
+    return guns
+end
+
+-- =================================================================
+-- CHÈN DROPDOWN & 5 TOGGLES VÀO TAB CỦA BẠN (Sử dụng TabGun)
+-- =================================================================
+
+local GunDropdown = TabGun:CreateDropdown({
+    Name = "Select a gun",
+    Options = getBackpackGuns(), 
+    CurrentOption = "",
+    MultipleOptions = false,
+    Flag = "SelectedGunFlag",
+    Callback = function(Option)
+       local gunName = type(Option) == "table" and Option[1] or Option
+       
+       if gunName and gunName ~= "Không tìm thấy súng trong balo!" then
+           SelectedGunName = gunName
+           print("Choosed: " .. SelectedGunName)
+           applyGunModifications()
+       end
+    end,
+})
+
+TabGun:CreateButton({
+    Name = "Refresh guns list",
+    Callback = function()
+        if GunDropdown and GunDropdown.Refresh then
+            GunDropdown:Refresh(getBackpackGuns(), true)
+        end
+    end,
+})
+
+TabGun:CreateToggle({
+    Name = "Auto Reload",
+    CurrentValue = false,
+    Flag = "GunAutoReloadFlag",
+    Callback = function(Value)
+       AutoReloadEnabled = Value
+       applyGunModifications()
+    end,
+})
+
+TabGun:CreateToggle({
+    Name = "Auto Fire (Max Speed)",
+    CurrentValue = false,
+    Flag = "GunAutoFireFlag",
+    Callback = function(Value)
+       AutoFireEnabled = Value
+       applyGunModifications()
+    end,
+})
+
+TabGun:CreateToggle({
+    Name = "Always cool",
+    CurrentValue = false,
+    Flag = "GunAlwaysCoolFlag",
+    Callback = function(Value)
+       AlwaysCoolEnabled = Value
+       applyGunModifications()
+    end,
+})
+
+TabGun:CreateToggle({
+    Name = "No Recoil/Spread",
+    CurrentValue = false,
+    Flag = "GunNoRecoilFlag",
+    Callback = function(Value)
+       NoRecoilEnabled = Value
+       applyGunModifications()
+    end,
+})
+
+-- MỚI: Toggle Đạn nổ / Đạn đuổi
+TabGun:CreateToggle({
+    Name = "Explosive/Homing bullets/Lifesteal",
+    CurrentValue = false,
+    Flag = "GunExplosiveHomingFlag",
+    Callback = function(Value)
+       ExplosiveHomingEnabled = Value
+       applyGunModifications()
+    end,
+})
+local LocalPlayerTab = Window:CreateTab({ name = "LocalPlayer", icon = 93364949241311 })
+
+-- Biến kiểm soát trạng thái Bật/Tắt của ESP
+_G.ESP_Enabled = false
+
+-- Nút gạt (Toggle) của Rayfield để bật/tắt ESP
+local Toggle = LocalPlayerTab:CreateToggle({
+   Name = "Bật/Tắt Nhìn Xuyên Tường (ESP)",
+   CurrentValue = false,
+   Flag = "Toggle_ESP", -- Đặt tên flag duy nhất để lưu config nếu cần
+   Callback = function(Value)
+      _G.ESP_Enabled = Value
+      
+      -- Nếu tắt, xóa toàn bộ các Highlight và bảng tên đang có trên màn hình
+      if not Value then
+         for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
+            if player.Character then
+               local hl = player.Character:FindFirstChild("ESPHighlight")
+               if hl then hl:Destroy() end
+               
+               local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+               if hrp then
+                  local bill = hrp:FindFirstChild("ESP_Billboard")
+                  if bill then bill:Destroy() end
+               end
+            end
+         end
+      end
+   end,
+})
+
+-- Hàm tạo ESP (Bao gồm cả kiểm tra xem người dùng có đang BẬT Toggle hay không)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function applyESP(player)
+	if player == LocalPlayer then return end
+
+	local function onCharacterAdded(character)
+		local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 5)
+		local humanoid = character:WaitForChild("Humanoid", 5)
+		if not humanoidRootPart or not humanoid then return end
+		local playerData = player:WaitForChild("PlayerData", 5)
+
+		-- Vòng lặp kiểm tra liên tục để chỉ hiển thị khi _G.ESP_Enabled = true
+		task.spawn(function()
+			while character and character.Parent and humanoid.Health > 0 do
+				if _G.ESP_Enabled then
+					-- [Đoạn code tạo Highlight cũ của bạn]
+					local highlight = character:FindFirstChild("ESPHighlight")
+					if not highlight then
+						highlight = Instance.new("Highlight")
+						highlight.Name = "ESPHighlight"
+						highlight.FillColor = Color3.fromRGB(255, 0, 0)
+						highlight.FillTransparency = 0.6
+						highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+						highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+						highlight.Parent = character
+					end
+
+					-- [Đoạn code tạo BillboardGui cũ của bạn]
+					local billboard = humanoidRootPart:FindFirstChild("ESP_Billboard")
+					if not billboard then
+						billboard = Instance.new("BillboardGui")
+						billboard.Name = "ESP_Billboard"
+						billboard.Size = UDim2.new(0, 220, 0, 65)
+						billboard.StudsOffset = Vector3.new(0, 3.5, 0)
+						billboard.AlwaysOnTop = true
+						billboard.Parent = humanoidRootPart
+
+						-- Tạo nhãn chữ Dòng 1, Dòng 2, Dòng 3... 
+						-- (Để giữ code ngắn gọn, phần tạo chi tiết chữ mình viết gọn lại ở đây)
+						local nameLabel = Instance.new("TextLabel")
+						nameLabel.Size = UDim2.new(1, 0, 0.35, 0)
+						nameLabel.BackgroundTransparency = 1
+						nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+						nameLabel.TextSize = 13
+						nameLabel.Font = Enum.Font.SourceSansBold
+						nameLabel.Parent = billboard
+
+						local infoLabel = Instance.new("TextLabel")
+						infoLabel.Size = UDim2.new(1, 0, 0.3, 0)
+						infoLabel.Position = UDim2.new(0, 0, 0.35, 0)
+						infoLabel.BackgroundTransparency = 1
+						infoLabel.TextColor3 = Color3.fromRGB(255, 220, 100)
+						infoLabel.TextSize = 11
+						infoLabel.Font = Enum.Font.SourceSansBold
+						infoLabel.Parent = billboard
+
+						local hpLabel = Instance.new("TextLabel")
+						hpLabel.Size = UDim2.new(1, 0, 0.3, 0)
+						hpLabel.Position = UDim2.new(0, 0, 0.65, 0)
+						hpLabel.BackgroundTransparency = 1
+						hpLabel.TextSize = 11
+						hpLabel.Font = Enum.Font.SourceSansBold
+						hpLabel.Parent = billboard
+
+						-- Lắng nghe cập nhật thông tin liên tục
+						local function update()
+							local systemName = player.DisplayName or player.Name
+							local fn = playerData and playerData:FindFirstChild("FirstName") and playerData.FirstName.Value or "Chưa rõ"
+							local gd = playerData and playerData:FindFirstChild("Gender") and playerData.Gender.Value or "Chưa rõ"
+							local lv = playerData and playerData:FindFirstChild("Level") and playerData.Level.Value or 0
+							
+							nameLabel.Text = systemName .. " | " .. tostring(fn)
+							infoLabel.Text = tostring(gd) .. " | Lvl: " .. tostring(lv)
+							hpLabel.Text = "HP: " .. math.floor(humanoid.Health)
+							
+							if (humanoid.Health / humanoid.MaxHealth) < 0.3 then
+								hpLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+							else
+								hpLabel.TextColor3 = Color3.fromRGB(85, 255, 85)
+							end
+						end
+						
+						update()
+						humanoid.HealthChanged:Connect(update)
+						if playerData then
+							if playerData:FindFirstChild("FirstName") then playerData.FirstName.Changed:Connect(update) end
+							if playerData:FindFirstChild("Gender") then playerData.Gender.Changed:Connect(update) end
+							if playerData:FindFirstChild("Level") then playerData.Level.Changed:Connect(update) end
+						end
+					end
+				end
+				task.wait(1) -- Kiểm tra lại sau mỗi 1 giây để tránh lag
+			end
+		end)
+	end
+
+	if player.Character then onCharacterAdded(player.Character) end
+	player.CharacterAdded:Connect(onCharacterAdded)
+end
+
+for _, player in ipairs(Players:GetPlayers()) do applyESP(player) end
+Players.PlayerAdded:Connect(applyESP)
+-- Giả định bạn đã khởi tạo Tab trước đó trong script của mình
+-- local Tab = Window:CreateTab("Main", 4483362458)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local staminaConnection = nil
+local isStaminaEnabled = false
+local charAddedConnection = nil
+
+-- Hàm dừng loop và ngắt kết nối an toàn
+local function stopInfiniteStamina()
+	if staminaConnection then 
+		staminaConnection:Disconnect() 
+		staminaConnection = nil 
+	end
+	if charAddedConnection then
+		charAddedConnection:Disconnect()
+		charAddedConnection = nil
+	end
+	print("❌ [HỆ THỐNG] Đã tắt Infinite Stamina.")
+end
+
+-- Hàm kích hoạt logic khóa Stamina
+local function startInfiniteStamina()
+	if staminaConnection then staminaConnection:Disconnect() end
+	
+	print("⚡ [HỆ THỐNG] Đang tự động khóa Stamina cho: " .. LocalPlayer.Name)
+	
+	staminaConnection = RunService.Heartbeat:Connect(function()
+		if not isStaminaEnabled then 
+			if staminaConnection then staminaConnection:Disconnect() staminaConnection = nil end
+			return 
+		end
+		
+		-- Tìm đúng thư mục nhân vật của bạn trong workspace theo tên
+		local myCharacterFolder = workspace:FindFirstChild(LocalPlayer.Name)
+		local runningFolder = myCharacterFolder and myCharacterFolder:FindFirstChild("Running")
+		
+		if runningFolder then
+			local staminaValue = runningFolder:FindFirstChild("Stamina")
+			if staminaValue then
+				staminaValue.Value = math.huge
+			end
+		end
+	end)
+end
+
+-- =============================================================================
+-- RAYFIELD TOGGLE TÍNH HỢP
+-- =============================================================================
+local StaminaToggle = LocalPlayerTab:CreateToggle({
+   Name = "Infinite Stamina",
+   CurrentValue = false,
+   Flag = "InfStaminaToggle", 
+   Callback = function(Value)
+      isStaminaEnabled = Value
+      
+      if Value then
+         -- Lắng nghe sự kiện hồi sinh khi đang bật Toggle
+         charAddedConnection = LocalPlayer.CharacterAdded:Connect(function()
+            task.wait(1)
+            if isStaminaEnabled then
+               startInfiniteStamina()
+            end
+         end)
+         
+         -- Chạy ngay lập tức nếu nhân vật đã tồn tại
+         if LocalPlayer.Character then
+            startInfiniteStamina()
+         end
+      else
+         -- Tắt hoàn toàn khi gạt Toggle về false
+         stopInfiniteStamina()
+      end
+   end,
+})
+local NguoiChoiDuocChon = ""
+local SungDuocChon = ""
+local DangKichHoat = false
+
+-- Cac service cua game
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+-- SUA LOI TAI DAY: Thay GetService bang WaitForChild de vao thu muc Remotes
+local Event = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("InflictTarget")
+
+-- Ham lay danh sach nguoi choi (loai tru ban than)
+local function LayDanhSachNguoiChoi()
+   local DanhSach = {}
+   for _, p in pairs(Players:GetPlayers()) do
+      if p ~= LocalPlayer then
+         table.insert(DanhSach, p.Name)
+      end
+   end
+   return DanhSach
+end
+
+-- Ham lay danh sach sung trong Backpack
+local function LayDanhSachSung()
+   local DanhSach = {}
+   local Backpack = LocalPlayer:FindFirstChild("Backpack")
+   if Backpack then
+      for _, item in pairs(Backpack:GetChildren()) do
+         if item:IsA("Tool") then
+            table.insert(DanhSach, item.Name)
+         end
+      end
+   end
+   return DanhSach
+end
+
+-- Tao dung ten KillTab (su dung bien Window da co san cua ban)
+local KillTab = Window:CreateTab({ name = "Kill(OP)", icon = 93364949241311 })
+
+local DropdownNguoiChoi = KillTab:CreateDropdown({
+    name = "Select Target Player",
+    options = LayDanhSachNguoiChoi(),
+    multiSelect = false,
+    value = {},
+    callback = function(selected)
+        NguoiChoiDuocChon = selected
+    end,
+})
+
+local DropdownSung = KillTab:CreateDropdown({
+    name = "Select Gun from Backpack",
+    options = LayDanhSachSung(),
+    multiSelect = false,
+    value = {},
+    callback = function(selected)
+        SungDuocChon = selected
+    end,
+})
+-- Nut lam moi danh sach nguoi choi va sung
+KillTab:CreateButton({
+   Name = "Refresh Lists",
+   Callback = function()
+      DropdownNguoiChoi:Refresh(LayDanhSachNguoiChoi())
+      DropdownSung:Refresh(LayDanhSachSung())
+   end,
+})
+
+-- Ham thuc thi spam len muc tieu
+local function ThucThiSpam()
+   local MucTieuChar = workspace:FindFirstChild(NguoiChoiDuocChon)
+   local Backpack = LocalPlayer:FindFirstChild("Backpack")
+   local Sung = Backpack and Backpack:FindFirstChild(SungDuocChon)
+
+   if MucTieuChar and Sung then
+      local Humanoid = MucTieuChar:FindFirstChildOfClass("Humanoid")
+      local RootPart = MucTieuChar:FindFirstChild("HumanoidRootPart")
+      local Head = MucTieuChar:FindFirstChild("Head")
+
+      -- Chi kich hoat khi Muc tieu con song (Health > 0) va co du cac bo phan
+      if Humanoid and RootPart and Head and Humanoid.Health > 0 then
+         Event:InvokeServer(
+            "Gun",
+            Sung,
+            {
+               TacticalReloadAnimationSpeed = 1,
+               CanSpinPart = false,
+               AngleX_Min = 0,
+               Lifesteal = 0,
+               MeleeCriticalDamageEnabled = false,
+               VisibleBullet = true,
+               Spread = 0,
+               ExplosionCraterFadeTime = 1,
+               Accuracy = 0.1,
+               GoreSoundVolume = 1,
+               MeleeHitEffectEnabled = true,
+               ChargingSoundIncreasePitch = true,
+               WhizDistance = 25,
+               ProjectileMotion = false,
+               WhizSoundPitchMin = 1,
+               ReloadAnimationSpeed = 1,
+               MeleeDebuffChance = 100,
+               SpreadRedutionS = 0.6,
+               VisibleTime = 0.01,
+               HoldDownAnimationSpeed = 0.5,
+               DebuffName = "",
+               ScopeSwaySpeed = 15,
+               HoldingTime = 1,
+               HeatPerFireMax = 0,
+               MeleeBloodEnabled = true,
+               VMShotgunClipinAnimationSpeed = 1,
+               MeleeKnockback = 0,
+               StopBouncingOnHitHumanoid = false,
+               MeleeDamage = 20,
+               EquippedAnimationID = 1.1948208300982e+14,
+               VMSecondaryFireAnimationSpeed = 1,
+               MeleeBloodWoundTexture = { 2078626 },
+               EasingStyleNAD = Enum.EasingStyle.Quint,
+               LockOnRadius = 10,
+               SecondaryShotgunPumpinAnimationSpeed = 1,
+               BulletHoleVisibleTime = 3,
+               AltAnimationSpeed = 1,
+               AimIdleAnimationSpeed = 1,
+               MeleeHitSoundIDs = { 6000828622 },
+               PreShotgunReload = false,
+               BulletPerBurst = 3,
+               RicochetAmount = 0,
+               MeleeHitSoundPitchMin = 1,
+               ShotsForDepletion = 12,
+               AlignToAimPoint = true,
+               VMReloadAnimationSpeed = 1,
+               HitmarkerSoundID = { 3748776946, 3748777642, 3748780065 },
+               BulletBrightness = 400,
+               MuzzleLightEnabled = true,
+               RecoilRedution = 0.5,
+               EasingStyle = Enum.EasingStyle.Quint,
+               MotionBlur = true,
+               CrossExpansion = 100,
+               BloodWoundFadeTime = 1,
+               MeleeLifesteal = 0,
+               MeleeDebuff = false,
+               ExplosionSoundIDs = { 163064102 },
+               WindResistance = 1,
+               LockOnOnHovering = false,
+               TouchEventOnTimeout = false,
+               VMMeleeAttackAnimationSpeed = 1,
+               KeepAimingOnReloading = true,
+               ExplosionKnockbackMultiplierOnPlayer = 2,
+               VMShotgunPumpinAnimationSpeed = 1,
+               PenetrationAmount = 0,
+               ShotgunPumpinSpeed = 0.5,
+               PenetrationType = "HumanoidPenetration",
+               HitmarkerSoundPitchHS = 1,
+               LowAmmo = false,
+               BulletShellRotVelocity = 40,
+               MeleeBloodWoundFadeTime = 1,
+               EasingDirectionNAD = Enum.EasingDirection.Out,
+               Auto = true,
+               LightBrightness = 4,
+               ChamberAnimationID = 1.0724885692243e+14,
+               HitmarkerFadeTime = 0.4,
+               SelfKnockbackMultiplier = 2,
+               BulletHoleFadeTime = 1,
+               MaximumTime = 1,
+               ChargingTime = 1,
+               InspectAnimationSpeed = 1,
+               BulletSpeed = 2200,
+               SelfKnockback = false,
+               VMInspectAnimationSpeed = 1,
+               MeleeHitCharSndPitchMax = 1,
+               CrossScaleIS = 0.6,
+               DualFireEnabled = false,
+               SpreadPattern = {
+                  {0, -0.4}, {-0.35, 0.2}, {0.35, 0.2}, {0, 1},
+                  {0.95, 0.31}, {0.59, -0.81}, {-0.59, -0.81}, {-0.95, 0.31}
+               },
+               SmokeTrailEnabled = true,
+               MeleeAttackEnabled = false,
+               SniperEnabled = false,
+               BulletLifetime = 1,
+               AngleZ_Max = 0,
+               MinigunRevDownAnimationSpeed = 1,
+               DebuffChance = 100,
+               FieldOfViewIS = 50,
+               IdleAnimationSpeed = 1,
+               DelayBeforeFiring = 1,
+               ScopeSwayDamper = 0.65,
+               ShotgunReload = false,
+               VMReloadAnimationID = 5474084638,
+               TimeBeforeCooldown = 3,
+               MouseSensitiveS = 0.2,
+               ReloadAnimationID = 79777338797043,
+               VMFireAnimationID = 15696061196,
+               EquipTime = 1,
+               BurstFireEnabled = false,
+               MarkerPartColor = true,
+               MarkerEffectTexture = { 2078626 },
+               FireAnimationID = 1.1651566675386e+14,
+               ViewmodelRecoilInfluence = 0,
+               TweenLengthNAD = 0.8,
+               CriticalBaseChance = 5,
+               VMIdleAnimationSpeed = 1,
+               MeleeBloodWoundEnabled = true,
+               GoreEffectEnabled = false,
+               HoldDownAnimationID = 1.1214593741218e+14,
+               MeleeBloodWoundPartColor = true,
+               BurstRate = 0.075,
+               ShellTextureID = 5710577470,
+               BulletHoleTexture = { 359667865 },
+               AimAnimationsEnabled = false,
+               Recoil = 0,
+               MeleeAttackRange = 4,
+               HitCharSndPitchMax = 1,
+               BloodEnabled = true,
+               MaxHeat = 100,
+               Debuff = false,
+               HitmarkerSoundPitch = 1,
+               ScopeKnockbackSpeed = 15,
+               VMMinigunRevUpAnimationSpeed = 1,
+               ShotgunPumpinAnimationSpeed = 1,
+               HitEffectEnabled = true,
+               MeleeHeadshotEnabled = true,
+               Homing = false,
+               WhizSoundEnabled = false,
+               HoldAndReleaseEnabled = false,
+               AngleX_Max = 0,
+               Level1ChargingTime = 1,
+               VMTacticalReloadAnimationSpeed = 1,
+               VMMinigunRevDownAnimationSpeed = 1,
+               CriticalDamageEnabled = false,
+               AllowCollide = false,
+               BatteryEnabled = false,
+               ShotgunEnabled = false,
+               EasingDirection = Enum.EasingDirection.Out,
+               MouseSensitiveIS = 0.2,
+               Knockback = 0,
+               AimSecondaryFireAnimationSpeed = 1,
+               FullyGibbedLimbChance = 50,
+               MeleeHitCharSndIDs = { 6398015798, 6398016125, 6398016391, 6398016618 },
+               ShotgunPump = false,
+               AmmoPerMag = 15,
+               HitSoundPitchMax = 1.5,
+               HitscanMode = false,
+               MinigunEnabled = false,
+               MeleeCriticalBaseChance = 5,
+               BloodWoundVisibleTime = 3,
+               WhizSoundVolume = 1,
+               VMAltAnimationSpeed = 1,
+               ScopeSensitive = 0.25,
+               FireRate = 0.135,
+               CrossSpeed = 15,
+               BurstRates = { 0, 0.075, 0.075, 0 },
+               SelfDamageRedution = 0.5,
+               ChargingAnimationSpeed = 1,
+               HitCharSndVolume = 1,
+               MarkerEffectSize = 0.5,
+               MarkerEffectFadeTime = 1,
+               MeleeHitSoundVolume = 1,
+               MeleeCriticalDamageMultiplier = 3,
+               MeleeAttackAnimationSpeed = 1,
+               MeleeHitSoundPitchMax = 1.5,
+               MeleeBloodWoundSize = 0.5,
+               MeleeDebuffName = "",
+               ZeroDamageDistance = 10000,
+               AngleY_Max = 0,
+               BulletSize = 0.05,
+               AimFireAnimationSpeed = 1,
+               MaxAmmo = 45,
+               HitCharSndIDs = { 3802437008, 3802437361, 3802437696, 3802440043, 3802440388, 3802442962 },
+               VMHoldDownAnimationSpeed = 0.5,
+               IdleAnimationID = 1.0551823215165e+14,
+               ModuleName = "1",
+               VMSwitchAnimationSpeed = 1,
+               CrossDamper = 0.8,
+               HitmarkerColorHS = Color3.new(1, 0, 0),
+               OverheatTime = 2.5,
+               TurnRatePerSecond = 1,
+               ExplosionSoundPitchMax = 1.5,
+               LightColor = Color3.new(1, 1.1098039150238, 0),
+               AltTime = 1,
+               WhizSoundPitchMax = 1,
+               AngleZ_Min = 0,
+               ShellScale = Vector3.new(0.002, 0.002, 0.002),
+               ShellSize = Vector3.new(0.128, 0.064, 0.064),
+               AnimationKeyframes = {},
+               BounceElasticity = 1,
+               TweenLength = 0.8,
+               ChargingSoundPitchRange = { 1, 1.5 },
+               MeleeHeadshotDamageMultiplier = 2,
+               CriticalDamageMultiplier = 3,
+               ExplosiveEnabled = false,
+               SpreadRedutionIS = 0.6,
+               VMEquippedAnimationID = 5474070948,
+               VMSecondaryShotgunPumpinAnimationSpeed = 1,
+               FieldOfViewS = 12.5,
+               VMEquippedAnimationSpeed = 1,
+               CrossScaleS = 0,
+               FireModes = { 1, true },
+               ScopeDelay = 0,
+               SecondaryFireAnimationEnabled = false,
+               CooldownRate = 1,
+               PartColor = false,
+               MaximumRate = 4,
+               SilenceEffect = false,
+               SwitchAnimationID = 9812431414,
+               TacticalReloadTime = 3,
+               SpinY = 0,
+               SecondaryFireAnimationSpeed = 1,
+               GoreSoundIDs = { 1930359546 },
+               HitSoundIDs = { 186809061, 186809249, 186809250, 186809252 },
+               Ammo = 15,
+               ExplosionKnockback = false,
+               HitSoundVolume = 1,
+               SpinX = 3,
+               GoreSoundPitchMin = 1,
+               RaisePitch = false,
+               TacticalReloadAnimationEnabled = false,
+               BulletType = "Normal",
+               DisappearTime = 5,
+               BulletBloom = 0.005,
+               SelectiveFireEnabled = false,
+               MaxDepletion = 4,
+               FullDamageDistance = 1000,
+               HitSoundPitchMin = 1,
+               BulletHoleEnabled = true,
+               MeleeHitCharSndVolume = 1,
+               HomingDistance = 250,
+               HitCharSndPitchMin = 1,
+               CameraRecoilingEnabled = false,
+               SmokeTrailRateIncrement = 1,
+               ExplosionCraterSize = 3,
+               BloodWoundTexture = { 359667865 },
+               BloodWoundTextureColor = Color3.new(1, 0, 0),
+               AdvancedChargingTime = 5,
+               MeleeBloodWoundTextureColor = Color3.new(1, 0, 0),
+               BloodWoundPartColor = true,
+               NoExplosionWhileBouncing = false,
+               CustomExplosion = false,
+               VMMeleeAttackRange = 4,
+               GoreSoundPitchMax = 1.5,
+               MuzzleFlashEnabled = true,
+               ShotgunPattern = false,
+               LightRange = 15,
+               BulletShellEnabled = true,
+               ExplosionRadius = 8,
+               PenetrationDepth = 0,
+               BulletShellVelocity = 17,
+               ScopeKnockbackDamper = 0.65,
+               VMPreShotgunReloadAnimationSpeed = 1,
+               ShellMeshID = 5710574682,
+               ExplosionSoundEnabled = true,
+               ChargingAnimationEnabled = false,
+               DamageDropOffEnabled = true,
+               MinigunRevUpAnimationSpeed = 1,
+               BulletPerShot = 8,
+               WhizSoundID = { 3809084884, 3809085250, 3809085650, 3809085996, 3809086455 },
+               FireModeTexts = { "SEMI-AUTO", "AUTO" },
+               FireRates = { 0.135, 0.05, 0.05, 0.05 },
+               PreShotgunReloadSpeed = 0.5,
+               ChargedShotAdvanceEnabled = false,
+               ChamberAnimationSpeed = 1,
+               SecondaryShotgunPump = false,
+               VMAnimationKeyframes = {},
+               MarkerEffectVisibleTime = 3,
+               CustomHitEffect = false,
+               ExplosionKnockbackMultiplierOnTarget = 2,
+               HomeThroughWall = false,
+               ReloadTime = 2.38,
+               HitmarkerEnabled = false,
+               ExplosionCraterTexture = { 53875997 },
+               HoldDownEnabled = true,
+               MeleeBloodWoundVisibleTime = 3,
+               ShellClipinSpeed = 0.5,
+               PreShotgunReloadAnimationSpeed = 1,
+               RecoilSpeed = 35,
+               LightShadows = true,
+               HitmarkerColor = Color3.new(1, 1, 1),
+               VMChargingAnimationSpeed = 1,
+               CooldownTime = 0.05,
+               BulletHoleSize = 0.5,
+               ExplosionSoundVolume = 1,
+               ExplosionSoundPitchMin = 1,
+               FriendlyFire = true,
+               DamageBasedOnDistance = false,
+               SelfDamage = false,
+               MinDepletion = 2,
+               AngleY_Min = 0,
+               Level2ChargingTime = 2,
+               MagDrop = false,
+               WindSpeed = 10,
+               ExplosionCraterEnabled = true,
+               ExplosionKnockbackPower = 50,
+               BulletShellParticles = true,
+               BaseDamage = 17,
+               CustomMeleeHitEffect = false,
+               ExplosionCraterPartColor = false,
+               HitmarkerFadeTimeHS = 0.4,
+               BulletAcceleration = Vector3.new(0, -10, 0),
+               LimitedAmmoEnabled = true,
+               SecondaryShotgunPumpinSpeed = 0.5,
+               RecoilDamper = 0.65,
+               FireAnimationSpeed = 1.5,
+               SwitchAnimationSpeed = 1,
+               ProjectileType = "Bullet",
+               EquippedAnimationSpeed = 1,
+               VMFireAnimationSpeed = 1,
+               FrictionConstant = 0,
+               SpinZ = 0,
+               ExplosionCraterVisibleTime = 3,
+               BloodWoundSize = 0.2,
+               ScopeKnockbackMultiplier = 5,
+               ShotgunClipinAnimationSpeed = 1,
+               ChargeAlterTable = {},
+               MarkerEffectEnabled = true,
+               InspectAnimationEnabled = false,
+               AimChargingAnimationSpeed = 1,
+               ChargedShotEnabled = false,
+               BloodWoundEnabled = true,
+               HeadshotDamageMultiplier = 2,
+               MeleeHitCharSndPitchMin = 1,
+               HeatPerFireMin = 0,
+               OverheatAnimationSpeed = 1,
+               VMOverheatAnimationSpeed = 1,
+               IronsightEnabled = false,
+               BulletShellDelay = 0.1,
+               HeadshotEnabled = true,
+               SelfKnockbackPower = 50,
+               SelfKnockbackRedution = 0.8,
+               EchoEffect = true,
+               ReduceSelfDamageOnAirOnly = false,
+               SuperRicochet = false,
+               CrossSize = 7,
+               SwitchTime = 0.25
+            },
+            Humanoid,
+            RootPart,
+            Head,
+            {
+               ChargeLevel = 0,
+               HitEffectFolder = ReplicatedStorage.Miscs.GunVisualEffects.Common.HitEffect,
+               MuzzleFolder = ReplicatedStorage.Miscs.GunVisualEffects.Common.MuzzleEffect,
+               BloodEffectFolder = ReplicatedStorage.Miscs.GunVisualEffects.Common.BloodEffect,
+               ExplosionEffectFolder = ReplicatedStorage.Miscs.GunVisualEffects.Common.ExplosionEffect,
+               GoreEffect = ReplicatedStorage.Miscs.GunVisualEffects.Common.GoreEffect
+            },
+            19.332674026489
+         )
+      end
+   end
+end
+
+-- Vong lap Heartbeat chay moi khung hinh de bat muc tieu khi hoi sinh
+RunService.Heartbeat:Connect(function()
+   if DangKichHoat and NguoiChoiDuocChon ~= "" and SungDuocChon ~= "" then
+      ThucThiSpam()
+   end
+end)
+
+-- Tao Toggle "kill selected player"
+local ToggleKill = KillTab:CreateToggle({
+   Name = "Kill selected player",
+   CurrentValue = false,
+   Callback = function(Value)
+      DangKichHoat = Value
+   end,
+})
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+-- Cấu hình thời gian giãn cách giữa các lần hồi giáp
+local lastFireTime = 0 
+local cooldownDuration = 1 
+
+-- Biến toàn cục để kiểm soát trạng thái bật/tắt của chức năng
+_G.AutoGodMode = false
+local heartbeatConnection = nil
+
+-- Hàm xử lý logic quét và hồi giáp độc lập
+local function startGodModeLogic()
+    if heartbeatConnection then return end -- Tránh chạy trùng lặp nhiều vòng lặp
+    
+    local safeZones = Workspace:WaitForChild("SafeZones", 10)
+    if not safeZones then return end
+    
+    heartbeatConnection = RunService.Heartbeat:Connect(function()
+        -- Nếu trạng thái chuyển thành false thì ngắt kết nối vòng lặp ngay lập tức
+        if not _G.AutoGodMode then
+            if heartbeatConnection then
+                heartbeatConnection:Disconnect()
+                heartbeatConnection = nil
+            end
+            return
+        end
+        
+        local targetCharacter = Workspace:FindFirstChild(Players.LocalPlayer.Name)
+        if targetCharacter then
+            local rootPart = targetCharacter:FindFirstChild("HumanoidRootPart")
+            if rootPart then
+                -- Kiểm tra ForceField
+                local hasForceField = targetCharacter:FindFirstChildOfClass("ForceField") or targetCharacter:FindFirstChild("ForceField")
+                
+                -- NẾU MẤT GIÁP -> TIẾN HÀNH RESET VÀ KÍCH HOẠT LẠI
+                if not hasForceField then
+                    if os.clock() - lastFireTime >= cooldownDuration then
+                        local children = safeZones:GetChildren()
+                        local safePart = nil
+                        
+                        -- Lọc lấy Part ĐẦU TIÊN
+                        for i = 1, #children do
+                            local child = children[i]
+                            if child:IsA("BasePart") and child.Name == "Part" then
+                                local success, hasTouch = pcall(function()
+                                    return child.TouchInterest
+                                end)
+                                if success and hasTouch then
+                                    safePart = child
+                                    break
+                                end
+                            end
+                        end
+                        
+                        if safePart then
+                            local fireTouchFunc = firetouchinterest or firetouchdetector
+                            if fireTouchFunc then
+                                lastFireTime = os.clock()
+                                
+                                task.spawn(function()
+                                    -- Bước 1: Gửi lệnh Untouch (1)
+                                    pcall(function()
+                                        fireTouchFunc(safePart, rootPart, 1)
+                                    end)
+                                    
+                                    task.wait(0.05)
+                                    
+                                    -- Bước 2: Gửi lại lệnh Touch (0)
+                                    pcall(function()
+                                        fireTouchFunc(safePart, rootPart, 0)
+                                    end)
+                                    
+                                    print("🔥 [Rayfield] Đã tự động hồi lại giáp theo chu kỳ!")
+                                end)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- ==========================================
+-- ĐOẠN KHỞI TẠO TOGGLE TRONG RAYFIELD UI
+-- ==========================================
+LocalPlayerTab:CreateToggle({
+   Name = "God Mode",
+   CurrentValue = false,
+   Flag = "Toggle_GodMode",
+   Callback = function(Value)
+       _G.AutoGodMode = Value
+       
+       if Value then
+           print("🛡️ [Rayfield] Auto God Mode: ON")
+           startGodModeLogic()
+       else
+           print("❌ [Rayfield] Auto God Mode: OFF")
+           
+           -- KHI OFF: Sử dụng firetouch với tham số 1 để bỏ khiên thay vì dùng :Destroy()
+           local targetCharacter = Workspace:FindFirstChild(Players.LocalPlayer.Name)
+           if targetCharacter then
+               local rootPart = targetCharacter:FindFirstChild("HumanoidRootPart")
+               local safeZones = Workspace:FindFirstChild("SafeZones")
+               
+               if rootPart and safeZones then
+                   local safePart = nil
+                   for _, child in ipairs(safeZones:GetChildren()) do
+                       if child:IsA("BasePart") and child.Name == "Part" then
+                           safePart = child
+                           break
+                       end
+                   end
+                   
+                   if safePart then
+                       local fireTouchFunc = firetouchinterest or firetouchdetector
+                       if fireTouchFunc then
+                           pcall(function()
+                               -- Gửi tín hiệu 1 (rời/tắt chạm) để bỏ khiên
+                               fireTouchFunc(safePart, rootPart, 1)
+                               print("✨ Đã gọi firetouch với tham số 1 để bỏ khiên thành công!")
+                           end)
+                       end
+                   end
+               end
+           end
+       end
+   end,
+})
+local Players = game:GetService("Players")
+local VirtualUser = game:GetService("VirtualUser")
+
+_G.AntiAFK = false
+local afkConnection = nil
+
+-- Hàm xử lý logic chống treo máy bằng cách giả lập thao tác chuột/phím ngầm
+local function startAntiAFK()
+    if afkConnection then return end -- Tránh chạy trùng nhiều vòng lặp
+    
+    local localPlayer = Players.LocalPlayer
+    if not localPlayer then return end
+    
+    -- Lắng nghe sự kiện khi tài khoản bị game gắn cờ chuẩn bị đá (Idled)
+    afkConnection = localPlayer.Idled:Connect(function()
+        if _G.AntiAFK then
+            -- Giả lập một cú click chuột ảo vào giữa màn hình để reset thời gian AFK của Roblox
+            VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+            task.wait(1)
+            VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+            print("🔄 [Anti-AFK] Đã giả lập tương tác chuột ảo để chống ngắt kết nối!")
+        else
+            if afkConnection then
+                afkConnection:Disconnect()
+                afkConnection = nil
+            end
+        end
+    end)
+end
+
+-- ==========================================
+-- ĐOẠN KHỞI TẠO TOGGLE TRONG RAYFIELD UI
+-- (Đổi 'Xóa_Cái_Này_Thay_Bằng_Tab_Của_Bạn' thành tên biến Tab của bạn nhé)
+-- ==========================================
+LocalPlayerTab:CreateToggle({
+   Name = "Anti AFK",
+   CurrentValue = false,
+   Flag = "Toggle_AntiAFK",
+   Callback = function(Value)
+       _G.AntiAFK = Value
+       
+       if Value then
+           print("🟢 [Rayfield] Anti-AFK: ON")
+           startAntiAFK()
+           
+           -- Mẹo phụ: Tự động tương tác nhẹ khi vừa bật để kích hoạt hệ thống
+           pcall(function()
+               VirtualUser:CaptureController()
+               VirtualUser:ClickButton2(Vector2.new(0, 0))
+           end)
+       else
+           print("🔴 [Rayfield] Anti-AFK: OFF")
+           if afkConnection then
+               afkConnection:Disconnect()
+               afkConnection = nil
+           end
+       end
+   end,
+})
+TabGun:CreateSection({ name = "Car", icon = 93364949241311 })
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local localPlayer = Players.LocalPlayer
+
+-- BIẾN ĐIỀU KHIỂN LOGIC
+local BoostEnabled = false 
+local BoostSpeed = 0.4     
+local TURN_SPEED = 2.5     
+
+----------------------------------------------------------------
+-- 1. TẠO TOGGLE (Bật/Tắt)
+----------------------------------------------------------------
+local Toggle = TabGun:CreateToggle({
+   Name = "Active speed boost",
+   CurrentValue = false,
+   Flag = "CarBoostToggle",
+   Callback = function(Value)
+      BoostEnabled = Value
+   end,
+})
+
+----------------------------------------------------------------
+-- 2. TẠO SLIDER (Chỉnh tốc độ - Theo đúng chuẩn của bạn)
+----------------------------------------------------------------
+local Slider = TabGun:CreateSlider({
+   Name = "Boost Speed",
+   Range = {0.1, 5.0}, -- Chỉnh từ 0.1 đến 5.0
+   Increment = 0.1,
+   Suffix = "Speed",
+   CurrentValue = 0.4,
+   Flag = "CarBoostSlider", 
+   Callback = function(Value)
+      BoostSpeed = Value
+   end,
+})
+
+----------------------------------------------------------------
+-- 3. CODE LOGIC DI CHUYỂN XE (Chạy ngầm liên tục)
+----------------------------------------------------------------
+RunService.Heartbeat:Connect(function()
+    if not BoostEnabled then return end
+    
+    local character = localPlayer.Character
+    if not character then return end
+    
+    local humanoid = character:FindFirstChildWhichIsA("Humanoid")
+    if humanoid and humanoid.SeatPart and humanoid.SeatPart:IsA("VehicleSeat") then
+        local seat = humanoid.SeatPart
+        local vehicle = seat:FindFirstAncestorOfClass("Model")
+        
+        if vehicle then
+            local currentPivot = vehicle:GetPivot()
+            
+            -- Tính góc xoay (Rẽ)
+            local turnAngle = 0
+            if seat.Steer == -1 then
+                turnAngle = TURN_SPEED
+            elseif seat.Steer == 1 then
+                turnAngle = -TURN_SPEED
+            end
+            
+            if turnAngle ~= 0 then
+                currentPivot = currentPivot * CFrame.Angles(0, math.rad(turnAngle), 0)
+            end
+            
+            -- Tính hướng tiến/lùi
+            local moveDirection = 0
+            if seat.Throttle == 1 then
+                moveDirection = 1
+            elseif seat.Throttle == -1 then
+                moveDirection = -0.5
+            end
+            
+            -- Cập nhật vị trí xe bằng PivotTo
+            if moveDirection ~= 0 or turnAngle ~= 0 then
+                local nextCFrame = currentPivot + (currentPivot.LookVector * (BoostSpeed * moveDirection))
+                vehicle:PivotTo(nextCFrame)
+            end
+        end
+    end
+end)
+local TeleportTab = Window:CreateTab({ name = "Teleport", icon = 93364949241311 })
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local SelectedPlayerName = nil
+
+-- Hàm lấy danh sách tên người chơi (loại trừ bản thân)
+local function getPlayerNames()
+    local playerList = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            table.insert(playerList, player.Name)
+        end
+    end
+    
+    if #playerList == 0 then
+        table.insert(playerList, "Không có người chơi khác")
+    end
+    return playerList
+end
+
+-- =================================================================
+-- 1. DROPDOWN CHỌN NGƯỜI CHƠI (Gắn vào TeleportTab)
+-- =================================================================
+local PlayerDropdown = TeleportTab:CreateDropdown({
+    name = "Select Player",
+    multiSelect = false,
+    options = getPlayerNames(),
+    value = {},
+    callback = function(selected)
+        local targetName = type(selected) == "table" and selected[1] or selected
+        if targetName and targetName ~= "Không có người chơi khác" then
+            SelectedPlayerName = targetName
+            print("Đã chọn người chơi:", SelectedPlayerName)
+        end
+    end,
+})
+
+-- Nút làm mới danh sách người chơi
+TeleportTab:CreateButton({
+    name = "Refresh Players List",
+    callback = function()
+        if PlayerDropdown and PlayerDropdown.Refresh then
+            PlayerDropdown:Refresh(getPlayerNames(), true)
+        end
+    end,
+})
+
+-- =================================================================
+-- 2. BUTTON NGỒI XUỐNG VÀ TELEPORT (Gắn vào TeleportTab)
+-- =================================================================
+TeleportTab:CreateButton({
+    name = "Sit & Teleport to Player",
+    callback = function()
+        if not SelectedPlayerName then
+            print("Chưa chọn người chơi nào!")
+            return
+        end
+
+        local targetPlayer = Players:FindFirstChild(SelectedPlayerName)
+        if not targetPlayer or not targetPlayer.Character then
+            print("Không tìm thấy người chơi hoặc nhân vật của họ!")
+            return
+        end
+
+        local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+        local myChar = LocalPlayer.Character
+        if not myChar then return end
+
+        local myHum = myChar:FindFirstChildOfClass("Humanoid")
+        local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+
+        if myHum and myRoot and targetRoot then
+            -- Cho nhân vật ngồi xuống
+            myHum.Sit = true
+            
+            -- Chờ 0.1 giây để hoạt ảnh ngồi kích hoạt
+            task.wait(0.1)
+            
+            -- Teleport đến vị trí người chơi (nhích lên 2 stud)
+            myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 2, 0)
+            print("Đã ngồi xuống và dịch chuyển tới:", SelectedPlayerName)
+        end
+    end,
+})
