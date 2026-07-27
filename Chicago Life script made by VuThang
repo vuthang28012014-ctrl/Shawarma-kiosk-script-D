@@ -2234,7 +2234,8 @@ local function applyGunModifications()
                     FireRate = config1.FireRate,
                     RPM = config1.RPM,
                     Cooldown = config1.Cooldown,
-                    ShotDelay = config1.ShotDelay
+                    ShotDelay = config1.ShotDelay,
+					EquipTime = config1.EquipTime
                 }
             end
             config1.Auto = true
@@ -2242,7 +2243,8 @@ local function applyGunModifications()
             if config1.RPM ~= nil then config1.RPM = 999999 end 
             if config1.Cooldown ~= nil then config1.Cooldown = 0 end
             if config1.ShotDelay ~= nil then config1.ShotDelay = 0 end
-        else
+        	if config1.EquipTime ~= nil then config1.EquipTime = 0 end
+		else
             local origFire = OriginalFireRateSettings[SelectedGunName]
             if origFire then
                 if config1.Auto ~= nil and origFire.Auto ~= nil then config1.Auto = origFire.Auto end
@@ -2250,7 +2252,8 @@ local function applyGunModifications()
                 if config1.RPM ~= nil and origFire.RPM ~= nil then config1.RPM = origFire.RPM end
                 if config1.Cooldown ~= nil and origFire.Cooldown ~= nil then config1.Cooldown = origFire.Cooldown end
                 if config1.ShotDelay ~= nil and origFire.ShotDelay ~= nil then config1.ShotDelay = origFire.ShotDelay end
-            else
+            	if config1.EquipTime ~= nil and origFire.EquipTime ~= nil then config1.EquipTime = origFire.EquipTime end
+			else
                 config1.Auto = false
             end
         end
