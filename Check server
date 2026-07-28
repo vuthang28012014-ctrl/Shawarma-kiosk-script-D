@@ -2,7 +2,6 @@ local Player = game:GetService("Players")
 local Localplayer = Player.LocalPlayer
 local executor = "Unknown"
 local UserID = Localplayer.UserId
-local check = false
 
 if identifyexecutor then
     executor = identifyexecutor()
