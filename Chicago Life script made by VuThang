@@ -2195,9 +2195,9 @@ task.spawn(function()
                             firesignal(changeAmmoEvent.OnClientEvent, 
                                 {
                                     {
-                                        Mag = 50,
+                                        Mag = 20,
                                         Heat = 0,
-                                        Ammo = 200,
+                                        Ammo = 50,
                                         Id = 1
                                     }
                                 }, 
