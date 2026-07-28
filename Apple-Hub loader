@@ -4,7 +4,6 @@ local Player = game:GetService("Players")
 local Localplayer = Player.LocalPlayer
 local executor = "Unknown"
 local UserID = Localplayer.UserId
-local check = false
 
 if identifyexecutor then
     executor = identifyexecutor()
@@ -38,7 +37,7 @@ pcall(function()
     
     local code = data.code
     local message = data.message
-    if check == true then
+    if getgenv().Check == true then
         if code ~= "KEY_VALID" and message ~= "Success" then
             Localplayer:Kick("Bypass detected. Repeated attempts may result in a permanent ban!")
         end
