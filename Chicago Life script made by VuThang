@@ -2145,7 +2145,7 @@ local RobToggle = RobTab:CreateToggle({
 local TabGun = Window:CreateTab({ name = "Mod", icon = 93364949241311 })
 TabGun:CreateSection({ name = "Gun", icon = 93364949241311 })
 -- =================================================================
--- HỆ THỐNG ĐIỀU KHIỂN SÚNG THÔNG MINH (DROPDOWN + 5 TOGGLES) -> TABGUN
+-- HỆ THỐNG ĐIỀU KHIỂN SÚNG THÔNG MINH & ĐỔI ÂM THANH (TABGUN)
 -- =================================================================
 
 local Players = game:GetService("Players")
@@ -2157,13 +2157,59 @@ local AutoReloadEnabled = false
 local AutoFireEnabled = false
 local AlwaysCoolEnabled = false
 local NoRecoilEnabled = false 
-local ExplosiveHomingEnabled = false -- Biến trạng thái mới cho Đạn nổ/Đạn đuổi
+local ExplosiveHomingEnabled = false
+local InfiniteAmmoEnabled = false -- Biến mới cho vô hạn đạn
+local CustomSoundId = ""
 
 -- Lưu lại cấu hình gốc của súng để khôi phục khi tắt Toggle
 local OriginalRecoilSettings = {}
 local OriginalReloadSettings = {} 
 local OriginalFireRateSettings = {} 
-local OriginalExplosiveHomingSettings = {} -- Lưu cấu hình gốc của đạn
+local OriginalExplosiveHomingSettings = {}
+
+-- Vòng lặp chạy ngầm để liên tục set đạn nếu Infinite Ammo được bật
+task.spawn(function()
+    while task.wait(0.1) do
+        if InfiniteAmmoEnabled and SelectedGunName then
+            -- Tìm súng trong Backpack hoặc Character
+            local targetGun = nil
+            local backpack = LocalPlayer:FindFirstChild("Backpack")
+            if backpack then
+                targetGun = backpack:FindFirstChild(SelectedGunName)
+            end
+            
+            if not targetGun then
+                local char = LocalPlayer.Character
+                if char then
+                    targetGun = char:FindFirstChild(SelectedGunName)
+                end
+            end
+            
+            if targetGun then
+                local gunServer = targetGun:FindFirstChild("GunServer")
+                if gunServer then
+                    local changeAmmoEvent = gunServer:FindFirstChild("ChangeMagAndAmmo")
+                    if changeAmmoEvent then
+                        -- Gửi tín hiệu giả lập incoming remote
+                        pcall(function()
+                            firesignal(changeAmmoEvent.OnClientEvent, 
+                                {
+                                    {
+                                        Mag = 50,
+                                        Heat = 0,
+                                        Ammo = 200,
+                                        Id = 1
+                                    }
+                                }, 
+                                nil
+                            )
+                        end)
+                    end
+                end
+            end
+        end
+    end
+end)
 
 -- Hàm hỗ trợ tìm kiếm cấu hình Setting của khẩu súng đang chọn
 local function getGunConfig(gunName)
@@ -2235,7 +2281,7 @@ local function applyGunModifications()
                     RPM = config1.RPM,
                     Cooldown = config1.Cooldown,
                     ShotDelay = config1.ShotDelay,
-					EquipTime = config1.EquipTime
+                    EquipTime = config1.EquipTime
                 }
             end
             config1.Auto = true
@@ -2243,8 +2289,8 @@ local function applyGunModifications()
             if config1.RPM ~= nil then config1.RPM = 999999 end 
             if config1.Cooldown ~= nil then config1.Cooldown = 0 end
             if config1.ShotDelay ~= nil then config1.ShotDelay = 0 end
-        	if config1.EquipTime ~= nil then config1.EquipTime = 0 end
-		else
+            if config1.EquipTime ~= nil then config1.EquipTime = 0 end
+        else
             local origFire = OriginalFireRateSettings[SelectedGunName]
             if origFire then
                 if config1.Auto ~= nil and origFire.Auto ~= nil then config1.Auto = origFire.Auto end
@@ -2252,8 +2298,8 @@ local function applyGunModifications()
                 if config1.RPM ~= nil and origFire.RPM ~= nil then config1.RPM = origFire.RPM end
                 if config1.Cooldown ~= nil and origFire.Cooldown ~= nil then config1.Cooldown = origFire.Cooldown end
                 if config1.ShotDelay ~= nil and origFire.ShotDelay ~= nil then config1.ShotDelay = origFire.ShotDelay end
-            	if config1.EquipTime ~= nil and origFire.EquipTime ~= nil then config1.EquipTime = origFire.EquipTime end
-			else
+                if config1.EquipTime ~= nil and origFire.EquipTime ~= nil then config1.EquipTime = origFire.EquipTime end
+            else
                 config1.Auto = false
             end
         end
@@ -2312,7 +2358,6 @@ local function applyGunModifications()
     -- 5. Xử lý Toggle: Đạn nổ / Đạn tự đuổi (Explosive / Homing)
     if config1 then
         if ExplosiveHomingEnabled then
-            -- Sao lưu gốc
             if not OriginalExplosiveHomingSettings[SelectedGunName] then
                 OriginalExplosiveHomingSettings[SelectedGunName] = {
                     ExplosiveEnabled = config1.ExplosiveEnabled,
@@ -2321,22 +2366,19 @@ local function applyGunModifications()
                     HomingDistance = config1.HomingDistance,
                     TurnRatePerSecond = config1.TurnRatePerSecond,
                     HomeThroughWall = config1.HomeThroughWall,
-					Lifesteal = config1.Lifesteal
+                    Lifesteal = config1.Lifesteal
                 }
             end
             
-            -- Ép bật đạn nổ
             config1.ExplosiveEnabled = true
-            if config1.ExplosionRadius ~= nil then config1.ExplosionRadius = 15 end -- Chỉnh bán kính nổ to
-			if config1.Lifesteal ~= nil then config1.Lifesteal = 100 end
+            if config1.ExplosionRadius ~= nil then config1.ExplosionRadius = 15 end 
+            if config1.Lifesteal ~= nil then config1.Lifesteal = 50 end
 
-            -- Ép bật đạn đuổi mục tiêu
             config1.Homing = true
-            if config1.HomingDistance ~= nil then config1.HomingDistance = 1500 end -- Tăng tầm đuổi xa
-            if config1.TurnRatePerSecond ~= nil then config1.TurnRatePerSecond = 50 end -- Bẻ lái cực gắt
-            if config1.HomeThroughWall ~= nil then config1.HomeThroughWall = true end -- Cho phép đuổi xuyên tường
+            if config1.HomingDistance ~= nil then config1.HomingDistance = 1500 end 
+            if config1.TurnRatePerSecond ~= nil then config1.TurnRatePerSecond = 50 end 
+            if config1.HomeThroughWall ~= nil then config1.HomeThroughWall = true end 
         else
-            -- Khôi phục trạng thái ban đầu
             local origBomb = OriginalExplosiveHomingSettings[SelectedGunName]
             if origBomb then
                 config1.ExplosiveEnabled = origBomb.ExplosiveEnabled
@@ -2345,7 +2387,7 @@ local function applyGunModifications()
                 if config1.HomingDistance ~= nil then config1.HomingDistance = origBomb.HomingDistance end
                 if config1.TurnRatePerSecond ~= nil then config1.TurnRatePerSecond = origBomb.TurnRatePerSecond end
                 if config1.HomeThroughWall ~= nil then config1.HomeThroughWall = origBomb.HomeThroughWall end
-				if config1.Lifesteal ~= nil then config1.Lifesteal = origBomb.Lifesteal end
+                if config1.Lifesteal ~= nil then config1.Lifesteal = origBomb.Lifesteal end
             end
         end
     end
@@ -2384,8 +2426,42 @@ local function getBackpackGuns()
     return guns
 end
 
+-- Hàm quét và thay đổi SoundId của tất cả âm thanh trong súng đang chọn
+local function updateAllGunSounds(soundId)
+    if not SelectedGunName then
+        print("Chưa chọn súng nào!")
+        return
+    end
+    
+    local targetGun = nil
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    if backpack then
+        targetGun = backpack:FindFirstChild(SelectedGunName)
+    end
+    
+    if not targetGun then
+        local char = LocalPlayer.Character
+        if char then
+            targetGun = char:FindFirstChild(SelectedGunName)
+        end
+    end
+    
+    if targetGun then
+        local count = 0
+        for _, descendant in pairs(targetGun:GetDescendants()) do
+            if descendant:IsA("Sound") then
+                descendant.SoundId = "rbxassetid://" .. soundId
+                count = count + 1
+            end
+        end
+        print("Đã cập nhật thành công " .. count .. " âm thanh thành: rbxassetid://" .. soundId)
+    else
+        print("Không tìm thấy khẩu súng: " .. SelectedGunName)
+    end
+end
+
 -- =================================================================
--- CHÈN DROPDOWN & 5 TOGGLES VÀO TAB CỦA BẠN (Sử dụng TabGun)
+-- TẠO GIAO DIỆN UI (TABGUN)
 -- =================================================================
 
 local GunDropdown = TabGun:CreateDropdown({
@@ -2398,9 +2474,13 @@ local GunDropdown = TabGun:CreateDropdown({
        local gunName = type(Option) == "table" and Option[1] or Option
        
        if gunName and gunName ~= "Không tìm thấy súng trong balo!" then
-           SelectedGunName = gunName
-           print("Choosed: " .. SelectedGunName)
-           applyGunModifications()
+            SelectedGunName = gunName
+            print("Choosed: " .. SelectedGunName)
+            applyGunModifications()
+            -- Nếu đã nhập sẵn Sound ID trước đó thì áp dụng luôn cho súng mới chọn
+            if CustomSoundId ~= "" then
+                updateAllGunSounds(CustomSoundId)
+            end
        end
     end,
 })
@@ -2414,13 +2494,23 @@ TabGun:CreateButton({
     end,
 })
 
+-- Nút Toggle Vô Hạn Đạn mới thêm
+TabGun:CreateToggle({
+    Name = "Infinite Ammo",
+    CurrentValue = false,
+    Flag = "GunInfAmmoFlag",
+    Callback = function(Value)
+        InfiniteAmmoEnabled = Value
+    end,
+})
+
 TabGun:CreateToggle({
     Name = "Auto Reload",
     CurrentValue = false,
     Flag = "GunAutoReloadFlag",
     Callback = function(Value)
-       AutoReloadEnabled = Value
-       applyGunModifications()
+        AutoReloadEnabled = Value
+        applyGunModifications()
     end,
 })
 
@@ -2429,8 +2519,8 @@ TabGun:CreateToggle({
     CurrentValue = false,
     Flag = "GunAutoFireFlag",
     Callback = function(Value)
-       AutoFireEnabled = Value
-       applyGunModifications()
+        AutoFireEnabled = Value
+        applyGunModifications()
     end,
 })
 
@@ -2439,8 +2529,8 @@ TabGun:CreateToggle({
     CurrentValue = false,
     Flag = "GunAlwaysCoolFlag",
     Callback = function(Value)
-       AlwaysCoolEnabled = Value
-       applyGunModifications()
+        AlwaysCoolEnabled = Value
+        applyGunModifications()
     end,
 })
 
@@ -2449,19 +2539,31 @@ TabGun:CreateToggle({
     CurrentValue = false,
     Flag = "GunNoRecoilFlag",
     Callback = function(Value)
-       NoRecoilEnabled = Value
-       applyGunModifications()
+        NoRecoilEnabled = Value
+        applyGunModifications()
     end,
 })
 
--- MỚI: Toggle Đạn nổ / Đạn đuổi
 TabGun:CreateToggle({
-    Name = "Explosive/Homing bullets/Lifesteal",
+    Name = "Explosive/Homing bullets",
     CurrentValue = false,
     Flag = "GunExplosiveHomingFlag",
     Callback = function(Value)
-       ExplosiveHomingEnabled = Value
-       applyGunModifications()
+        ExplosiveHomingEnabled = Value
+        applyGunModifications()
+    end,
+})
+
+TabGun:CreateInput({
+    Name = "Custom Sound ID",
+    Numeric = true,
+    Value = "",
+    Placeholder = "Nhập ID âm thanh vào đây...",
+    Callback = function(text)
+        CustomSoundId = text
+        if text and text ~= "" then
+            updateAllGunSounds(text)
+        end
     end,
 })
 local LocalPlayerTab = Window:CreateTab({ name = "LocalPlayer", icon = 93364949241311 })
