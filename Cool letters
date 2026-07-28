@@ -1,0 +1,73 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local localPlayer = Players.LocalPlayer
+
+local function createHeadText(character)
+    local head = character:WaitForChild("Head", 5)
+    if not head then return end
+
+    -- Tránh tạo trùng lặp nếu đã có sẵn
+    if head:FindFirstChild("GangBillboard") then return end
+
+    -- Tạo BillboardGui để hiển thị 3D trên đầu
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Name = "GangBillboard"
+    billboardGui.Size = UDim2.new(0, 250, 0, 50)
+    billboardGui.StudsOffset = Vector3.new(0, 2.5, 0) -- Khoảng cách nổi lên phía trên đầu
+    billboardGui.AlwaysOnTop = true
+    billboardGui.Parent = head
+
+    -- Tạo TextLabel để chứa chữ
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextStrokeTransparency = 0.5 -- Viền đen cho dễ đọc
+    textLabel.TextSize = 18
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.Text = "" -- Ban đầu để trống để chạy hiệu ứng gõ chữ
+    textLabel.Parent = billboardGui
+
+    -- Hiệu ứng đổi màu liên tục bằng RenderStepped (màu chạy theo thời gian thực)
+    local colorConnection
+    colorConnection = RunService.RenderStepped:Connect(function()
+        if not textLabel or not textLabel.Parent then
+            colorConnection:Disconnect()
+            return
+        end
+        -- Thay đổi màu sắc dựa vào thời gian (tick()) để tạo hiệu ứng cầu vồng
+        local hue = (tick() % 5) / 5
+        textLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
+    end)
+
+    -- Nội dung đầy đủ cần hiển thị
+    local fullText = "Gang O'Block | " .. localPlayer.Name
+
+    -- Chạy hiệu ứng gõ chữ dạng coroutine
+    task.spawn(function()
+        while billboardGui.Parent do
+            -- Gõ từng ký tự
+            for i = 1, #fullText do
+                if not textLabel or not textLabel.Parent then break end
+                textLabel.Text = string.sub(fullText, 1, i)
+                task.wait(0.08) -- Tốc độ gõ chữ
+            end
+            
+            -- Đợi 3 giây sau khi gõ xong rồi xóa đi gõ lại từ đầu
+            task.wait(3)
+            
+            if not textLabel or not textLabel.Parent then break end
+            textLabel.Text = ""
+            task.wait(0.5)
+        end
+    end)
+end
+
+-- Khi nhân vật xuất hiện lần đầu
+if localPlayer.Character then
+    createHeadText(localPlayer.Character)
+end
+
+-- Khi nhân vật chết và hồi sinh (respawn)
+localPlayer.CharacterAdded:Connect(function(character)
+    createHeadText(character)
+end)
