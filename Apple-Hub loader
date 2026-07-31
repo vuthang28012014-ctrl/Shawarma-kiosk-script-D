@@ -72,6 +72,10 @@ local Scripts = {
     [126194330110954] = {
         Name = "Chicago Life",
         Url = 'https://gate.sirius.menu/gateway?id=sid_04usu24bgzau'
+    },
+    [98502499119821] = {
+        Name = "Heavyweight Fishing",
+        Url = 'https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/Heavyweight%20fishing'
     }
 }
 
