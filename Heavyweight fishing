@@ -1,0 +1,790 @@
+--[[
+    🐟 HEAVYWEIGHT FISHING HUB – WITH ANTI AFK
+]]
+
+-- ==========================================
+-- 📦 LOAD RAYFIELD GEN2
+-- ==========================================
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
+
+local Window = Rayfield:CreateWindow({
+    name = "🐟 Heavyweight Fishing Hub",
+    icon = 0,
+    mainWindow = true,
+    configuration = {
+        autoSave = true,
+        autoLoad = true,
+        fileName = "FishingHub",
+        customFolder = "FishingBot",
+    },
+})
+
+-- ==========================================
+-- ⚙️ ENGINE
+-- ==========================================
+local getgenv = getgenv or function() return _G end
+getgenv().MasterFarm = false
+getgenv().AutoCast = false
+getgenv().AutoBalance = false
+getgenv().RequireRod = false
+getgenv().AutoEquip = false
+getgenv().AutoSell = false
+getgenv().SellMode = "When Full"
+getgenv().ShowPlayerData = false
+getgenv().AutoSkills = false
+getgenv().SmartSkills = false
+getgenv().SelectedSkill = "All Skills"
+getgenv().AntiAFK = false       -- NEW
+
+local Player = game.Players.LocalPlayer
+local Events = game:GetService("ReplicatedStorage"):WaitForChild("Events")
+local MainGui = Player.PlayerGui:WaitForChild("MainGui")
+local Data = game:GetService("ReplicatedStorage"):WaitForChild("Data")
+local Info = game:GetService("ReplicatedStorage"):WaitForChild("Info")
+local ClientModule = game:GetService("ReplicatedStorage"):WaitForChild("ClientModule")
+local GameService = require(ClientModule.GameService)
+local List = MainGui.Main.Hotbar.List
+local UIS = game:GetService("UserInputService")
+local VIM = game:GetService("VirtualInputManager")
+
+local CastRunning = false
+local BalanceRunning = false
+local SellRunning = false
+local SkillRunning = false
+local AntiAFKRunning = false
+local PauseCast = false
+local FishCount = 0
+
+-- ==========================================
+-- 📊 INVENTORY HELPERS (SAFE)
+-- ==========================================
+local function GetPlayerData()
+    return Data:FindFirstChild(tostring(Player.UserId))
+end
+
+local function GetInventoryUsage()
+    local playerData = GetPlayerData()
+    if not playerData then return 0 end
+    local count = #playerData.Inventory:GetChildren()
+    for _, slot in pairs(playerData.Hotbar:GetChildren()) do
+        if slot.Name ~= "1" and slot.Name ~= "2" and slot.Name ~= "3" then
+            count = count + slot.Quantity.Value
+        end
+    end
+    return count
+end
+
+local function GetInventoryLimit()
+    local playerData = GetPlayerData()
+    if not playerData then return 999 end
+    local limit = playerData:FindFirstChild("InventoryLimit")
+    if limit then
+        return limit.Value
+    end
+    return 999
+end
+
+local function IsInventoryFull()
+    return GetInventoryUsage() >= GetInventoryLimit()
+end
+
+-- ==========================================
+-- 📊 COUNT FISH (USING DestringFish)
+-- ==========================================
+local function CountFish()
+    local playerData = GetPlayerData()
+    if not playerData then return 0 end
+    local totalFish = 0
+    local inventory = playerData:FindFirstChild("Inventory")
+    if not inventory then return 0 end
+
+    for _, item in pairs(inventory:GetChildren()) do
+        local rawName = item.Name
+        local fishInfo = GameService.DestringFish(rawName)
+        if fishInfo and fishInfo.FishName then
+            totalFish = totalFish + item.Value
+        else
+            local cleanName = string.split(rawName, "| Favorite")[1]
+            local itemModule = Info.Inventory:FindFirstChild(cleanName)
+            if itemModule then
+                local success, module = pcall(require, itemModule)
+                if success and type(module) == "table" then
+                    if module.Type == "Fish" or module.Category == "Fish" then
+                        totalFish = totalFish + item.Value
+                    end
+                end
+            end
+        end
+    end
+    return totalFish
+end
+
+local function GetFishBreakdown()
+    local playerData = GetPlayerData()
+    if not playerData then return {} end
+    local fishList = {}
+    local inventory = playerData:FindFirstChild("Inventory")
+    if not inventory then return {} end
+
+    for _, item in pairs(inventory:GetChildren()) do
+        local rawName = item.Name
+        local fishInfo = GameService.DestringFish(rawName)
+        if fishInfo and fishInfo.FishName then
+            table.insert(fishList, {Name = fishInfo.FishName, Count = item.Value})
+        else
+            local cleanName = string.split(rawName, "| Favorite")[1]
+            local itemModule = Info.Inventory:FindFirstChild(cleanName)
+            if itemModule then
+                local success, module = pcall(require, itemModule)
+                if success and type(module) == "table" then
+                    if module.Type == "Fish" or module.Category == "Fish" then
+                        table.insert(fishList, {Name = cleanName, Count = item.Value})
+                    end
+                end
+            end
+        end
+    end
+    table.sort(fishList, function(a,b) return a.Count > b.Count end)
+    return fishList
+end
+
+local function GetLevel()
+    local playerData = GetPlayerData()
+    if not playerData then return 0 end
+    local levelFolder = playerData:FindFirstChild("Level")
+    if levelFolder then
+        local levelValue = levelFolder:FindFirstChild("Level")
+        if levelValue then
+            return levelValue.Value
+        end
+    end
+    return 0
+end
+
+local function GetCoins()
+    local playerData = GetPlayerData()
+    if not playerData then return 0 end
+    local coins = playerData:FindFirstChild("Coins")
+    if coins then
+        return coins.Value
+    end
+    return 0
+end
+
+-- ==========================================
+-- 🎣 AUTO EQUIP ROD
+-- ==========================================
+local function EquipFishingRod()
+    local char = Player.Character
+    if char and char:GetAttribute("Type") == "Fishing Rod" then return true end
+
+    local playerData = GetPlayerData()
+    if not playerData then return false end
+
+    for i = 1, 10 do
+        local slotName = tostring(i)
+        local slot = playerData.Hotbar:FindFirstChild(slotName)
+        if slot then
+            local itemName = slot.ValueName.Value
+            if itemName == "Fishing rod" or string.find(itemName:lower(), "rod") then
+                if itemName ~= "Fishing rod inventory" then
+                    pcall(function()
+                        Events.ToggleHotbar:InvokeServer(slotName, nil)
+                    end)
+                    task.wait(0.3)
+                    local char2 = Player.Character
+                    if char2 and char2:GetAttribute("Type") == "Fishing Rod" then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+
+    local inventory = playerData.Inventory
+    if not inventory then return false end
+
+    for _, child in pairs(inventory:GetChildren()) do
+        local rawName = child.Name
+        local cleanName = string.split(rawName, "| Favorite")[1]
+        if cleanName == "Fishing rod inventory" then continue end
+        local itemModule = Info.Inventory:FindFirstChild(cleanName)
+        if itemModule then
+            local success, module = pcall(require, itemModule)
+            if success and type(module) == "table" and (module.Type == "FishingRod" or string.find(cleanName:lower(), "rod")) then
+                local slot1 = playerData.Hotbar:FindFirstChild("1")
+                if slot1 and slot1.ValueName.Value ~= "" then
+                    pcall(function()
+                        Events.MoveItems:FireServer("Hotbar", slot1.Name)
+                        task.wait(0.15)
+                    end)
+                end
+                pcall(function()
+                    Events.MoveItems:FireServer("Inventory", cleanName, "1")
+                    task.wait(0.2)
+                end)
+                pcall(function()
+                    Events.ToggleHotbar:InvokeServer("1", nil)
+                end)
+                task.wait(0.3)
+                local char2 = Player.Character
+                if char2 and char2:GetAttribute("Type") == "Fishing Rod" then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- ==========================================
+-- 🧵 AUTO CAST THREAD
+-- ==========================================
+local function StartCastLoop()
+    if CastRunning then return end
+    CastRunning = true
+    task.spawn(function()
+        while getgenv().MasterFarm and getgenv().AutoCast do
+            if PauseCast then
+                task.wait(1)
+                continue
+            end
+            task.wait(1.5)
+            local char = Player.Character
+            if not char then continue end
+
+            if getgenv().AutoEquip and char:GetAttribute("Type") ~= "Fishing Rod" then
+                if EquipFishingRod() then
+                    Window:Notify({ title = "🎣", content = "Rod equipped!", duration = 2 })
+                else
+                    Window:Notify({ title = "⚠️", content = "No fishing rod found.", duration = 2 })
+                end
+            end
+
+            if getgenv().RequireRod and char:GetAttribute("Type") ~= "Fishing Rod" then
+                continue
+            end
+
+            if not char:GetAttribute("Fishing") then
+                local playerData = GetPlayerData()
+                if playerData and playerData.InventoryLimit and playerData.Inventory then
+                    local limit = playerData.InventoryLimit.Value
+                    local count = #playerData.Inventory:GetChildren()
+                    if count >= limit then
+                        Window:Notify({ title = "⚠️ Inventory Full", content = "Auto‑cast paused.", duration = 2 })
+                        continue
+                    end
+                end
+                local root = char:FindFirstChild("HumanoidRootPart")
+                if root then
+                    Events.Fishing:FireServer(root.CFrame)
+                end
+            end
+        end
+        CastRunning = false
+    end)
+end
+
+-- ==========================================
+-- 🧊 AUTO BALANCE THREAD
+-- ==========================================
+local function StartBalanceLoop()
+    if BalanceRunning then return end
+    BalanceRunning = true
+    task.spawn(function()
+        while getgenv().MasterFarm and getgenv().AutoBalance do
+            task.wait()
+            local char = Player.Character
+            if not char then continue end
+
+            if getgenv().RequireRod and char:GetAttribute("Type") ~= "Fishing Rod" then
+                continue
+            end
+
+            local fishing = MainGui:FindFirstChild("Fishing")
+            if fishing and fishing.Visible then
+                local barFrame = fishing:FindFirstChild("BarFrame")
+                if barFrame then
+                    local bar = barFrame:FindFirstChild("Bar")
+                    if bar and bar:IsA("Frame") then
+                        bar.Position = UDim2.new(0.5, 0, bar.Position.Y.Scale, bar.Position.Y.Offset)
+                    end
+                end
+                local bossBarFrame = fishing:FindFirstChild("BossFightBar")
+                if bossBarFrame then
+                    local bar = bossBarFrame:FindFirstChild("Bar")
+                    if bar and bar:IsA("Frame") then
+                        bar.Position = UDim2.new(0.5, 0, bar.Position.Y.Scale, bar.Position.Y.Offset)
+                    end
+                end
+            end
+        end
+        BalanceRunning = false
+    end)
+end
+
+-- ==========================================
+-- 💰 SELL THREAD
+-- ==========================================
+local function StartSellLoop()
+    if SellRunning then return end
+    SellRunning = true
+    PauseCast = false
+
+    task.spawn(function()
+        local sellEvent = Events:FindFirstChild("SellFish")
+        if not sellEvent then
+            Window:Notify({ title = "⚠️", content = "SellFish event not found!", duration = 3 })
+            SellRunning = false
+            return
+        end
+
+        while getgenv().MasterFarm and getgenv().AutoSell do
+            local mode = getgenv().SellMode
+
+            if mode == "When Full" then
+                if IsInventoryFull() then
+                    PauseCast = true
+                    Window:Notify({ title = "💰", content = "Inventory full – selling...", duration = 2 })
+                    pcall(function()
+                        sellEvent:FireServer("All")
+                    end)
+                    task.wait(3)
+                    if not IsInventoryFull() then
+                        PauseCast = false
+                        Window:Notify({ title = "✅", content = "Inventory cleared – resuming.", duration = 2 })
+                    else
+                        task.wait(5)
+                    end
+                else
+                    PauseCast = false
+                    task.wait(2)
+                end
+            else -- "Spam"
+                pcall(function()
+                    sellEvent:FireServer("All")
+                end)
+                task.wait(0.5)
+            end
+        end
+        PauseCast = false
+        SellRunning = false
+    end)
+end
+
+-- ==========================================
+-- ⚔️ SKILL THREAD
+-- ==========================================
+local function PressKey(key)
+    pcall(function()
+        VIM:SendKeyEvent(true, key, false, game)
+        task.wait(0.05)
+        VIM:SendKeyEvent(false, key, false, game)
+    end)
+end
+
+local function GetSelectedSkillKeys()
+    local skillMap = {
+        ["All Skills"] = {Enum.KeyCode.Z, Enum.KeyCode.X, Enum.KeyCode.C, Enum.KeyCode.V},
+        ["Z"] = {Enum.KeyCode.Z},
+        ["X"] = {Enum.KeyCode.X},
+        ["C"] = {Enum.KeyCode.C},
+        ["V"] = {Enum.KeyCode.V},
+    }
+    return skillMap[getgenv().SelectedSkill] or skillMap["All Skills"]
+end
+
+local function StartSkillLoop()
+    if SkillRunning then return end
+    SkillRunning = true
+    task.spawn(function()
+        local skillKeys = {Enum.KeyCode.Z, Enum.KeyCode.X, Enum.KeyCode.C, Enum.KeyCode.V}
+        local skillNames = {"Z", "X", "C", "V"}
+
+        while getgenv().MasterFarm and getgenv().AutoSkills do
+            local fishing = MainGui:FindFirstChild("Fishing")
+            if not fishing or not fishing.Visible then
+                task.wait(0.5)
+                continue
+            end
+
+            local keysToPress = GetSelectedSkillKeys()
+
+            if getgenv().SmartSkills then
+                local skillFrame = fishing:FindFirstChild("SkillButton")
+                if skillFrame then
+                    local frame = skillFrame:FindFirstChild("Frame")
+                    if frame then
+                        for i, key in ipairs(skillKeys) do
+                            local shouldPress = false
+                            for _, selectedKey in ipairs(keysToPress) do
+                                if selectedKey == key then
+                                    shouldPress = true
+                                    break
+                                end
+                            end
+                            if not shouldPress then
+                                continue
+                            end
+
+                            local btn = frame:FindFirstChild(skillNames[i])
+                            if btn then
+                                local cd = btn:FindFirstChild("CD")
+                                if cd and cd:IsA("TextLabel") then
+                                    if not cd.Visible then
+                                        PressKey(key)
+                                        task.wait(0.15)
+                                    end
+                                else
+                                    PressKey(key)
+                                    task.wait(0.15)
+                                end
+                            end
+                        end
+                    end
+                else
+                    for _, key in ipairs(keysToPress) do
+                        PressKey(key)
+                        task.wait(0.15)
+                    end
+                end
+            else
+                for _, key in ipairs(keysToPress) do
+                    PressKey(key)
+                    task.wait(0.15)
+                end
+            end
+
+            task.wait(0.5)
+        end
+        SkillRunning = false
+    end)
+end
+
+-- ==========================================
+-- 🛡️ ANTI AFK THREAD
+-- ==========================================
+local function StartAntiAFKLoop()
+    if AntiAFKRunning then return end
+    AntiAFKRunning = true
+    task.spawn(function()
+        local lastMouseMove = tick()
+        while getgenv().MasterFarm and getgenv().AntiAFK do
+            -- Reset ReadyToAFK attribute on Character and LocalPlayer
+            local char = Player.Character
+            if char then
+                if char:GetAttribute("ReadyToAFK") == true then
+                    char:SetAttribute("ReadyToAFK", false)
+                end
+            end
+            if Player:GetAttribute("ReadyToAFK") == true then
+                Player:SetAttribute("ReadyToAFK", false)
+            end
+
+            -- Prevent Roblox AFK kick (move mouse 1px every 10 minutes)
+            if tick() - lastMouseMove > 600 then
+                local mouse = Player:GetMouse()
+                if mouse then
+                    local pos = mouse.X
+                    VIM:SendMouseMovementEvent(pos + 1, mouse.Y, 0, false)
+                    task.wait(0.1)
+                    VIM:SendMouseMovementEvent(pos, mouse.Y, 0, false)
+                end
+                lastMouseMove = tick()
+            end
+
+            task.wait(5) -- check often
+        end
+        AntiAFKRunning = false
+    end)
+end
+
+-- ==========================================
+-- 📊 PLAYER DATA DISPLAY THREAD
+-- ==========================================
+local DataDisplayRunning = false
+local DataDisplayThread = nil
+
+local function BuildDataMessage()
+    local totalFish = CountFish()
+    local fishList = GetFishBreakdown()
+    local level = GetLevel()
+    local coins = GetCoins()
+    local usage = GetInventoryUsage()
+    local limit = GetInventoryLimit()
+    local fishCaught = FishCount
+
+    local msg = "📊 **Player Data**\n"
+    msg = msg .. "━━━━━━━━━━━━━━━━━━\n"
+    msg = msg .. "🎣 Fish caught: " .. fishCaught .. "\n"
+    msg = msg .. "🐟 Total fish in inventory: " .. totalFish .. "\n"
+    msg = msg .. "📦 Inventory: " .. usage .. "/" .. limit .. "\n"
+    msg = msg .. "⭐ Level: " .. level .. "\n"
+    if coins > 0 then
+        msg = msg .. "💰 Coins: " .. coins .. "\n"
+    end
+    msg = msg .. "━━━━━━━━━━━━━━━━━━\n"
+
+    if #fishList > 0 then
+        msg = msg .. "📋 Top fish:\n"
+        local maxShow = math.min(#fishList, 8)
+        for i = 1, maxShow do
+            msg = msg .. "  • " .. fishList[i].Name .. " x" .. fishList[i].Count .. "\n"
+        end
+        if #fishList > 8 then
+            msg = msg .. "  ... and " .. (#fishList - 8) .. " more types.\n"
+        end
+    else
+        msg = msg .. "📭 No fish in inventory.\n"
+    end
+
+    return msg
+end
+
+local function StartDataDisplay()
+    if DataDisplayRunning then return end
+    DataDisplayRunning = true
+    DataDisplayThread = task.spawn(function()
+        while getgenv().ShowPlayerData do
+            local msg = BuildDataMessage()
+            Window:Notify({
+                title = "📊 Player Data",
+                content = msg,
+                duration = 8,
+            })
+            task.wait(8)
+        end
+        DataDisplayRunning = false
+    end)
+end
+
+local function StopDataDisplay()
+    if DataDisplayThread then
+        task.cancel(DataDisplayThread)
+        DataDisplayThread = nil
+    end
+    DataDisplayRunning = false
+end
+
+-- ==========================================
+-- 🔄 REFRESH THREADS
+-- ==========================================
+local function RefreshThreads()
+    if getgenv().MasterFarm then
+        if getgenv().AutoCast then StartCastLoop() end
+        if getgenv().AutoBalance then StartBalanceLoop() end
+        if getgenv().AutoSell then StartSellLoop() end
+        if getgenv().AutoSkills then StartSkillLoop() end
+        if getgenv().AntiAFK then StartAntiAFKLoop() end
+    else
+        CastRunning = false
+        BalanceRunning = false
+        SellRunning = false
+        SkillRunning = false
+        AntiAFKRunning = false
+        PauseCast = false
+    end
+
+    if getgenv().ShowPlayerData then
+        StartDataDisplay()
+    else
+        StopDataDisplay()
+    end
+end
+
+-- ==========================================
+-- 🎛️ TABS & UI
+-- ==========================================
+
+local farmTab = Window:CreateTab({ 
+    name = "⚡ Auto Farm", 
+    icon = 93364949241311 
+})
+
+farmTab:CreateSection({ name = "🎣 Main Controls" })
+
+farmTab:CreateToggle({
+    name = "🔓 Master Auto-Farm",
+    flag = "MasterFarm",
+    callback = function(v)
+        getgenv().MasterFarm = v
+        if v then
+            Window:Notify({ title = "✅ Master ON", content = "Auto‑farm enabled.", duration = 2 })
+        else
+            Window:Notify({ title = "⏸️ Master OFF", content = "All threads stopped.", duration = 2 })
+        end
+        RefreshThreads()
+    end,
+})
+
+farmTab:CreateToggle({
+    name = "🎣 Auto Cast",
+    flag = "AutoCast",
+    callback = function(v)
+        getgenv().AutoCast = v
+        RefreshThreads()
+    end,
+})
+
+farmTab:CreateToggle({
+    name = "⚖️ Auto Balance (Freeze Bar)",
+    flag = "AutoBalance",
+    callback = function(v)
+        getgenv().AutoBalance = v
+        RefreshThreads()
+    end,
+})
+
+farmTab:CreateToggle({
+    name = "🎯 Require Fishing Rod",
+    flag = "RequireRod",
+    callback = function(v)
+        getgenv().RequireRod = v
+        if v then
+            Window:Notify({ title = "🎯 Rod Check ON", content = "Only works when holding a rod.", duration = 2 })
+        else
+            Window:Notify({ title = "🎯 Rod Check OFF", content = "Works regardless.", duration = 2 })
+        end
+    end,
+})
+
+farmTab:CreateToggle({
+    name = "🎣 Auto Equip Fishing Rod",
+    flag = "AutoEquip",
+    callback = function(v)
+        getgenv().AutoEquip = v
+        if v then
+            Window:Notify({ title = "🎣 Auto Equip ON", content = "Will find and equip a rod.", duration = 2 })
+        else
+            Window:Notify({ title = "🎣 Auto Equip OFF", content = "You must equip manually.", duration = 2 })
+        end
+        RefreshThreads()
+    end,
+})
+
+farmTab:CreateToggle({
+    name = "⚔️ Auto Use Skills",
+    flag = "AutoSkills",
+    callback = function(v)
+        getgenv().AutoSkills = v
+        if v then
+            Window:Notify({ title = "⚔️ Auto Skills ON", content = "Will press selected skill during minigame.", duration = 2 })
+        else
+            Window:Notify({ title = "⚔️ Auto Skills OFF", content = "Skills disabled.", duration = 2 })
+        end
+        RefreshThreads()
+    end,
+})
+
+farmTab:CreateToggle({
+    name = "🧠 Smart Skills Check",
+    flag = "SmartSkills",
+    callback = function(v)
+        getgenv().SmartSkills = v
+        if v then
+            Window:Notify({ title = "🧠 Smart Check ON", content = "Only use skill when ready (cooldown check).", duration = 2 })
+        else
+            Window:Notify({ title = "🧠 Smart Check OFF", content = "Spam selected skill.", duration = 2 })
+        end
+        RefreshThreads()
+    end,
+})
+
+farmTab:CreateDropdown({
+    name = "🎯 Select Skill",
+    flag = "SelectedSkill",
+    options = {"All Skills", "Z", "X", "C", "V"},
+    current = "All Skills",
+    callback = function(option)
+        getgenv().SelectedSkill = option
+        Window:Notify({ title = "🎯 Skill updated", content = "Selected: " .. option, duration = 2 })
+        RefreshThreads()
+    end,
+})
+
+-- NEW: Anti AFK toggle
+farmTab:CreateToggle({
+    name = "🛡️ Anti AFK",
+    flag = "AntiAFK",
+    callback = function(v)
+        getgenv().AntiAFK = v
+        if v then
+            Window:Notify({ title = "🛡️ Anti AFK ON", content = "Prevents AFK kick and resets ReadyToAFK.", duration = 2 })
+        else
+            Window:Notify({ title = "🛡️ Anti AFK OFF", content = "AFK protection disabled.", duration = 2 })
+        end
+        RefreshThreads()
+    end,
+})
+
+farmTab:CreateSection({ name = "💰 Auto Sell" })
+
+farmTab:CreateToggle({
+    name = "💲 Auto Sell",
+    flag = "AutoSell",
+    callback = function(v)
+        getgenv().AutoSell = v
+        if v then
+            Window:Notify({ title = "💲 Auto Sell ON", content = "Sell mode active.", duration = 2 })
+        else
+            Window:Notify({ title = "💲 Auto Sell OFF", content = "Selling disabled.", duration = 2 })
+            PauseCast = false
+        end
+        RefreshThreads()
+    end,
+})
+
+farmTab:CreateDropdown({
+    name = "📋 Sell Mode",
+    flag = "SellMode",
+    options = { "When Full", "Spam" },
+    current = "When Full",
+    callback = function(option)
+        getgenv().SellMode = option
+        if option == "When Full" then
+            Window:Notify({ title = "📋 Mode", content = "Sell only when inventory is full.", duration = 2 })
+        else
+            Window:Notify({ title = "📋 Mode", content = "Spam sell continuously.", duration = 2 })
+        end
+        RefreshThreads()
+    end,
+})
+
+local utilTab = Window:CreateTab({ 
+    name = "📊 Utility", 
+    icon = 93364949241311 
+})
+
+utilTab:CreateToggle({
+    name = "📊 Player Data",
+    flag = "PlayerData",
+    callback = function(v)
+        getgenv().ShowPlayerData = v
+        if v then
+            Window:Notify({ title = "📊 Player Data ON", content = "Showing player data every 8 seconds.", duration = 2 })
+            StartDataDisplay()
+        else
+            Window:Notify({ title = "📊 Player Data OFF", content = "Stopped displaying data.", duration = 2 })
+            StopDataDisplay()
+        end
+    end,
+})
+
+-- ==========================================
+-- 🐟 FISH COUNT HOOK
+-- ==========================================
+local fishCaughtEvent = Events:FindFirstChild("ReplicateFishCaught")
+if fishCaughtEvent then
+    fishCaughtEvent.OnClientEvent:Connect(function()
+        FishCount = FishCount + 1
+    end)
+else
+    for _, child in pairs(Events:GetChildren()) do
+        if child:IsA("RemoteEvent") and string.find(child.Name, "Fish") then
+            child.OnClientEvent:Connect(function()
+                FishCount = FishCount + 1
+            end)
+            break
+        end
+    end
+end
