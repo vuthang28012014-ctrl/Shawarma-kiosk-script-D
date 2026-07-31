@@ -1,5 +1,5 @@
 --[[
-    🐟 HEAVYWEIGHT FISHING HUB – FINAL WITH SMOOTH FLY & INFINITE JUMP
+    🐟 HEAVYWEIGHT FISHING HUB – CORRECT LAYOUT
 ]]
 
 -- ==========================================
@@ -20,7 +20,7 @@ local Window = Rayfield:CreateWindow({
 })
 
 -- ==========================================
--- ⚙️ ENGINE & GLOBALS
+-- ⚙️ GLOBALS
 -- ==========================================
 local getgenv = getgenv or function() return _G end
 getgenv().MasterFarm = false
@@ -66,35 +66,33 @@ local FishCount = 0
 local originalBrightness = Lighting.Brightness
 local originalAmbient = Lighting.Ambient
 local originalOutdoorAmbient = Lighting.OutdoorAmbient
-
--- Fly objects (BodyVelocity & BodyGyro)
 local flyVelocity = nil
 local flyGyro = nil
 
 -- ==========================================
--- 📊 HELPERS (giữ nguyên)
+-- 📊 HELPERS
 -- ==========================================
 local function GetPlayerData()
     return Data:FindFirstChild(tostring(Player.UserId))
 end
 
 local function GetInventoryUsage()
-    local playerData = GetPlayerData()
-    if not playerData then return 0 end
-    local count = #playerData.Inventory:GetChildren()
-    for _, slot in pairs(playerData.Hotbar:GetChildren()) do
-        if slot.Name ~= "1" and slot.Name ~= "2" and slot.Name ~= "3" then
-            count = count + slot.Quantity.Value
+    local p = GetPlayerData()
+    if not p then return 0 end
+    local c = #p.Inventory:GetChildren()
+    for _, s in pairs(p.Hotbar:GetChildren()) do
+        if s.Name ~= "1" and s.Name ~= "2" and s.Name ~= "3" then
+            c = c + s.Quantity.Value
         end
     end
-    return count
+    return c
 end
 
 local function GetInventoryLimit()
-    local playerData = GetPlayerData()
-    if not playerData then return 999 end
-    local limit = playerData:FindFirstChild("InventoryLimit")
-    return limit and limit.Value or 999
+    local p = GetPlayerData()
+    if not p then return 999 end
+    local l = p:FindFirstChild("InventoryLimit")
+    return l and l.Value or 999
 end
 
 local function IsInventoryFull()
@@ -102,22 +100,22 @@ local function IsInventoryFull()
 end
 
 local function CountFish()
-    local playerData = GetPlayerData()
-    if not playerData then return 0 end
+    local p = GetPlayerData()
+    if not p then return 0 end
     local total = 0
-    local inv = playerData:FindFirstChild("Inventory")
+    local inv = p:FindFirstChild("Inventory")
     if not inv then return 0 end
     for _, item in pairs(inv:GetChildren()) do
         local name = item.Name
-        local fishInfo = GameService.DestringFish(name)
-        if fishInfo and fishInfo.FishName then
+        local info = GameService.DestringFish(name)
+        if info and info.FishName then
             total = total + item.Value
         else
             local clean = string.split(name, "| Favorite")[1]
-            local module = Info.Inventory:FindFirstChild(clean)
-            if module then
-                local ok, mod = pcall(require, module)
-                if ok and type(mod) == "table" and (mod.Type == "Fish" or mod.Category == "Fish") then
+            local mod = Info.Inventory:FindFirstChild(clean)
+            if mod then
+                local ok, m = pcall(require, mod)
+                if ok and type(m) == "table" and (m.Type == "Fish" or m.Category == "Fish") then
                     total = total + item.Value
                 end
             end
@@ -127,22 +125,22 @@ local function CountFish()
 end
 
 local function GetFishBreakdown()
-    local playerData = GetPlayerData()
-    if not playerData then return {} end
+    local p = GetPlayerData()
+    if not p then return {} end
     local list = {}
-    local inv = playerData:FindFirstChild("Inventory")
+    local inv = p:FindFirstChild("Inventory")
     if not inv then return {} end
     for _, item in pairs(inv:GetChildren()) do
         local name = item.Name
-        local fishInfo = GameService.DestringFish(name)
-        if fishInfo and fishInfo.FishName then
-            table.insert(list, {Name = fishInfo.FishName, Count = item.Value})
+        local info = GameService.DestringFish(name)
+        if info and info.FishName then
+            table.insert(list, {Name = info.FishName, Count = item.Value})
         else
             local clean = string.split(name, "| Favorite")[1]
-            local module = Info.Inventory:FindFirstChild(clean)
-            if module then
-                local ok, mod = pcall(require, module)
-                if ok and type(mod) == "table" and (mod.Type == "Fish" or mod.Category == "Fish") then
+            local mod = Info.Inventory:FindFirstChild(clean)
+            if mod then
+                local ok, m = pcall(require, mod)
+                if ok and type(m) == "table" and (m.Type == "Fish" or m.Category == "Fish") then
                     table.insert(list, {Name = clean, Count = item.Value})
                 end
             end
@@ -153,79 +151,261 @@ local function GetFishBreakdown()
 end
 
 local function GetLevel()
-    local playerData = GetPlayerData()
-    if not playerData then return 0 end
-    local lvl = playerData:FindFirstChild("Level")
-    if lvl then
-        local val = lvl:FindFirstChild("Level")
-        return val and val.Value or 0
+    local p = GetPlayerData()
+    if not p then return 0 end
+    local l = p:FindFirstChild("Level")
+    if l then
+        local v = l:FindFirstChild("Level")
+        return v and v.Value or 0
     end
     return 0
 end
 
 local function GetCoins()
-    local playerData = GetPlayerData()
-    if not playerData then return 0 end
-    local coins = playerData:FindFirstChild("Coins")
-    return coins and coins.Value or 0
+    local p = GetPlayerData()
+    if not p then return 0 end
+    local c = p:FindFirstChild("Coins")
+    return c and c.Value or 0
 end
 
 -- ==========================================
--- 🎣 AUTO EQUIP (giữ nguyên)
+-- 🎣 AUTO EQUIP BEST HELPERS
+-- ==========================================
+local function GetModule(folder, name)
+    local m = folder:FindFirstChild(name)
+    if m then
+        local ok, mod = pcall(require, m)
+        if ok and type(mod) == "table" then return mod end
+    end
+    return nil
+end
+
+local function GetOwnedRods()
+    local p = GetPlayerData()
+    if not p then return {} end
+    local rods = {}
+    for _, f in pairs(p.FishingRodInventory:GetChildren()) do
+        if f:IsA("Folder") and f.Owned and f.Owned.Value == true then
+            table.insert(rods, f.Name)
+        end
+    end
+    return rods
+end
+
+local function GetRodStats(rodName)
+    local mod = GetModule(Info.Inventory, rodName)
+    if mod then return {Power = mod.Power or 0, Luck = mod.Luck or 0} end
+    return {Power = 0, Luck = 0}
+end
+
+local function GetBestRod()
+    local rods = GetOwnedRods()
+    local best, bestScore = nil, -1
+    for _, name in ipairs(rods) do
+        local s = GetRodStats(name)
+        local score = s.Power + s.Luck
+        if score > bestScore then bestScore = score; best = name end
+    end
+    return best
+end
+
+local function EquipRod(rodName)
+    if not rodName then return false end
+    return pcall(function() Events.EquipFishingRod:InvokeServer(rodName) end)
+end
+
+local function GetAvailableBaits()
+    local p = GetPlayerData()
+    if not p then return {} end
+    local baits = {}
+    for _, b in pairs(p.Bait:GetChildren()) do
+        if b:IsA("NumberValue") and b.Value > 0 then table.insert(baits, b.Name) end
+    end
+    return baits
+end
+
+local function GetBaitStats(baitName)
+    local mod = GetModule(Info.Bait, baitName)
+    if mod then return {Luck = mod.Luck or 0} end
+    return {Luck = 0}
+end
+
+local function GetBestBait()
+    local baits = GetAvailableBaits()
+    local best, bestLuck = nil, -1
+    for _, name in ipairs(baits) do
+        local s = GetBaitStats(name)
+        if s.Luck > bestLuck then bestLuck = s.Luck; best = name end
+    end
+    return best
+end
+
+local function EquipBait(baitName)
+    if not baitName then return false end
+    return pcall(function() Events.EquipBait:InvokeServer(baitName) end)
+end
+
+-- Skill helpers
+local function GetOwnedSkills()
+    local p = GetPlayerData()
+    if not p then return {} end
+    local skills = {}
+    for _, f in pairs(p.Skill:GetChildren()) do
+        if f:IsA("Folder") and f.Owned and f.Owned.Value == true then
+            table.insert(skills, f.Name)
+        end
+    end
+    return skills
+end
+
+local function GetSkillStats(skillName)
+    local mod = GetModule(Info.Skill, skillName)
+    if mod then return {Boost = mod.Boost or 0} end
+    return {Boost = 0}
+end
+
+local function GetBestUnEquippedSkill(equippedSet)
+    local owned = GetOwnedSkills()
+    local best, bestBoost = nil, -1
+    for _, name in ipairs(owned) do
+        if not equippedSet[name] then
+            local s = GetSkillStats(name)
+            if s.Boost > bestBoost then
+                bestBoost = s.Boost
+                best = name
+            end
+        end
+    end
+    return best
+end
+
+local function EquipSkill(skillName)
+    if not skillName then return false end
+    return pcall(function() Events.EquipSkill:InvokeServer(skillName) end)
+end
+
+-- Orb helpers
+local function GetAvailableOrbs()
+    local p = GetPlayerData()
+    if not p then return {} end
+    local orbs = {}
+    for _, f in pairs(p.Orb:GetChildren()) do
+        if f:IsA("Folder") then
+            local eq = f:FindFirstChild("Equipping")
+            if eq and eq.Value == false then table.insert(orbs, f.Name) end
+        end
+    end
+    return orbs
+end
+
+local function GetOrbStats(orbName)
+    local p = GetPlayerData()
+    if not p then return {} end
+    local f = p.Orb:FindFirstChild(orbName)
+    if not f then return {} end
+    local stats = {}
+    for _, child in pairs(f:GetChildren()) do
+        if child:IsA("NumberValue") and child.Name ~= "Equipping" and child.Name ~= "Favorite" then
+            stats[child.Name] = child.Value
+        end
+    end
+    return stats
+end
+
+local function GetBestOrb()
+    local orbs = GetAvailableOrbs()
+    local best, bestScore = nil, -1
+    for _, name in ipairs(orbs) do
+        local s = GetOrbStats(name)
+        local score = (s.Damage or 0) * 2 + (s.Luck or 0) * 1.5 + (s.Cash or 0) * 0.5
+        if score > bestScore then bestScore = score; best = name end
+    end
+    return best
+end
+
+local function EquipOrb(orbName)
+    if not orbName then return false end
+    return pcall(function() Events.EquipOrb:InvokeServer(orbName) end)
+end
+
+-- ==========================================
+-- 🔧 SLOT CHECK
+-- ==========================================
+local function GetCurrentRodSkillInfo()
+    local p = GetPlayerData()
+    if not p then return {total=0, equipped=0} end
+    local rod = p.FishingRod.Value
+    if rod == "" then return {total=0, equipped=0} end
+    local inv = p.FishingRodInventory:FindFirstChild(rod)
+    if not inv then return {total=0, equipped=0} end
+    local skillFolder = inv:FindFirstChild("Skill")
+    if not skillFolder then return {total=0, equipped=0} end
+    local total = #skillFolder:GetChildren()
+    local equipped = 0
+    for _, slot in pairs(skillFolder:GetChildren()) do
+        if slot.Value ~= "" then equipped = equipped + 1 end
+    end
+    return {total = total, equipped = equipped}
+end
+
+local function GetCurrentRodOrbInfo()
+    local p = GetPlayerData()
+    if not p then return {total=0, equipped=0} end
+    local rod = p.FishingRod.Value
+    if rod == "" then return {total=0, equipped=0} end
+    local inv = p.FishingRodInventory:FindFirstChild(rod)
+    if not inv then return {total=0, equipped=0} end
+    local orbFolder = inv:FindFirstChild("Orb")
+    if not orbFolder then return {total=0, equipped=0} end
+    local total = #orbFolder:GetChildren()
+    local equipped = 0
+    for _, slot in pairs(orbFolder:GetChildren()) do
+        if slot.Value ~= "" then equipped = equipped + 1 end
+    end
+    return {total = total, equipped = equipped}
+end
+
+-- ==========================================
+-- 🎣 AUTO EQUIP ROD (gốc)
 -- ==========================================
 local function EquipFishingRod()
     local char = Player.Character
     if char and char:GetAttribute("Type") == "Fishing Rod" then return true end
-
-    local playerData = GetPlayerData()
-    if not playerData then return false end
-
+    local p = GetPlayerData()
+    if not p then return false end
     for i = 1, 10 do
-        local slot = playerData.Hotbar:FindFirstChild(tostring(i))
+        local slot = p.Hotbar:FindFirstChild(tostring(i))
         if slot then
             local name = slot.ValueName.Value
             if name == "Fishing rod" or string.find(name:lower(), "rod") then
                 if name ~= "Fishing rod inventory" then
-                    pcall(function()
-                        Events.ToggleHotbar:InvokeServer(tostring(i), nil)
-                    end)
+                    pcall(function() Events.ToggleHotbar:InvokeServer(tostring(i), nil) end)
                     task.wait(0.3)
-                    if Player.Character and Player.Character:GetAttribute("Type") == "Fishing Rod" then
-                        return true
-                    end
+                    if Player.Character and Player.Character:GetAttribute("Type") == "Fishing Rod" then return true end
                 end
             end
         end
     end
-
-    local inv = playerData.Inventory
+    local inv = p.Inventory
     if not inv then return false end
     for _, child in pairs(inv:GetChildren()) do
         local raw = child.Name
         local clean = string.split(raw, "| Favorite")[1]
         if clean == "Fishing rod inventory" then continue end
-        local module = Info.Inventory:FindFirstChild(clean)
-        if module then
-            local ok, mod = pcall(require, module)
-            if ok and type(mod) == "table" and (mod.Type == "FishingRod" or string.find(clean:lower(), "rod")) then
-                local slot1 = playerData.Hotbar:FindFirstChild("1")
+        local mod = Info.Inventory:FindFirstChild(clean)
+        if mod then
+            local ok, m = pcall(require, mod)
+            if ok and type(m) == "table" and (m.Type == "FishingRod" or string.find(clean:lower(), "rod")) then
+                local slot1 = p.Hotbar:FindFirstChild("1")
                 if slot1 and slot1.ValueName.Value ~= "" then
-                    pcall(function()
-                        Events.MoveItems:FireServer("Hotbar", slot1.Name)
-                        task.wait(0.15)
-                    end)
+                    pcall(function() Events.MoveItems:FireServer("Hotbar", slot1.Name) end)
+                    task.wait(0.15)
                 end
-                pcall(function()
-                    Events.MoveItems:FireServer("Inventory", clean, "1")
-                    task.wait(0.2)
-                end)
-                pcall(function()
-                    Events.ToggleHotbar:InvokeServer("1", nil)
-                end)
+                pcall(function() Events.MoveItems:FireServer("Inventory", clean, "1") end)
+                task.wait(0.2)
+                pcall(function() Events.ToggleHotbar:InvokeServer("1", nil) end)
                 task.wait(0.3)
-                if Player.Character and Player.Character:GetAttribute("Type") == "Fishing Rod" then
-                    return true
-                end
+                if Player.Character and Player.Character:GetAttribute("Type") == "Fishing Rod" then return true end
             end
         end
     end
@@ -233,7 +413,7 @@ local function EquipFishingRod()
 end
 
 -- ==========================================
--- 🧵 THREADS (Auto Farm) – giữ nguyên
+-- 🧵 AUTO CAST LOOP
 -- ==========================================
 local function StartCastLoop()
     if CastRunning then return end
@@ -252,13 +432,14 @@ local function StartCastLoop()
                     Window:Notify({ title = "⚠️", content = "No fishing rod found.", duration = 2 })
                 end
             end
+
             if getgenv().RequireRod and char:GetAttribute("Type") ~= "Fishing Rod" then
                 continue
             end
             if not char:GetAttribute("Fishing") then
-                local playerData = GetPlayerData()
-                if playerData and playerData.InventoryLimit and playerData.Inventory then
-                    if #playerData.Inventory:GetChildren() >= playerData.InventoryLimit.Value then
+                local p = GetPlayerData()
+                if p and p.InventoryLimit and p.Inventory then
+                    if #p.Inventory:GetChildren() >= p.InventoryLimit.Value then
                         Window:Notify({ title = "⚠️ Inventory Full", content = "Auto‑cast paused.", duration = 2 })
                         continue
                     end
@@ -273,6 +454,9 @@ local function StartCastLoop()
     end)
 end
 
+-- ==========================================
+-- 🧊 AUTO BALANCE LOOP
+-- ==========================================
 local function StartBalanceLoop()
     if BalanceRunning then return end
     BalanceRunning = true
@@ -304,6 +488,9 @@ local function StartBalanceLoop()
     end)
 end
 
+-- ==========================================
+-- 💰 AUTO SELL LOOP
+-- ==========================================
 local function StartSellLoop()
     if SellRunning then return end
     SellRunning = true
@@ -333,7 +520,7 @@ local function StartSellLoop()
                     PauseCast = false
                     task.wait(2)
                 end
-            else -- Spam
+            else
                 pcall(function() sellEvent:FireServer("All") end)
                 task.wait(0.5)
             end
@@ -344,7 +531,7 @@ local function StartSellLoop()
 end
 
 -- ==========================================
--- ⚔️ SKILLS (giữ nguyên)
+-- ⚔️ SKILLS LOOP
 -- ==========================================
 local function PressKey(key)
     pcall(function()
@@ -357,11 +544,8 @@ end
 local function GetSelectedSkillKeys()
     local map = {Z = Enum.KeyCode.Z, X = Enum.KeyCode.X, C = Enum.KeyCode.C, V = Enum.KeyCode.V}
     local selected = getgenv().SelectedSkills
-    if type(selected) == "string" then
-        selected = {selected}
-    elseif type(selected) ~= "table" then
-        selected = {"Z", "X", "C", "V"}
-    end
+    if type(selected) == "string" then selected = {selected}
+    elseif type(selected) ~= "table" then selected = {"Z", "X", "C", "V"} end
     local keys = {}
     for _, s in ipairs(selected) do
         local k = map[s]
@@ -391,7 +575,7 @@ local function StartSkillLoop()
                         for i, key in ipairs(allKeys) do
                             local should = false
                             for _, k in ipairs(toPress) do
-                                if k == key then should = true break end
+                                if k == key then should = true; break end
                             end
                             if not should then continue end
                             local btn = frame:FindFirstChild(names[i])
@@ -426,7 +610,7 @@ local function StartSkillLoop()
 end
 
 -- ==========================================
--- 🛡️ ANTI AFK (giữ nguyên)
+-- 🛡️ ANTI AFK LOOP
 -- ==========================================
 local function StartAntiAFKLoop()
     if AntiAFKRunning then return end
@@ -458,92 +642,58 @@ local function StartAntiAFKLoop()
 end
 
 -- ==========================================
--- 👤 LOCALPLAYER FEATURES (FIXED FLY & INFINITE JUMP)
+-- 👤 LOCALPLAYER FEATURES
 -- ==========================================
-
--- Walkspeed
 local function SetWalkspeed(value)
     local char = Player.Character
     if char then
-        local humanoid = char:FindFirstChild("Humanoid")
-        if humanoid then
+        local hum = char:FindFirstChild("Humanoid")
+        if hum then
             local num = tonumber(value)
-            if num then humanoid.WalkSpeed = num end
+            if num then hum.WalkSpeed = num end
         end
     end
 end
 
--- ===== FLY (smooth BodyVelocity) =====
 local function StartFly()
     if FlyRunning then return end
     FlyRunning = true
-
     local char = Player.Character
-    if not char then
-        FlyRunning = false
-        return
-    end
+    if not char then FlyRunning = false; return end
     local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then
-        FlyRunning = false
-        return
-    end
-
-    -- Tạo BodyVelocity
+    if not root then FlyRunning = false; return end
     flyVelocity = Instance.new("BodyVelocity")
     flyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
     flyVelocity.Velocity = Vector3.new(0,0,0)
     flyVelocity.Parent = root
-
-    -- Tạo BodyGyro để giữ hướng (có thể bỏ nếu không cần)
     flyGyro = Instance.new("BodyGyro")
     flyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
     flyGyro.P = 10000
     flyGyro.CFrame = root.CFrame
     flyGyro.Parent = root
-
-    -- Vòng lặp điều khiển bay
     task.spawn(function()
         while getgenv().FlyEnabled and char and root and flyVelocity and flyGyro do
             local speed = getgenv().FlySpeed or 50
             local move = Vector3.new(0,0,0)
-
-            if UIS:IsKeyDown(Enum.KeyCode.W) then
-                move = move + root.CFrame.LookVector
-            end
-            if UIS:IsKeyDown(Enum.KeyCode.S) then
-                move = move - root.CFrame.LookVector
-            end
-            if UIS:IsKeyDown(Enum.KeyCode.A) then
-                move = move - root.CFrame.RightVector
-            end
-            if UIS:IsKeyDown(Enum.KeyCode.D) then
-                move = move + root.CFrame.RightVector
-            end
-            if UIS:IsKeyDown(Enum.KeyCode.Space) then
-                move = move + Vector3.new(0, 1, 0)
-            end
-            if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then
-                move = move + Vector3.new(0, -1, 0)
-            end
-
+            if UIS:IsKeyDown(Enum.KeyCode.W) then move = move + root.CFrame.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then move = move - root.CFrame.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then move = move - root.CFrame.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then move = move + root.CFrame.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then move = move + Vector3.new(0,1,0) end
+            if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then move = move + Vector3.new(0,-1,0) end
             if move.Magnitude > 0 then
                 move = move.Unit * speed
             end
-
             flyVelocity.Velocity = move
             flyGyro.CFrame = root.CFrame
-
             task.wait()
         end
-        -- Khi tắt fly, xóa BodyVelocity và BodyGyro
         if flyVelocity then flyVelocity:Destroy(); flyVelocity = nil end
         if flyGyro then flyGyro:Destroy(); flyGyro = nil end
         FlyRunning = false
     end)
 end
 
--- ===== INFINITE JUMP (liên tục như Infinite Yield) =====
 local infiniteJumpRunning = false
 local infiniteJumpThread = nil
 local function ToggleInfiniteJump(state)
@@ -552,30 +702,23 @@ local function ToggleInfiniteJump(state)
         infiniteJumpRunning = true
         infiniteJumpThread = task.spawn(function()
             while getgenv().InfiniteJump do
-                -- Kiểm tra Space được nhấn
                 if UIS:IsKeyDown(Enum.KeyCode.Space) then
                     local char = Player.Character
                     if char then
-                        local humanoid = char:FindFirstChild("Humanoid")
-                        if humanoid then
-                            humanoid.Jump = true
-                        end
+                        local hum = char:FindFirstChild("Humanoid")
+                        if hum then hum.Jump = true end
                     end
                 end
-                task.wait()  -- mỗi frame
+                task.wait()
             end
             infiniteJumpRunning = false
         end)
     else
-        if infiniteJumpThread then
-            task.cancel(infiniteJumpThread)
-            infiniteJumpThread = nil
-        end
+        if infiniteJumpThread then task.cancel(infiniteJumpThread); infiniteJumpThread = nil end
         infiniteJumpRunning = false
     end
 end
 
--- ===== FULLBRIGHT =====
 local fullbrightConnection = nil
 local function ToggleFullbright(state)
     if state then
@@ -598,13 +741,11 @@ local function ToggleFullbright(state)
     end
 end
 
--- ===== NOCLIP =====
 local originalCollisionStates = {}
 local noClipConnection = nil
 local function ToggleNoClip(state)
     local char = Player.Character
     if not char then return end
-
     if state then
         originalCollisionStates = {}
         for _, part in pairs(char:GetDescendants()) do
@@ -619,9 +760,7 @@ local function ToggleNoClip(state)
             local c = Player.Character
             if c then
                 for _, part in pairs(c:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
+                    if part:IsA("BasePart") then part.CanCollide = false end
                 end
             end
         end)
@@ -641,7 +780,7 @@ local function ToggleNoClip(state)
 end
 
 -- ==========================================
--- 📊 PLAYER DATA
+-- 📊 PLAYER DATA DISPLAY
 -- ==========================================
 local DataDisplayRunning = false
 local DataDisplayThread = nil
@@ -707,12 +846,8 @@ local function RefreshThreads()
         if getgenv().AutoSkills then StartSkillLoop() end
         if getgenv().AntiAFK then StartAntiAFKLoop() end
     else
-        CastRunning = false
-        BalanceRunning = false
-        SellRunning = false
-        SkillRunning = false
-        AntiAFKRunning = false
-        PauseCast = false
+        CastRunning = false; BalanceRunning = false; SellRunning = false
+        SkillRunning = false; AntiAFKRunning = false; PauseCast = false
     end
     if getgenv().ShowPlayerData then StartDataDisplay() else StopDataDisplay() end
 end
@@ -727,68 +862,44 @@ farmTab:CreateSection({ name = "🎣 Main Controls" })
 farmTab:CreateToggle({
     name = "🔓 Master Auto-Farm",
     flag = "MasterFarm",
-    callback = function(v)
-        getgenv().MasterFarm = v
-        Window:Notify({ title = v and "✅ Master ON" or "⏸️ Master OFF", duration = 2 })
-        RefreshThreads()
-    end,
+    callback = function(v) getgenv().MasterFarm = v; Window:Notify({ title = v and "✅ Master ON" or "⏸️ Master OFF", duration = 2 }); RefreshThreads() end,
 })
 
 farmTab:CreateToggle({
     name = "🎣 Auto Cast",
     flag = "AutoCast",
-    callback = function(v)
-        getgenv().AutoCast = v
-        RefreshThreads()
-    end,
+    callback = function(v) getgenv().AutoCast = v; RefreshThreads() end,
 })
 
 farmTab:CreateToggle({
     name = "⚖️ Auto Balance (Freeze Bar)",
     flag = "AutoBalance",
-    callback = function(v)
-        getgenv().AutoBalance = v
-        RefreshThreads()
-    end,
+    callback = function(v) getgenv().AutoBalance = v; RefreshThreads() end,
 })
 
 farmTab:CreateToggle({
     name = "🎯 Require Fishing Rod",
     flag = "RequireRod",
-    callback = function(v)
-        getgenv().RequireRod = v
-        Window:Notify({ title = v and "🎯 Rod Check ON" or "🎯 Rod Check OFF", duration = 2 })
-    end,
+    callback = function(v) getgenv().RequireRod = v; Window:Notify({ title = v and "🎯 Rod Check ON" or "🎯 Rod Check OFF", duration = 2 }) end,
 })
 
 farmTab:CreateToggle({
     name = "🎣 Auto Equip Fishing Rod",
     flag = "AutoEquip",
-    callback = function(v)
-        getgenv().AutoEquip = v
-        Window:Notify({ title = v and "🎣 Auto Equip ON" or "🎣 Auto Equip OFF", duration = 2 })
-        RefreshThreads()
-    end,
+    callback = function(v) getgenv().AutoEquip = v; Window:Notify({ title = v and "🎣 Auto Equip ON" or "🎣 Auto Equip OFF", duration = 2 }); RefreshThreads() end,
 })
 
+-- Skills & Anti AFK (now inside Main Controls)
 farmTab:CreateToggle({
     name = "⚔️ Auto Use Skills",
     flag = "AutoSkills",
-    callback = function(v)
-        getgenv().AutoSkills = v
-        Window:Notify({ title = v and "⚔️ Auto Skills ON" or "⚔️ Auto Skills OFF", duration = 2 })
-        RefreshThreads()
-    end,
+    callback = function(v) getgenv().AutoSkills = v; Window:Notify({ title = v and "⚔️ Auto Skills ON" or "⚔️ Auto Skills OFF", duration = 2 }); RefreshThreads() end,
 })
 
 farmTab:CreateToggle({
     name = "🧠 Smart Skills Check",
     flag = "SmartSkills",
-    callback = function(v)
-        getgenv().SmartSkills = v
-        Window:Notify({ title = v and "🧠 Smart Check ON" or "🧠 Smart Check OFF", duration = 2 })
-        RefreshThreads()
-    end,
+    callback = function(v) getgenv().SmartSkills = v; Window:Notify({ title = v and "🧠 Smart Check ON" or "🧠 Smart Check OFF", duration = 2 }); RefreshThreads() end,
 })
 
 farmTab:CreateDropdown({
@@ -797,11 +908,11 @@ farmTab:CreateDropdown({
     options = {"Z", "X", "C", "V"},
     value = {"Z", "X", "C", "V"},
     multiSelect = true,
-    callback = function(selected)
-        if type(selected) == "string" then selected = {selected}
-        elseif type(selected) ~= "table" then selected = {"Z", "X", "C", "V"} end
-        getgenv().SelectedSkills = selected
-        Window:Notify({ title = "🎯 Skills updated", content = "Selected: " .. table.concat(selected, ", "), duration = 2 })
+    callback = function(sel)
+        if type(sel) == "string" then sel = {sel}
+        elseif type(sel) ~= "table" then sel = {"Z", "X", "C", "V"} end
+        getgenv().SelectedSkills = sel
+        Window:Notify({ title = "🎯 Skills updated", content = "Selected: " .. table.concat(sel, ", "), duration = 2 })
         RefreshThreads()
     end,
 })
@@ -809,10 +920,80 @@ farmTab:CreateDropdown({
 farmTab:CreateToggle({
     name = "🛡️ Anti AFK",
     flag = "AntiAFK",
-    callback = function(v)
-        getgenv().AntiAFK = v
-        Window:Notify({ title = v and "🛡️ Anti AFK ON" or "🛡️ Anti AFK OFF", duration = 2 })
-        RefreshThreads()
+    callback = function(v) getgenv().AntiAFK = v; Window:Notify({ title = v and "🛡️ Anti AFK ON" or "🛡️ Anti AFK OFF", duration = 2 }); RefreshThreads() end,
+})
+
+-- ===== SECTION AUTO EQUIP (BUTTONS) =====
+farmTab:CreateSection({ name = "🎣 Auto Equip" })
+
+farmTab:CreateButton({
+    name = "🎣 Equip Best Rod",
+    callback = function()
+        local best = GetBestRod()
+        if best then
+            EquipRod(best)
+            Window:Notify({ title = "🎣", content = "Best rod equipped: " .. best, duration = 2 })
+        else
+            Window:Notify({ title = "⚠️", content = "No rod available", duration = 2 })
+        end
+    end,
+})
+
+farmTab:CreateButton({
+    name = "🎯 Equip Best Bait",
+    callback = function()
+        local best = GetBestBait()
+        if best then
+            EquipBait(best)
+            Window:Notify({ title = "🎯", content = "Best bait equipped: " .. best, duration = 2 })
+        else
+            Window:Notify({ title = "⚠️", content = "No bait available", duration = 2 })
+        end
+    end,
+})
+
+farmTab:CreateButton({
+    name = "⚡ Equip Best Skill",
+    callback = function()
+        local p = GetPlayerData()
+        if not p then
+            Window:Notify({ title = "⚠️", content = "No player data", duration = 2 })
+            return
+        end
+        local rod = p.FishingRod.Value
+        if rod == "" then
+            Window:Notify({ title = "⚠️", content = "No rod equipped", duration = 2 })
+            return
+        end
+        local inv = p.FishingRodInventory:FindFirstChild(rod)
+        if not inv or not inv.Skill then
+            Window:Notify({ title = "⚠️", content = "No skill slots", duration = 2 })
+            return
+        end
+        local equipped = {}
+        for _, slot in pairs(inv.Skill:GetChildren()) do
+            if slot.Value ~= "" then equipped[slot.Value] = true end
+        end
+        local best = GetBestUnEquippedSkill(equipped)
+        if best then
+            EquipSkill(best)
+            Window:Notify({ title = "⚡", content = "Best skill equipped: " .. best, duration = 2 })
+        else
+            Window:Notify({ title = "⚠️", content = "No skill available", duration = 2 })
+        end
+    end,
+})
+
+farmTab:CreateButton({
+    name = "🔮 Equip Best Orb",
+    callback = function()
+        local best = GetBestOrb()
+        if best then
+            EquipOrb(best)
+            Window:Notify({ title = "🔮", content = "Best orb equipped: " .. best, duration = 2 })
+        else
+            Window:Notify({ title = "⚠️", content = "No orb available", duration = 2 })
+        end
     end,
 })
 
@@ -821,11 +1002,7 @@ farmTab:CreateSection({ name = "💰 Auto Sell" })
 farmTab:CreateToggle({
     name = "💲 Auto Sell",
     flag = "AutoSell",
-    callback = function(v)
-        getgenv().AutoSell = v
-        if not v then PauseCast = false end
-        RefreshThreads()
-    end,
+    callback = function(v) getgenv().AutoSell = v; if not v then PauseCast = false end; RefreshThreads() end,
 })
 
 farmTab:CreateDropdown({
@@ -833,26 +1010,18 @@ farmTab:CreateDropdown({
     flag = "SellMode",
     options = { "When Full", "Spam" },
     current = "When Full",
-    callback = function(opt)
-        getgenv().SellMode = opt
-        RefreshThreads()
-    end,
+    callback = function(opt) getgenv().SellMode = opt; RefreshThreads() end,
 })
 
+-- UTILITY TAB
 local utilTab = Window:CreateTab({ name = "📊 Utility", icon = 93364949241311 })
 utilTab:CreateToggle({
     name = "📊 Player Data",
     flag = "PlayerData",
-    callback = function(v)
-        getgenv().ShowPlayerData = v
-        Window:Notify({ title = v and "📊 Player Data ON" or "📊 Player Data OFF", duration = 2 })
-        RefreshThreads()
-    end,
+    callback = function(v) getgenv().ShowPlayerData = v; Window:Notify({ title = v and "📊 Player Data ON" or "📊 Player Data OFF", duration = 2 }); RefreshThreads() end,
 })
 
--- ==========================================
--- 👤 LOCALPLAYER TAB (UPDATED FLY & INFINITE JUMP)
--- ==========================================
+-- LOCALPLAYER TAB
 local localTab = Window:CreateTab({ name = "👤 LocalPlayer", icon = 93364949241311 })
 localTab:CreateSection({ name = "⚡ Movement" })
 
@@ -863,12 +1032,8 @@ localTab:CreateInput({
     placeholder = "Enter speed...",
     callback = function(text)
         local num = tonumber(text)
-        if num then
-            SetWalkspeed(num)
-            Window:Notify({ title = "🚶 Walkspeed", content = "Set to " .. num, duration = 2 })
-        else
-            Window:Notify({ title = "⚠️", content = "Invalid number", duration = 2 })
-        end
+        if num then SetWalkspeed(num); Window:Notify({ title = "🚶 Walkspeed", content = "Set to " .. num, duration = 2 })
+        else Window:Notify({ title = "⚠️", content = "Invalid number", duration = 2 }) end
     end,
 })
 
@@ -877,10 +1042,8 @@ localTab:CreateToggle({
     flag = "Fly",
     callback = function(v)
         getgenv().FlyEnabled = v
-        if v then
-            StartFly()
+        if v then StartFly()
         else
-            -- Xóa BodyVelocity và BodyGyro ngay lập tức
             if flyVelocity then flyVelocity:Destroy(); flyVelocity = nil end
             if flyGyro then flyGyro:Destroy(); flyGyro = nil end
             FlyRunning = false
@@ -901,36 +1064,22 @@ localTab:CreateSlider({
 localTab:CreateToggle({
     name = "🦘 Infinite Jump",
     flag = "InfiniteJump",
-    callback = function(v)
-        getgenv().InfiniteJump = v
-        ToggleInfiniteJump(v)
-        Window:Notify({ title = v and "🦘 Infinite Jump ON" or "🦘 Infinite Jump OFF", duration = 2 })
-    end,
+    callback = function(v) getgenv().InfiniteJump = v; ToggleInfiniteJump(v); Window:Notify({ title = v and "🦘 Infinite Jump ON" or "🦘 Infinite Jump OFF", duration = 2 }) end,
 })
 
 localTab:CreateToggle({
     name = "💡 Fullbright",
     flag = "Fullbright",
-    callback = function(v)
-        getgenv().Fullbright = v
-        ToggleFullbright(v)
-        Window:Notify({ title = v and "💡 Fullbright ON" or "💡 Fullbright OFF", duration = 2 })
-    end,
+    callback = function(v) getgenv().Fullbright = v; ToggleFullbright(v); Window:Notify({ title = v and "💡 Fullbright ON" or "💡 Fullbright OFF", duration = 2 }) end,
 })
 
 localTab:CreateToggle({
     name = "🚪 NoClip",
     flag = "NoClip",
-    callback = function(v)
-        getgenv().NoClip = v
-        ToggleNoClip(v)
-        Window:Notify({ title = v and "🚪 NoClip ON" or "🚪 NoClip OFF", duration = 2 })
-    end,
+    callback = function(v) getgenv().NoClip = v; ToggleNoClip(v); Window:Notify({ title = v and "🚪 NoClip ON" or "🚪 NoClip OFF", duration = 2 }) end,
 })
 
--- ==========================================
--- 🏝️ TAB TELEPORT
--- ==========================================
+-- TELEPORT TAB
 local teleTab = Window:CreateTab({ name = "🏝️ Teleport", icon = 93364949241311 })
 teleTab:CreateSection({ name = "📍 Islands" })
 
@@ -948,25 +1097,13 @@ local function GetCFrame(obj)
 end
 
 local function TeleportTo(target)
-    if not target then
-        Window:Notify({ title = "⚠️", content = "Target not found!", duration = 2 })
-        return
-    end
+    if not target then Window:Notify({ title = "⚠️", content = "Target not found!", duration = 2 }); return end
     local char = Player.Character
-    if not char then
-        Window:Notify({ title = "⚠️", content = "Character not found!", duration = 2 })
-        return
-    end
+    if not char then Window:Notify({ title = "⚠️", content = "Character not found!", duration = 2 }); return end
     local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then
-        Window:Notify({ title = "⚠️", content = "HumanoidRootPart not found!", duration = 2 })
-        return
-    end
+    if not root then Window:Notify({ title = "⚠️", content = "HumanoidRootPart not found!", duration = 2 }); return end
     local cf = GetCFrame(target)
-    if not cf then
-        Window:Notify({ title = "⚠️", content = "Target has no CFrame!", duration = 2 })
-        return
-    end
+    if not cf then Window:Notify({ title = "⚠️", content = "Target has no CFrame!", duration = 2 }); return end
     root.CFrame = cf + Vector3.new(0, 30, 0)
     Window:Notify({ title = "📍", content = "Teleported!", duration = 1.5 })
 end
