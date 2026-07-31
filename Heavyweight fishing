@@ -1,5 +1,5 @@
 --[[
-    🐟 HEAVYWEIGHT FISHING HUB – FINAL (multiSelect FIX)
+    🐟 HEAVYWEIGHT FISHING HUB – FINAL WITH SMOOTH FLY & INFINITE JUMP
 ]]
 
 -- ==========================================
@@ -35,6 +35,11 @@ getgenv().AutoSkills = false
 getgenv().SmartSkills = false
 getgenv().SelectedSkills = {"Z", "X", "C", "V"}
 getgenv().AntiAFK = false
+getgenv().FlyEnabled = false
+getgenv().FlySpeed = 50
+getgenv().InfiniteJump = false
+getgenv().Fullbright = false
+getgenv().NoClip = false
 
 local Player = game.Players.LocalPlayer
 local Events = game:GetService("ReplicatedStorage"):WaitForChild("Events")
@@ -46,14 +51,25 @@ local GameService = require(ClientModule.GameService)
 local List = MainGui.Main.Hotbar.List
 local UIS = game:GetService("UserInputService")
 local VIM = game:GetService("VirtualInputManager")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
 
 local CastRunning = false
 local BalanceRunning = false
 local SellRunning = false
 local SkillRunning = false
 local AntiAFKRunning = false
+local FlyRunning = false
 local PauseCast = false
 local FishCount = 0
+
+local originalBrightness = Lighting.Brightness
+local originalAmbient = Lighting.Ambient
+local originalOutdoorAmbient = Lighting.OutdoorAmbient
+
+-- Fly objects (BodyVelocity & BodyGyro)
+local flyVelocity = nil
+local flyGyro = nil
 
 -- ==========================================
 -- 📊 HELPERS (giữ nguyên)
@@ -155,7 +171,7 @@ local function GetCoins()
 end
 
 -- ==========================================
--- 🎣 AUTO EQUIP
+-- 🎣 AUTO EQUIP (giữ nguyên)
 -- ==========================================
 local function EquipFishingRod()
     local char = Player.Character
@@ -217,7 +233,7 @@ local function EquipFishingRod()
 end
 
 -- ==========================================
--- 🧵 THREADS (giữ nguyên)
+-- 🧵 THREADS (Auto Farm) – giữ nguyên
 -- ==========================================
 local function StartCastLoop()
     if CastRunning then return end
@@ -410,7 +426,7 @@ local function StartSkillLoop()
 end
 
 -- ==========================================
--- 🛡️ ANTI AFK
+-- 🛡️ ANTI AFK (giữ nguyên)
 -- ==========================================
 local function StartAntiAFKLoop()
     if AntiAFKRunning then return end
@@ -442,6 +458,189 @@ local function StartAntiAFKLoop()
 end
 
 -- ==========================================
+-- 👤 LOCALPLAYER FEATURES (FIXED FLY & INFINITE JUMP)
+-- ==========================================
+
+-- Walkspeed
+local function SetWalkspeed(value)
+    local char = Player.Character
+    if char then
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            local num = tonumber(value)
+            if num then humanoid.WalkSpeed = num end
+        end
+    end
+end
+
+-- ===== FLY (smooth BodyVelocity) =====
+local function StartFly()
+    if FlyRunning then return end
+    FlyRunning = true
+
+    local char = Player.Character
+    if not char then
+        FlyRunning = false
+        return
+    end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then
+        FlyRunning = false
+        return
+    end
+
+    -- Tạo BodyVelocity
+    flyVelocity = Instance.new("BodyVelocity")
+    flyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    flyVelocity.Velocity = Vector3.new(0,0,0)
+    flyVelocity.Parent = root
+
+    -- Tạo BodyGyro để giữ hướng (có thể bỏ nếu không cần)
+    flyGyro = Instance.new("BodyGyro")
+    flyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+    flyGyro.P = 10000
+    flyGyro.CFrame = root.CFrame
+    flyGyro.Parent = root
+
+    -- Vòng lặp điều khiển bay
+    task.spawn(function()
+        while getgenv().FlyEnabled and char and root and flyVelocity and flyGyro do
+            local speed = getgenv().FlySpeed or 50
+            local move = Vector3.new(0,0,0)
+
+            if UIS:IsKeyDown(Enum.KeyCode.W) then
+                move = move + root.CFrame.LookVector
+            end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then
+                move = move - root.CFrame.LookVector
+            end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then
+                move = move - root.CFrame.RightVector
+            end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then
+                move = move + root.CFrame.RightVector
+            end
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then
+                move = move + Vector3.new(0, 1, 0)
+            end
+            if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then
+                move = move + Vector3.new(0, -1, 0)
+            end
+
+            if move.Magnitude > 0 then
+                move = move.Unit * speed
+            end
+
+            flyVelocity.Velocity = move
+            flyGyro.CFrame = root.CFrame
+
+            task.wait()
+        end
+        -- Khi tắt fly, xóa BodyVelocity và BodyGyro
+        if flyVelocity then flyVelocity:Destroy(); flyVelocity = nil end
+        if flyGyro then flyGyro:Destroy(); flyGyro = nil end
+        FlyRunning = false
+    end)
+end
+
+-- ===== INFINITE JUMP (liên tục như Infinite Yield) =====
+local infiniteJumpRunning = false
+local infiniteJumpThread = nil
+local function ToggleInfiniteJump(state)
+    if state then
+        if infiniteJumpRunning then return end
+        infiniteJumpRunning = true
+        infiniteJumpThread = task.spawn(function()
+            while getgenv().InfiniteJump do
+                -- Kiểm tra Space được nhấn
+                if UIS:IsKeyDown(Enum.KeyCode.Space) then
+                    local char = Player.Character
+                    if char then
+                        local humanoid = char:FindFirstChild("Humanoid")
+                        if humanoid then
+                            humanoid.Jump = true
+                        end
+                    end
+                end
+                task.wait()  -- mỗi frame
+            end
+            infiniteJumpRunning = false
+        end)
+    else
+        if infiniteJumpThread then
+            task.cancel(infiniteJumpThread)
+            infiniteJumpThread = nil
+        end
+        infiniteJumpRunning = false
+    end
+end
+
+-- ===== FULLBRIGHT =====
+local fullbrightConnection = nil
+local function ToggleFullbright(state)
+    if state then
+        if originalBrightness == nil then
+            originalBrightness = Lighting.Brightness
+            originalAmbient = Lighting.Ambient
+            originalOutdoorAmbient = Lighting.OutdoorAmbient
+        end
+        if fullbrightConnection then fullbrightConnection:Disconnect() end
+        fullbrightConnection = RunService.Heartbeat:Connect(function()
+            Lighting.Brightness = 10
+            Lighting.Ambient = Color3.new(1,1,1)
+            Lighting.OutdoorAmbient = Color3.new(1,1,1)
+        end)
+    else
+        if fullbrightConnection then fullbrightConnection:Disconnect(); fullbrightConnection = nil end
+        Lighting.Brightness = originalBrightness or 2
+        Lighting.Ambient = originalAmbient or Color3.new(0,0,0)
+        Lighting.OutdoorAmbient = originalOutdoorAmbient or Color3.new(0,0,0)
+    end
+end
+
+-- ===== NOCLIP =====
+local originalCollisionStates = {}
+local noClipConnection = nil
+local function ToggleNoClip(state)
+    local char = Player.Character
+    if not char then return end
+
+    if state then
+        originalCollisionStates = {}
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                originalCollisionStates[part] = part.CanCollide
+                part.CanCollide = false
+            end
+        end
+        if noClipConnection then noClipConnection:Disconnect() end
+        noClipConnection = RunService.Heartbeat:Connect(function()
+            if not getgenv().NoClip then return end
+            local c = Player.Character
+            if c then
+                for _, part in pairs(c:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+    else
+        if noClipConnection then noClipConnection:Disconnect(); noClipConnection = nil end
+        local c = Player.Character
+        if c then
+            for _, part in pairs(c:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    local orig = originalCollisionStates[part]
+                    part.CanCollide = (orig == nil and true) or orig
+                end
+            end
+        end
+        originalCollisionStates = {}
+    end
+end
+
+-- ==========================================
 -- 📊 PLAYER DATA
 -- ==========================================
 local DataDisplayRunning = false
@@ -462,9 +661,7 @@ local function BuildDataMessage()
     msg = msg .. "🐟 Total fish in inventory: " .. totalFish .. "\n"
     msg = msg .. "📦 Inventory: " .. usage .. "/" .. limit .. "\n"
     msg = msg .. "⭐ Level: " .. level .. "\n"
-    if coins > 0 then
-        msg = msg .. "💰 Coins: " .. coins .. "\n"
-    end
+    if coins > 0 then msg = msg .. "💰 Coins: " .. coins .. "\n" end
     msg = msg .. "━━━━━━━━━━━━━━━━━━\n"
     if #fishList > 0 then
         msg = msg .. "📋 Top fish:\n"
@@ -487,11 +684,7 @@ local function StartDataDisplay()
     DataDisplayThread = task.spawn(function()
         while getgenv().ShowPlayerData do
             local msg = BuildDataMessage()
-            Window:Notify({
-                title = "📊 Player Data",
-                content = msg,
-                duration = 8,
-            })
+            Window:Notify({ title = "📊 Player Data", content = msg, duration = 8 })
             task.wait(8)
         end
         DataDisplayRunning = false
@@ -499,10 +692,7 @@ local function StartDataDisplay()
 end
 
 local function StopDataDisplay()
-    if DataDisplayThread then
-        task.cancel(DataDisplayThread)
-        DataDisplayThread = nil
-    end
+    if DataDisplayThread then task.cancel(DataDisplayThread); DataDisplayThread = nil end
     DataDisplayRunning = false
 end
 
@@ -524,11 +714,7 @@ local function RefreshThreads()
         AntiAFKRunning = false
         PauseCast = false
     end
-    if getgenv().ShowPlayerData then
-        StartDataDisplay()
-    else
-        StopDataDisplay()
-    end
+    if getgenv().ShowPlayerData then StartDataDisplay() else StopDataDisplay() end
 end
 
 -- ==========================================
@@ -605,7 +791,6 @@ farmTab:CreateToggle({
     end,
 })
 
--- ===== DROPDOWN MULTI-SELECT (FIXED) =====
 farmTab:CreateDropdown({
     name = "🎯 Select Skills",
     flag = "SelectedSkills",
@@ -613,14 +798,10 @@ farmTab:CreateDropdown({
     value = {"Z", "X", "C", "V"},
     multiSelect = true,
     callback = function(selected)
-        if type(selected) == "string" then
-            selected = {selected}
-        elseif type(selected) ~= "table" then
-            selected = {"Z", "X", "C", "V"}
-        end
+        if type(selected) == "string" then selected = {selected}
+        elseif type(selected) ~= "table" then selected = {"Z", "X", "C", "V"} end
         getgenv().SelectedSkills = selected
-        local str = table.concat(selected, ", ")
-        Window:Notify({ title = "🎯 Skills updated", content = "Selected: " .. str, duration = 2 })
+        Window:Notify({ title = "🎯 Skills updated", content = "Selected: " .. table.concat(selected, ", "), duration = 2 })
         RefreshThreads()
     end,
 })
@@ -658,7 +839,6 @@ farmTab:CreateDropdown({
     end,
 })
 
--- TAB UTILITY
 local utilTab = Window:CreateTab({ name = "📊 Utility", icon = 93364949241311 })
 utilTab:CreateToggle({
     name = "📊 Player Data",
@@ -667,6 +847,84 @@ utilTab:CreateToggle({
         getgenv().ShowPlayerData = v
         Window:Notify({ title = v and "📊 Player Data ON" or "📊 Player Data OFF", duration = 2 })
         RefreshThreads()
+    end,
+})
+
+-- ==========================================
+-- 👤 LOCALPLAYER TAB (UPDATED FLY & INFINITE JUMP)
+-- ==========================================
+local localTab = Window:CreateTab({ name = "👤 LocalPlayer", icon = 93364949241311 })
+localTab:CreateSection({ name = "⚡ Movement" })
+
+localTab:CreateInput({
+    name = "🚶 Walkspeed",
+    numeric = true,
+    value = "16",
+    placeholder = "Enter speed...",
+    callback = function(text)
+        local num = tonumber(text)
+        if num then
+            SetWalkspeed(num)
+            Window:Notify({ title = "🚶 Walkspeed", content = "Set to " .. num, duration = 2 })
+        else
+            Window:Notify({ title = "⚠️", content = "Invalid number", duration = 2 })
+        end
+    end,
+})
+
+localTab:CreateToggle({
+    name = "🕊️ Fly",
+    flag = "Fly",
+    callback = function(v)
+        getgenv().FlyEnabled = v
+        if v then
+            StartFly()
+        else
+            -- Xóa BodyVelocity và BodyGyro ngay lập tức
+            if flyVelocity then flyVelocity:Destroy(); flyVelocity = nil end
+            if flyGyro then flyGyro:Destroy(); flyGyro = nil end
+            FlyRunning = false
+        end
+    end,
+})
+
+localTab:CreateSlider({
+    name = "✈️ Fly Speed",
+    flag = "FlySpeed",
+    range = {1, 100},
+    increment = 1,
+    suffix = " studs/s",
+    value = 50,
+    callback = function(v) getgenv().FlySpeed = v end,
+})
+
+localTab:CreateToggle({
+    name = "🦘 Infinite Jump",
+    flag = "InfiniteJump",
+    callback = function(v)
+        getgenv().InfiniteJump = v
+        ToggleInfiniteJump(v)
+        Window:Notify({ title = v and "🦘 Infinite Jump ON" or "🦘 Infinite Jump OFF", duration = 2 })
+    end,
+})
+
+localTab:CreateToggle({
+    name = "💡 Fullbright",
+    flag = "Fullbright",
+    callback = function(v)
+        getgenv().Fullbright = v
+        ToggleFullbright(v)
+        Window:Notify({ title = v and "💡 Fullbright ON" or "💡 Fullbright OFF", duration = 2 })
+    end,
+})
+
+localTab:CreateToggle({
+    name = "🚪 NoClip",
+    flag = "NoClip",
+    callback = function(v)
+        getgenv().NoClip = v
+        ToggleNoClip(v)
+        Window:Notify({ title = v and "🚪 NoClip ON" or "🚪 NoClip OFF", duration = 2 })
     end,
 })
 
@@ -756,5 +1014,3 @@ else
         end
     end
 end
-
-print("🐟 Heavyweight Fishing Hub – FINAL (multiSelect) loaded. Enjoy!")
