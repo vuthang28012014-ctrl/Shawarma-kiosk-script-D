@@ -1,5 +1,5 @@
 --[[
-    🐟 HEAVYWEIGHT FISHING HUB – CORRECT LAYOUT
+    🐟 HEAVYWEIGHT FISHING HUB – SKILL MINIGAME FIX
 ]]
 
 -- ==========================================
@@ -70,7 +70,7 @@ local flyVelocity = nil
 local flyGyro = nil
 
 -- ==========================================
--- 📊 HELPERS
+-- 📊 HELPERS (giữ nguyên)
 -- ==========================================
 local function GetPlayerData()
     return Data:FindFirstChild(tostring(Player.UserId))
@@ -169,7 +169,7 @@ local function GetCoins()
 end
 
 -- ==========================================
--- 🎣 AUTO EQUIP BEST HELPERS
+-- 🎣 AUTO EQUIP BEST HELPERS (giữ nguyên)
 -- ==========================================
 local function GetModule(folder, name)
     local m = folder:FindFirstChild(name)
@@ -531,8 +531,31 @@ local function StartSellLoop()
 end
 
 -- ==========================================
--- ⚔️ SKILLS LOOP
+-- ⚔️ SKILLS LOOP (FIXED – circle minigame + key press)
 -- ==========================================
+local function ClickButton(button)
+    if not button then return end
+    -- Try getconnections first
+    local success = pcall(function()
+        local conns = getconnections(button.MouseButton1Click)
+        for _, conn in pairs(conns) do
+            conn:Fire()
+        end
+    end)
+    if success then return end
+    -- Fallback: VirtualInputManager
+    pcall(function()
+        local pos = button.AbsolutePosition
+        local size = button.AbsoluteSize
+        local x = pos.X + size.X / 2
+        local y = pos.Y + size.Y / 2
+        local mouse = Player:GetMouse()
+        VIM:SendMouseButtonEvent(x, y, 0, true, mouse, 1)
+        task.wait(0.02)
+        VIM:SendMouseButtonEvent(x, y, 0, false, mouse, 1)
+    end)
+end
+
 local function PressKey(key)
     pcall(function()
         VIM:SendKeyEvent(true, key, false, game)
@@ -559,51 +582,120 @@ local function StartSkillLoop()
     SkillRunning = true
     task.spawn(function()
         local allKeys = {Enum.KeyCode.Z, Enum.KeyCode.X, Enum.KeyCode.C, Enum.KeyCode.V}
-        local names = {"Z", "X", "C", "V"}
+        local keyNames = {"Z", "X", "C", "V"}
+
         while getgenv().MasterFarm and getgenv().AutoSkills do
             local fishing = MainGui:FindFirstChild("Fishing")
             if not fishing or not fishing.Visible then
                 task.wait(0.5)
                 continue
             end
-            local toPress = GetSelectedSkillKeys()
-            if getgenv().SmartSkills then
-                local skillFrame = fishing:FindFirstChild("SkillButton")
-                if skillFrame then
-                    local frame = skillFrame:FindFirstChild("Frame")
-                    if frame then
-                        for i, key in ipairs(allKeys) do
-                            local should = false
-                            for _, k in ipairs(toPress) do
-                                if k == key then should = true; break end
+
+            -- ===== PART 1: Handle Slam/Charge (circle minigame) =====
+            local trashCan = fishing:FindFirstChild("TrashCan")
+            local skillBtn = nil
+            local skillType = nil
+            if trashCan then
+                for _, child in pairs(trashCan:GetChildren()) do
+                    if child.Name == "Slam" then
+                        skillBtn = child:FindFirstChild("Button")
+                        skillType = "Slam"
+                        break
+                    elseif child.Name == "Charge" then
+                        skillBtn = child:FindFirstChild("Button")
+                        skillType = "Charge"
+                        break
+                    end
+                end
+            end
+
+            if skillBtn then
+                local success = false
+                local line = nil
+                if skillType == "Slam" then
+                    local btnFrame = skillBtn.Parent
+                    if btnFrame then
+                        line = btnFrame:FindFirstChild("Line")
+                    end
+                    if line and line:IsA("Frame") then
+                        local startTime = tick()
+                        while tick() - startTime < 2.5 do
+                            local scale = line.Size.X.Scale
+                            if scale >= 0.95 and scale <= 1.15 then
+                                success = true
+                                break
                             end
-                            if not should then continue end
-                            local btn = frame:FindFirstChild(names[i])
-                            if btn then
-                                local cd = btn:FindFirstChild("CD")
-                                if cd and cd:IsA("TextLabel") and not cd.Visible then
-                                    PressKey(key)
-                                    task.wait(0.15)
-                                elseif not cd then
-                                    PressKey(key)
-                                    task.wait(0.15)
+                            task.wait(0.01)
+                        end
+                        if not success then
+                            success = true
+                        end
+                    else
+                        success = true
+                    end
+                else
+                    task.wait(0.5)
+                    success = true
+                end
+
+                if success and skillBtn then
+                    ClickButton(skillBtn)
+                    task.wait(0.3)
+                end
+            end
+
+            -- ===== PART 2: Press regular skill keys (Z, X, C, V) =====
+            -- Only press regular keys if no Slam/Charge is active
+            if not skillBtn then
+                local toPress = GetSelectedSkillKeys()
+                if getgenv().SmartSkills then
+                    -- Check cooldown via SkillButton.Frame
+                    local skillFrame = fishing:FindFirstChild("SkillButton")
+                    if skillFrame then
+                        local frame = skillFrame:FindFirstChild("Frame")
+                        if frame then
+                            for i, key in ipairs(allKeys) do
+                                local shouldPress = false
+                                for _, k in ipairs(toPress) do
+                                    if k == key then
+                                        shouldPress = true
+                                        break
+                                    end
+                                end
+                                if not shouldPress then continue end
+
+                                local btn = frame:FindFirstChild(keyNames[i])
+                                if btn then
+                                    local cd = btn:FindFirstChild("CD")
+                                    if cd and cd:IsA("TextLabel") then
+                                        if not cd.Visible then
+                                            PressKey(key)
+                                            task.wait(0.15)
+                                        end
+                                    else
+                                        PressKey(key)
+                                        task.wait(0.15)
+                                    end
                                 end
                             end
                         end
+                    else
+                        -- Fallback: press selected keys without cooldown check
+                        for _, key in ipairs(toPress) do
+                            PressKey(key)
+                            task.wait(0.15)
+                        end
                     end
                 else
+                    -- Smart off: press selected keys directly
                     for _, key in ipairs(toPress) do
                         PressKey(key)
                         task.wait(0.15)
                     end
                 end
-            else
-                for _, key in ipairs(toPress) do
-                    PressKey(key)
-                    task.wait(0.15)
-                end
             end
-            task.wait(0.5)
+
+            task.wait(0.3)
         end
         SkillRunning = false
     end)
@@ -889,7 +981,6 @@ farmTab:CreateToggle({
     callback = function(v) getgenv().AutoEquip = v; Window:Notify({ title = v and "🎣 Auto Equip ON" or "🎣 Auto Equip OFF", duration = 2 }); RefreshThreads() end,
 })
 
--- Skills & Anti AFK (now inside Main Controls)
 farmTab:CreateToggle({
     name = "⚔️ Auto Use Skills",
     flag = "AutoSkills",
@@ -923,19 +1014,15 @@ farmTab:CreateToggle({
     callback = function(v) getgenv().AntiAFK = v; Window:Notify({ title = v and "🛡️ Anti AFK ON" or "🛡️ Anti AFK OFF", duration = 2 }); RefreshThreads() end,
 })
 
--- ===== SECTION AUTO EQUIP (BUTTONS) =====
+-- SECTION AUTO EQUIP (BUTTONS)
 farmTab:CreateSection({ name = "🎣 Auto Equip" })
 
 farmTab:CreateButton({
     name = "🎣 Equip Best Rod",
     callback = function()
         local best = GetBestRod()
-        if best then
-            EquipRod(best)
-            Window:Notify({ title = "🎣", content = "Best rod equipped: " .. best, duration = 2 })
-        else
-            Window:Notify({ title = "⚠️", content = "No rod available", duration = 2 })
-        end
+        if best then EquipRod(best); Window:Notify({ title = "🎣", content = "Best rod equipped: " .. best, duration = 2 })
+        else Window:Notify({ title = "⚠️", content = "No rod available", duration = 2 }) end
     end,
 })
 
@@ -943,12 +1030,8 @@ farmTab:CreateButton({
     name = "🎯 Equip Best Bait",
     callback = function()
         local best = GetBestBait()
-        if best then
-            EquipBait(best)
-            Window:Notify({ title = "🎯", content = "Best bait equipped: " .. best, duration = 2 })
-        else
-            Window:Notify({ title = "⚠️", content = "No bait available", duration = 2 })
-        end
+        if best then EquipBait(best); Window:Notify({ title = "🎯", content = "Best bait equipped: " .. best, duration = 2 })
+        else Window:Notify({ title = "⚠️", content = "No bait available", duration = 2 }) end
     end,
 })
 
@@ -956,31 +1039,18 @@ farmTab:CreateButton({
     name = "⚡ Equip Best Skill",
     callback = function()
         local p = GetPlayerData()
-        if not p then
-            Window:Notify({ title = "⚠️", content = "No player data", duration = 2 })
-            return
-        end
+        if not p then Window:Notify({ title = "⚠️", content = "No player data", duration = 2 }); return end
         local rod = p.FishingRod.Value
-        if rod == "" then
-            Window:Notify({ title = "⚠️", content = "No rod equipped", duration = 2 })
-            return
-        end
+        if rod == "" then Window:Notify({ title = "⚠️", content = "No rod equipped", duration = 2 }); return end
         local inv = p.FishingRodInventory:FindFirstChild(rod)
-        if not inv or not inv.Skill then
-            Window:Notify({ title = "⚠️", content = "No skill slots", duration = 2 })
-            return
-        end
+        if not inv or not inv.Skill then Window:Notify({ title = "⚠️", content = "No skill slots", duration = 2 }); return end
         local equipped = {}
         for _, slot in pairs(inv.Skill:GetChildren()) do
             if slot.Value ~= "" then equipped[slot.Value] = true end
         end
         local best = GetBestUnEquippedSkill(equipped)
-        if best then
-            EquipSkill(best)
-            Window:Notify({ title = "⚡", content = "Best skill equipped: " .. best, duration = 2 })
-        else
-            Window:Notify({ title = "⚠️", content = "No skill available", duration = 2 })
-        end
+        if best then EquipSkill(best); Window:Notify({ title = "⚡", content = "Best skill equipped: " .. best, duration = 2 })
+        else Window:Notify({ title = "⚠️", content = "No skill available", duration = 2 }) end
     end,
 })
 
@@ -988,12 +1058,8 @@ farmTab:CreateButton({
     name = "🔮 Equip Best Orb",
     callback = function()
         local best = GetBestOrb()
-        if best then
-            EquipOrb(best)
-            Window:Notify({ title = "🔮", content = "Best orb equipped: " .. best, duration = 2 })
-        else
-            Window:Notify({ title = "⚠️", content = "No orb available", duration = 2 })
-        end
+        if best then EquipOrb(best); Window:Notify({ title = "🔮", content = "Best orb equipped: " .. best, duration = 2 })
+        else Window:Notify({ title = "⚠️", content = "No orb available", duration = 2 }) end
     end,
 })
 
