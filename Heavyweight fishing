@@ -788,3 +788,189 @@ else
         end
     end
 end
+-- ==========================================
+-- 🏝️ TAB TELEPORT (FIXED MODEL + HEIGHT 30)
+-- ==========================================
+
+local mainWindow = window or Window or getgenv().window or getgenv().Window
+if not mainWindow then
+    print("[SF] ⚠️ No Rayfield window found! Please create a window first.")
+else
+    local teleTab = mainWindow:CreateTab({ 
+        name = "🏝️ Teleport", 
+        icon = 93364949241311 
+    })
+
+    teleTab:CreateSection({ name = "📍 Islands" })
+
+    -- Helper: get CFrame from either Part or Model
+    local function GetCFrame(obj)
+        if not obj then return nil end
+        -- Nếu là Part (có CFrame)
+        if obj:IsA("BasePart") then
+            return obj.CFrame
+        end
+        -- Nếu là Model (dùng PrimaryPart)
+        if obj:IsA("Model") then
+            local primary = obj.PrimaryPart
+            if primary then
+                return primary.CFrame
+            end
+            -- Fallback: tìm Part đầu tiên có CFrame
+            for _, child in pairs(obj:GetDescendants()) do
+                if child:IsA("BasePart") then
+                    return child.CFrame
+                end
+            end
+        end
+        return nil
+    end
+
+    local function TeleportTo(target)
+        if not target then
+            mainWindow:Notify({ title = "⚠️", content = "Target not found!", duration = 2 })
+            return false
+        end
+
+        local char = game.Players.LocalPlayer.Character
+        if not char then
+            mainWindow:Notify({ title = "⚠️", content = "Character not found!", duration = 2 })
+            return false
+        end
+
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then
+            mainWindow:Notify({ title = "⚠️", content = "HumanoidRootPart not found!", duration = 2 })
+            return false
+        end
+
+        local cf = GetCFrame(target)
+        if not cf then
+            mainWindow:Notify({ title = "⚠️", content = "Target has no valid CFrame!", duration = 2 })
+            return false
+        end
+
+        -- Tăng độ cao lên 30 để tránh kẹt
+        root.CFrame = cf + Vector3.new(0, 30, 0)
+        mainWindow:Notify({ title = "📍", content = "Teleported successfully!", duration = 1.5 })
+        return true
+    end
+
+    local function GetPartFromPath(pathFunc)
+        local success, result = pcall(pathFunc)
+        if success and result then
+            return result
+        end
+        return nil
+    end
+
+    -- Island 1
+    teleTab:CreateButton({
+        name = "🏝️ Island 1",
+        callback = function()
+            local target = GetPartFromPath(function()
+                return workspace.Map["Map 1"].ground:GetChildren()[55]
+            end)
+            TeleportTo(target)
+        end,
+    })
+
+    -- Island 2
+    teleTab:CreateButton({
+        name = "🏝️ Island 2",
+        callback = function()
+            local target = GetPartFromPath(function()
+                return workspace.Map["Map 2"].Folder:GetChildren()[211]
+            end)
+            TeleportTo(target)
+        end,
+    })
+
+    -- Island 3
+    teleTab:CreateButton({
+        name = "🏝️ Island 3",
+        callback = function()
+            local target = GetPartFromPath(function()
+                return workspace.Map["Map 3"].Stuff["2"].ground
+            end)
+            TeleportTo(target)
+        end,
+    })
+
+    -- Island 4
+    teleTab:CreateButton({
+        name = "🏝️ Island 4",
+        callback = function()
+            local target = GetPartFromPath(function()
+                return workspace.Map["Map 4"].Stuff:GetChildren()[223]
+            end)
+            TeleportTo(target)
+        end,
+    })
+
+    -- Island 5
+    teleTab:CreateButton({
+        name = "🏝️ Island 5",
+        callback = function()
+            local target = GetPartFromPath(function()
+                return workspace.Map["Map 5"].Stuff:GetChildren()[136]
+            end)
+            TeleportTo(target)
+        end,
+    })
+
+    -- Island 6 (FIXED)
+    teleTab:CreateButton({
+        name = "🏝️ Island 6",
+        callback = function()
+            local target = GetPartFromPath(function()
+                return workspace.Map["Map 6"].woodport:GetChildren()[12]
+            end)
+            TeleportTo(target)
+        end,
+    })
+
+    -- Island 7
+    teleTab:CreateButton({
+        name = "🏝️ Island 7",
+        callback = function()
+            local target = GetPartFromPath(function()
+                return workspace.Map["Map 7"].New:GetChildren()[143]
+            end)
+            TeleportTo(target)
+        end,
+    })
+
+    -- Island 8
+    teleTab:CreateButton({
+        name = "🏝️ Island 8",
+        callback = function()
+            local target = GetPartFromPath(function()
+                return workspace.Map["Map 8"].Folder.ground
+            end)
+            TeleportTo(target)
+        end,
+    })
+
+    -- Island 9
+    teleTab:CreateButton({
+        name = "🏝️ Island 9",
+        callback = function()
+            local target = GetPartFromPath(function()
+                return workspace.Map["Map 9"].Folder:GetChildren()[266]
+            end)
+            TeleportTo(target)
+        end,
+    })
+
+    -- Island 10
+    teleTab:CreateButton({
+        name = "🏝️ Island 10",
+        callback = function()
+            local target = GetPartFromPath(function()
+                return workspace.Map["Map 10"].Detail.ground
+            end)
+            TeleportTo(target)
+        end,
+    })
+end
