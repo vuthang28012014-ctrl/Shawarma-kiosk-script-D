@@ -1,5 +1,5 @@
 --[[
-    🐟 HEAVYWEIGHT FISHING HUB – SKILL MINIGAME FIX
+    🐟 HEAVYWEIGHT FISHING HUB – SLAM PERFECT (1.75s)
 ]]
 
 -- ==========================================
@@ -41,6 +41,9 @@ getgenv().InfiniteJump = false
 getgenv().Fullbright = false
 getgenv().NoClip = false
 
+-- 🔥 PERFECT SLAM TIMING (ADJUST IF NEEDED)
+local SLAM_CLICK_TIME = 1.75  -- Perfect timing for Slam
+
 local Player = game.Players.LocalPlayer
 local Events = game:GetService("ReplicatedStorage"):WaitForChild("Events")
 local MainGui = Player.PlayerGui:WaitForChild("MainGui")
@@ -70,7 +73,7 @@ local flyVelocity = nil
 local flyGyro = nil
 
 -- ==========================================
--- 📊 HELPERS (giữ nguyên)
+-- 📊 HELPERS
 -- ==========================================
 local function GetPlayerData()
     return Data:FindFirstChild(tostring(Player.UserId))
@@ -169,7 +172,7 @@ local function GetCoins()
 end
 
 -- ==========================================
--- 🎣 AUTO EQUIP BEST HELPERS (giữ nguyên)
+-- 🎣 AUTO EQUIP HELPERS (giữ nguyên)
 -- ==========================================
 local function GetModule(folder, name)
     local m = folder:FindFirstChild(name)
@@ -245,7 +248,6 @@ local function EquipBait(baitName)
     return pcall(function() Events.EquipBait:InvokeServer(baitName) end)
 end
 
--- Skill helpers
 local function GetOwnedSkills()
     local p = GetPlayerData()
     if not p then return {} end
@@ -284,7 +286,6 @@ local function EquipSkill(skillName)
     return pcall(function() Events.EquipSkill:InvokeServer(skillName) end)
 end
 
--- Orb helpers
 local function GetAvailableOrbs()
     local p = GetPlayerData()
     if not p then return {} end
@@ -328,9 +329,6 @@ local function EquipOrb(orbName)
     return pcall(function() Events.EquipOrb:InvokeServer(orbName) end)
 end
 
--- ==========================================
--- 🔧 SLOT CHECK
--- ==========================================
 local function GetCurrentRodSkillInfo()
     local p = GetPlayerData()
     if not p then return {total=0, equipped=0} end
@@ -365,9 +363,6 @@ local function GetCurrentRodOrbInfo()
     return {total = total, equipped = equipped}
 end
 
--- ==========================================
--- 🎣 AUTO EQUIP ROD (gốc)
--- ==========================================
 local function EquipFishingRod()
     local char = Player.Character
     if char and char:GetAttribute("Type") == "Fishing Rod" then return true end
@@ -413,7 +408,7 @@ local function EquipFishingRod()
 end
 
 -- ==========================================
--- 🧵 AUTO CAST LOOP
+-- 🧵 THREADS (Auto Cast, Balance, Sell, Skill, AntiAFK, LocalPlayer, Teleport, Player Data)
 -- ==========================================
 local function StartCastLoop()
     if CastRunning then return end
@@ -454,9 +449,6 @@ local function StartCastLoop()
     end)
 end
 
--- ==========================================
--- 🧊 AUTO BALANCE LOOP
--- ==========================================
 local function StartBalanceLoop()
     if BalanceRunning then return end
     BalanceRunning = true
@@ -488,9 +480,6 @@ local function StartBalanceLoop()
     end)
 end
 
--- ==========================================
--- 💰 AUTO SELL LOOP
--- ==========================================
 local function StartSellLoop()
     if SellRunning then return end
     SellRunning = true
@@ -531,11 +520,10 @@ local function StartSellLoop()
 end
 
 -- ==========================================
--- ⚔️ SKILLS LOOP (FIXED – circle minigame + key press)
+-- ⚔️ SKILLS LOOP (PERFECT SLAM TIMING = 1.75s)
 -- ==========================================
 local function ClickButton(button)
     if not button then return end
-    -- Try getconnections first
     local success = pcall(function()
         local conns = getconnections(button.MouseButton1Click)
         for _, conn in pairs(conns) do
@@ -543,7 +531,6 @@ local function ClickButton(button)
         end
     end)
     if success then return end
-    -- Fallback: VirtualInputManager
     pcall(function()
         local pos = button.AbsolutePosition
         local size = button.AbsoluteSize
@@ -591,7 +578,7 @@ local function StartSkillLoop()
                 continue
             end
 
-            -- ===== PART 1: Handle Slam/Charge (circle minigame) =====
+            -- ===== PART 1: Handle Slam/Charge =====
             local trashCan = fishing:FindFirstChild("TrashCan")
             local skillBtn = nil
             local skillType = nil
@@ -611,29 +598,12 @@ local function StartSkillLoop()
 
             if skillBtn then
                 local success = false
-                local line = nil
                 if skillType == "Slam" then
-                    local btnFrame = skillBtn.Parent
-                    if btnFrame then
-                        line = btnFrame:FindFirstChild("Line")
-                    end
-                    if line and line:IsA("Frame") then
-                        local startTime = tick()
-                        while tick() - startTime < 2.5 do
-                            local scale = line.Size.X.Scale
-                            if scale >= 0.95 and scale <= 1.15 then
-                                success = true
-                                break
-                            end
-                            task.wait(0.01)
-                        end
-                        if not success then
-                            success = true
-                        end
-                    else
-                        success = true
-                    end
+                    -- Wait exactly 1.75 seconds (Perfect timing)
+                    task.wait(SLAM_CLICK_TIME)
+                    success = true
                 else
+                    -- Charge: wait 0.5s
                     task.wait(0.5)
                     success = true
                 end
@@ -645,11 +615,9 @@ local function StartSkillLoop()
             end
 
             -- ===== PART 2: Press regular skill keys (Z, X, C, V) =====
-            -- Only press regular keys if no Slam/Charge is active
             if not skillBtn then
                 local toPress = GetSelectedSkillKeys()
                 if getgenv().SmartSkills then
-                    -- Check cooldown via SkillButton.Frame
                     local skillFrame = fishing:FindFirstChild("SkillButton")
                     if skillFrame then
                         local frame = skillFrame:FindFirstChild("Frame")
@@ -680,14 +648,12 @@ local function StartSkillLoop()
                             end
                         end
                     else
-                        -- Fallback: press selected keys without cooldown check
                         for _, key in ipairs(toPress) do
                             PressKey(key)
                             task.wait(0.15)
                         end
                     end
                 else
-                    -- Smart off: press selected keys directly
                     for _, key in ipairs(toPress) do
                         PressKey(key)
                         task.wait(0.15)
@@ -927,9 +893,6 @@ local function StopDataDisplay()
     DataDisplayRunning = false
 end
 
--- ==========================================
--- 🔄 REFRESH
--- ==========================================
 local function RefreshThreads()
     if getgenv().MasterFarm then
         if getgenv().AutoCast then StartCastLoop() end
@@ -1014,7 +977,6 @@ farmTab:CreateToggle({
     callback = function(v) getgenv().AntiAFK = v; Window:Notify({ title = v and "🛡️ Anti AFK ON" or "🛡️ Anti AFK OFF", duration = 2 }); RefreshThreads() end,
 })
 
--- SECTION AUTO EQUIP (BUTTONS)
 farmTab:CreateSection({ name = "🎣 Auto Equip" })
 
 farmTab:CreateButton({
@@ -1079,7 +1041,6 @@ farmTab:CreateDropdown({
     callback = function(opt) getgenv().SellMode = opt; RefreshThreads() end,
 })
 
--- UTILITY TAB
 local utilTab = Window:CreateTab({ name = "📊 Utility", icon = 93364949241311 })
 utilTab:CreateToggle({
     name = "📊 Player Data",
@@ -1087,7 +1048,6 @@ utilTab:CreateToggle({
     callback = function(v) getgenv().ShowPlayerData = v; Window:Notify({ title = v and "📊 Player Data ON" or "📊 Player Data OFF", duration = 2 }); RefreshThreads() end,
 })
 
--- LOCALPLAYER TAB
 local localTab = Window:CreateTab({ name = "👤 LocalPlayer", icon = 93364949241311 })
 localTab:CreateSection({ name = "⚡ Movement" })
 
@@ -1145,7 +1105,6 @@ localTab:CreateToggle({
     callback = function(v) getgenv().NoClip = v; ToggleNoClip(v); Window:Notify({ title = v and "🚪 NoClip ON" or "🚪 NoClip OFF", duration = 2 }) end,
 })
 
--- TELEPORT TAB
 local teleTab = Window:CreateTab({ name = "🏝️ Teleport", icon = 93364949241311 })
 teleTab:CreateSection({ name = "📍 Islands" })
 
