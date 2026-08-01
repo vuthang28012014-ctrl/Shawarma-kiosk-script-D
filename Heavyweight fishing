@@ -8,7 +8,7 @@
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
 
 local Window = Rayfield:CreateWindow({
-    name = "🐟 Heavyweight Fishing Hub",
+    name = "🐟 Heavyweight Fishing exploit scipt",
     icon = 0,
     mainWindow = true,
     configuration = {
