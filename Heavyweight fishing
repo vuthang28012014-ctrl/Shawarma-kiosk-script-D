@@ -1,5 +1,5 @@
 --[[
-    🐟 HEAVYWEIGHT FISHING HUB – SLAM PERFECT (1.75s)
+    🐟 HEAVYWEIGHT FISHING HUB – COMPLETE WITH AUTO BUY & ANTI-DELETE
 ]]
 
 -- ==========================================
@@ -40,8 +40,10 @@ getgenv().FlySpeed = 50
 getgenv().InfiniteJump = false
 getgenv().Fullbright = false
 getgenv().NoClip = false
+-- Auto Buy
+getgenv().AutoBuyBait = false
+getgenv().BuyBaitName = ""
 
--- 🔥 PERFECT SLAM TIMING (ADJUST IF NEEDED)
 local SLAM_CLICK_TIME = 1.75  -- Perfect timing for Slam
 
 local Player = game.Players.LocalPlayer
@@ -63,6 +65,7 @@ local SellRunning = false
 local SkillRunning = false
 local AntiAFKRunning = false
 local FlyRunning = false
+local BuyRunning = false
 local PauseCast = false
 local FishCount = 0
 
@@ -172,7 +175,7 @@ local function GetCoins()
 end
 
 -- ==========================================
--- 🎣 AUTO EQUIP HELPERS (giữ nguyên)
+-- 🎣 AUTO EQUIP HELPERS
 -- ==========================================
 local function GetModule(folder, name)
     local m = folder:FindFirstChild(name)
@@ -408,7 +411,7 @@ local function EquipFishingRod()
 end
 
 -- ==========================================
--- 🧵 THREADS (Auto Cast, Balance, Sell, Skill, AntiAFK, LocalPlayer, Teleport, Player Data)
+-- 🧵 THREADS
 -- ==========================================
 local function StartCastLoop()
     if CastRunning then return end
@@ -520,7 +523,7 @@ local function StartSellLoop()
 end
 
 -- ==========================================
--- ⚔️ SKILLS LOOP (PERFECT SLAM TIMING = 1.75s)
+-- ⚔️ SKILLS LOOP (PERFECT SLAM)
 -- ==========================================
 local function ClickButton(button)
     if not button then return end
@@ -578,7 +581,6 @@ local function StartSkillLoop()
                 continue
             end
 
-            -- ===== PART 1: Handle Slam/Charge =====
             local trashCan = fishing:FindFirstChild("TrashCan")
             local skillBtn = nil
             local skillType = nil
@@ -599,11 +601,9 @@ local function StartSkillLoop()
             if skillBtn then
                 local success = false
                 if skillType == "Slam" then
-                    -- Wait exactly 1.75 seconds (Perfect timing)
                     task.wait(SLAM_CLICK_TIME)
                     success = true
                 else
-                    -- Charge: wait 0.5s
                     task.wait(0.5)
                     success = true
                 end
@@ -614,7 +614,6 @@ local function StartSkillLoop()
                 end
             end
 
-            -- ===== PART 2: Press regular skill keys (Z, X, C, V) =====
             if not skillBtn then
                 local toPress = GetSelectedSkillKeys()
                 if getgenv().SmartSkills then
@@ -668,7 +667,7 @@ local function StartSkillLoop()
 end
 
 -- ==========================================
--- 🛡️ ANTI AFK LOOP
+-- 🛡️ ANTI AFK
 -- ==========================================
 local function StartAntiAFKLoop()
     if AntiAFKRunning then return end
@@ -696,6 +695,48 @@ local function StartAntiAFKLoop()
             task.wait(5)
         end
         AntiAFKRunning = false
+    end)
+end
+
+-- ==========================================
+-- 🛒 AUTO BUY (CHỈ MUA 1 LẦN, CHỜ HẾT MỚI MUA TIẾP)
+-- ==========================================
+local isBuying = false  -- cờ ngăn mua trùng
+
+local function StartAutoBuyLoop()
+    if BuyRunning then return end
+    BuyRunning = true
+    task.spawn(function()
+        while getgenv().MasterFarm and getgenv().AutoBuyBait do
+            local baitName = getgenv().BuyBaitName
+            if baitName and baitName ~= "" then
+                local p = GetPlayerData()
+                if p then
+                    local baitFolder = p:FindFirstChild("Bait")
+                    if baitFolder then
+                        local bait = baitFolder:FindFirstChild(baitName)
+                        if bait and bait:IsA("NumberValue") then
+                            -- Chỉ mua khi số lượng < 1 và chưa có giao dịch đang xử lý
+                            if bait.Value < 1 and not isBuying then
+                                isBuying = true
+                                pcall(function()
+                                    Events.BuyBait:FireServer(baitName)
+                                    Window:Notify({ title = "🛒", content = "Bought " .. baitName, duration = 2 })
+                                end)
+                                -- Chờ 3 giây để game cập nhật số lượng, sau đó reset cờ
+                                task.wait(3)
+                                isBuying = false
+                            elseif bait.Value >= 1 and isBuying then
+                                -- Nếu đã có bait (có thể mua thành công), reset cờ
+                                isBuying = false
+                            end
+                        end
+                    end
+                end
+            end
+            task.wait(1)  -- kiểm tra mỗi 1 giây để phản hồi nhanh hơn
+        end
+        BuyRunning = false
     end)
 end
 
@@ -900,17 +941,63 @@ local function RefreshThreads()
         if getgenv().AutoSell then StartSellLoop() end
         if getgenv().AutoSkills then StartSkillLoop() end
         if getgenv().AntiAFK then StartAntiAFKLoop() end
+        if getgenv().AutoBuyBait then StartAutoBuyLoop() end
     else
         CastRunning = false; BalanceRunning = false; SellRunning = false
-        SkillRunning = false; AntiAFKRunning = false; PauseCast = false
+        SkillRunning = false; AntiAFKRunning = false; BuyRunning = false
+        PauseCast = false
     end
     if getgenv().ShowPlayerData then StartDataDisplay() else StopDataDisplay() end
 end
 
 -- ==========================================
+-- 🛡️ ANTI-XÓA TRASHCAN (KHÔNG LỖI)
+-- ==========================================
+local function AntiDelete()
+    local fishing = MainGui:FindFirstChild("Fishing")
+    if not fishing then return end
+    local trashCan = fishing:FindFirstChild("TrashCan")
+    if not trashCan then return end
+
+    trashCan.ChildRemoved:Connect(function(child)
+        if child and (child.Name == "Slam" or child.Name == "Charge") then
+            local clone = child:Clone()
+            clone.Parent = trashCan
+            clone.Visible = true
+            clone.Position = child.Position
+            clone.Size = child.Size
+            local line = clone:FindFirstChild("Line")
+            if line and child:FindFirstChild("Line") then
+                line.Size = child.Line.Size
+            end
+            task.delay(2, function()
+                if clone and clone.Parent then
+                    clone:Destroy()
+                end
+            end)
+            print("[Anti-Delete] Restored", child.Name)
+        end
+    end)
+end
+
+local function StartAntiDelete()
+    local fishing = MainGui:FindFirstChild("Fishing")
+    if fishing then
+        if fishing.Visible then
+            AntiDelete()
+        end
+        fishing:GetPropertyChangedSignal("Visible"):Connect(function()
+            if fishing.Visible then
+                AntiDelete()
+            end
+        end)
+    end
+end
+StartAntiDelete()
+
+-- ==========================================
 -- 🎨 UI TABS
 -- ==========================================
-
 local farmTab = Window:CreateTab({ name = "⚡ Auto Farm", icon = 93364949241311 })
 farmTab:CreateSection({ name = "🎣 Main Controls" })
 
@@ -1041,6 +1128,49 @@ farmTab:CreateDropdown({
     callback = function(opt) getgenv().SellMode = opt; RefreshThreads() end,
 })
 
+-- ==========================================
+-- 🛒 AUTO BUY SECTION
+-- ==========================================
+local function GetBuyableBaits()
+    local baits = {}
+    for _, child in pairs(Info.Bait:GetChildren()) do
+        local success, mod = pcall(require, child)
+        if success and type(mod) == "table" and mod.Price and mod.Price > 0 then
+            table.insert(baits, child.Name)
+        end
+    end
+    return baits
+end
+
+farmTab:CreateSection({ name = "🛒 Auto Buy" })
+
+local buyableBaits = GetBuyableBaits()
+if #buyableBaits == 0 then
+    buyableBaits = {"No bait available"}
+end
+
+farmTab:CreateDropdown({
+    name = "🎯 Select Bait to Buy",
+    flag = "BuyBait",
+    options = buyableBaits,
+    current = buyableBaits[1] or "No bait available",
+    callback = function(option)
+        getgenv().BuyBaitName = option
+    end,
+})
+getgenv().BuyBaitName = buyableBaits[1] or ""
+
+farmTab:CreateToggle({
+    name = "🔄 Auto Buy Bait",
+    flag = "AutoBuyBait",
+    callback = function(v)
+        getgenv().AutoBuyBait = v
+        Window:Notify({ title = v and "🔄 Auto Buy ON" or "🔄 Auto Buy OFF", content = v and "Will buy selected bait when stock < 1" or "Auto buy disabled", duration = 2 })
+        RefreshThreads()
+    end,
+})
+
+-- UTILITY TAB
 local utilTab = Window:CreateTab({ name = "📊 Utility", icon = 93364949241311 })
 utilTab:CreateToggle({
     name = "📊 Player Data",
@@ -1048,6 +1178,7 @@ utilTab:CreateToggle({
     callback = function(v) getgenv().ShowPlayerData = v; Window:Notify({ title = v and "📊 Player Data ON" or "📊 Player Data OFF", duration = 2 }); RefreshThreads() end,
 })
 
+-- LOCALPLAYER TAB
 local localTab = Window:CreateTab({ name = "👤 LocalPlayer", icon = 93364949241311 })
 localTab:CreateSection({ name = "⚡ Movement" })
 
@@ -1105,6 +1236,7 @@ localTab:CreateToggle({
     callback = function(v) getgenv().NoClip = v; ToggleNoClip(v); Window:Notify({ title = v and "🚪 NoClip ON" or "🚪 NoClip OFF", duration = 2 }) end,
 })
 
+-- TELEPORT TAB
 local teleTab = Window:CreateTab({ name = "🏝️ Teleport", icon = 93364949241311 })
 teleTab:CreateSection({ name = "📍 Islands" })
 
