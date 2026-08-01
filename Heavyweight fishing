@@ -1,5 +1,5 @@
 --[[
-    🐟 HEAVYWEIGHT FISHING HUB – COMPLETE WITH AUTO BUY & ANTI-DELETE
+    🐟 HEAVYWEIGHT FISHING HUB – FINAL (NO ANTI-DELETE)
 ]]
 
 -- ==========================================
@@ -8,7 +8,7 @@
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
 
 local Window = Rayfield:CreateWindow({
-    name = "🐟 Heavyweight Fishing exploit scipt",
+    name = "🐟 Heavyweight Fishing Hub",
     icon = 0,
     mainWindow = true,
     configuration = {
@@ -43,6 +43,7 @@ getgenv().NoClip = false
 -- Auto Buy
 getgenv().AutoBuyBait = false
 getgenv().BuyBaitName = ""
+getgenv().BuyRodName = ""
 
 local SLAM_CLICK_TIME = 1.75  -- Perfect timing for Slam
 
@@ -699,10 +700,9 @@ local function StartAntiAFKLoop()
 end
 
 -- ==========================================
--- 🛒 AUTO BUY (CHỈ MUA 1 LẦN, CHỜ HẾT MỚI MUA TIẾP)
+-- 🛒 AUTO BUY (BAIT) – CHỈ MUA 1 LẦN KHI HẾT
 -- ==========================================
-local isBuying = false  -- cờ ngăn mua trùng
-
+local isBuying = false
 local function StartAutoBuyLoop()
     if BuyRunning then return end
     BuyRunning = true
@@ -716,25 +716,22 @@ local function StartAutoBuyLoop()
                     if baitFolder then
                         local bait = baitFolder:FindFirstChild(baitName)
                         if bait and bait:IsA("NumberValue") then
-                            -- Chỉ mua khi số lượng < 1 và chưa có giao dịch đang xử lý
                             if bait.Value < 1 and not isBuying then
                                 isBuying = true
                                 pcall(function()
                                     Events.BuyBait:FireServer(baitName)
                                     Window:Notify({ title = "🛒", content = "Bought " .. baitName, duration = 2 })
                                 end)
-                                -- Chờ 3 giây để game cập nhật số lượng, sau đó reset cờ
                                 task.wait(3)
                                 isBuying = false
                             elseif bait.Value >= 1 and isBuying then
-                                -- Nếu đã có bait (có thể mua thành công), reset cờ
                                 isBuying = false
                             end
                         end
                     end
                 end
             end
-            task.wait(1)  -- kiểm tra mỗi 1 giây để phản hồi nhanh hơn
+            task.wait(1)
         end
         BuyRunning = false
     end)
@@ -951,51 +948,6 @@ local function RefreshThreads()
 end
 
 -- ==========================================
--- 🛡️ ANTI-XÓA TRASHCAN (KHÔNG LỖI)
--- ==========================================
-local function AntiDelete()
-    local fishing = MainGui:FindFirstChild("Fishing")
-    if not fishing then return end
-    local trashCan = fishing:FindFirstChild("TrashCan")
-    if not trashCan then return end
-
-    trashCan.ChildRemoved:Connect(function(child)
-        if child and (child.Name == "Slam" or child.Name == "Charge") then
-            local clone = child:Clone()
-            clone.Parent = trashCan
-            clone.Visible = true
-            clone.Position = child.Position
-            clone.Size = child.Size
-            local line = clone:FindFirstChild("Line")
-            if line and child:FindFirstChild("Line") then
-                line.Size = child.Line.Size
-            end
-            task.delay(2, function()
-                if clone and clone.Parent then
-                    clone:Destroy()
-                end
-            end)
-            print("[Anti-Delete] Restored", child.Name)
-        end
-    end)
-end
-
-local function StartAntiDelete()
-    local fishing = MainGui:FindFirstChild("Fishing")
-    if fishing then
-        if fishing.Visible then
-            AntiDelete()
-        end
-        fishing:GetPropertyChangedSignal("Visible"):Connect(function()
-            if fishing.Visible then
-                AntiDelete()
-            end
-        end)
-    end
-end
-StartAntiDelete()
-
--- ==========================================
 -- 🎨 UI TABS
 -- ==========================================
 local farmTab = Window:CreateTab({ name = "⚡ Auto Farm", icon = 93364949241311 })
@@ -1129,7 +1081,7 @@ farmTab:CreateDropdown({
 })
 
 -- ==========================================
--- 🛒 AUTO BUY SECTION
+-- 🛒 SECTION AUTO BUY (BAIT + ROD)
 -- ==========================================
 local function GetBuyableBaits()
     local baits = {}
@@ -1142,21 +1094,37 @@ local function GetBuyableBaits()
     return baits
 end
 
-farmTab:CreateSection({ name = "🛒 Auto Buy" })
-
-local buyableBaits = GetBuyableBaits()
-if #buyableBaits == 0 then
-    buyableBaits = {"No bait available"}
+local function GetBuyableRods()
+    local p = GetPlayerData()
+    if not p then return {} end
+    local rods = {}
+    local inv = p:FindFirstChild("FishingRodInventory")
+    if not inv then return {} end
+    for _, rodFolder in pairs(inv:GetChildren()) do
+        if rodFolder:IsA("Folder") then
+            local owned = rodFolder:FindFirstChild("Owned")
+            if owned and owned.Value == false then
+                local mod = Info.Inventory:FindFirstChild(rodFolder.Name)
+                if mod then
+                    table.insert(rods, rodFolder.Name)
+                end
+            end
+        end
+    end
+    return rods
 end
 
+farmTab:CreateSection({ name = "🛒 Auto Buy" })
+
+-- Bait
+local buyableBaits = GetBuyableBaits()
+if #buyableBaits == 0 then buyableBaits = {"No bait available"} end
 farmTab:CreateDropdown({
     name = "🎯 Select Bait to Buy",
     flag = "BuyBait",
     options = buyableBaits,
     current = buyableBaits[1] or "No bait available",
-    callback = function(option)
-        getgenv().BuyBaitName = option
-    end,
+    callback = function(option) getgenv().BuyBaitName = option end,
 })
 getgenv().BuyBaitName = buyableBaits[1] or ""
 
@@ -1167,6 +1135,33 @@ farmTab:CreateToggle({
         getgenv().AutoBuyBait = v
         Window:Notify({ title = v and "🔄 Auto Buy ON" or "🔄 Auto Buy OFF", content = v and "Will buy selected bait when stock < 1" or "Auto buy disabled", duration = 2 })
         RefreshThreads()
+    end,
+})
+
+-- Rod
+local buyableRods = GetBuyableRods()
+if #buyableRods == 0 then buyableRods = {"No rod available"} end
+farmTab:CreateDropdown({
+    name = "🎯 Select Rod to Buy",
+    flag = "BuyRod",
+    options = buyableRods,
+    current = buyableRods[1] or "No rod available",
+    callback = function(option) getgenv().BuyRodName = option end,
+})
+getgenv().BuyRodName = buyableRods[1] or ""
+
+farmTab:CreateButton({
+    name = "🛒 Buy Rod",
+    callback = function()
+        local rodName = getgenv().BuyRodName
+        if not rodName or rodName == "" or rodName == "No rod available" then
+            Window:Notify({ title = "⚠️", content = "No rod selected or available", duration = 2 })
+            return
+        end
+        pcall(function()
+            Events.BuyFishingRod:FireServer(rodName)
+            Window:Notify({ title = "🛒", content = "Bought " .. rodName, duration = 2 })
+        end)
     end,
 })
 
