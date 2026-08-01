@@ -1,5 +1,5 @@
 --[[
-    🐟 HEAVYWEIGHT FISHING HUB – FINAL (NO ANTI-DELETE)
+    🐟 HEAVYWEIGHT FISHING HUB – FINAL WITH REDEEM CODES
 ]]
 
 -- ==========================================
@@ -1229,6 +1229,31 @@ localTab:CreateToggle({
     name = "🚪 NoClip",
     flag = "NoClip",
     callback = function(v) getgenv().NoClip = v; ToggleNoClip(v); Window:Notify({ title = v and "🚪 NoClip ON" or "🚪 NoClip OFF", duration = 2 }) end,
+})
+
+-- ===== NEW: Redeem All Codes Button =====
+localTab:CreateButton({
+    name = "🎁 Redeem All Codes",
+    callback = function()
+        local codes = {
+            "41KLikes",
+            "Enzo",
+            "WaitForPeak",
+            "40KLikes",
+            "HWF",
+            "BetaPlayer",
+            "ThanksForNitroBoost",
+            "22MVisits"
+        }
+        for _, code in ipairs(codes) do
+            pcall(function()
+                Events.RedeemCode:FireServer(code)
+                Window:Notify({ title = "🎁 Code Redeemed", content = code, duration = 2 })
+                task.wait(0.5)
+            end)
+        end
+        Window:Notify({ title = "✅ All codes redeemed", content = "Check your rewards!", duration = 3 })
+    end,
 })
 
 -- TELEPORT TAB
