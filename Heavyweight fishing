@@ -1,5 +1,8 @@
 --[[
-    🐟 HEAVYWEIGHT FISHING HUB – FINAL WITH REDEEM CODES
+    🐟 HEAVYWEIGHT FISHING HUB – ULTIMATE FINAL
+    Tất cả tính năng: Auto Farm, Auto Equip Best, Auto Sell,
+    Auto Buy (Bait, Rod, Learn Skills), LocalPlayer, Teleport,
+    Anti AFK, Redeem Codes, Perfect Slam timing.
 ]]
 
 -- ==========================================
@@ -44,8 +47,9 @@ getgenv().NoClip = false
 getgenv().AutoBuyBait = false
 getgenv().BuyBaitName = ""
 getgenv().BuyRodName = ""
+getgenv().SelectedLearnSkills = {}
 
-local SLAM_CLICK_TIME = 1.75  -- Perfect timing for Slam
+local SLAM_CLICK_TIME = 1.75
 
 local Player = game.Players.LocalPlayer
 local Events = game:GetService("ReplicatedStorage"):WaitForChild("Events")
@@ -412,7 +416,7 @@ local function EquipFishingRod()
 end
 
 -- ==========================================
--- 🧵 THREADS
+-- 🧵 THREADS (Cast, Balance, Sell, Skills, Anti AFK, Auto Buy)
 -- ==========================================
 local function StartCastLoop()
     if CastRunning then return end
@@ -684,13 +688,9 @@ local function StartAntiAFKLoop()
                 Player:SetAttribute("ReadyToAFK", false)
             end
             if tick() - lastMove > 600 then
-                local mouse = Player:GetMouse()
-                if mouse then
-                    local x = mouse.X
-                    VIM:SendMouseMovementEvent(x + 1, mouse.Y, 0, false)
-                    task.wait(0.1)
-                    VIM:SendMouseMovementEvent(x, mouse.Y, 0, false)
-                end
+                VIM:SendKeyEvent(true, Enum.KeyCode.K, false, game)
+                task.wait(0.1)
+                VIM:SendKeyEvent(false, Enum.KeyCode.K, false, game)
                 lastMove = tick()
             end
             task.wait(5)
@@ -948,6 +948,58 @@ local function RefreshThreads()
 end
 
 -- ==========================================
+-- 🛠️ HÀM LẤY DANH SÁCH CÓ THỂ MUA/HỌC
+-- ==========================================
+local function GetBuyableBaits()
+    local baits = {}
+    for _, child in pairs(Info.Bait:GetChildren()) do
+        local success, mod = pcall(require, child)
+        if success and type(mod) == "table" and mod.Price and mod.Price > 0 then
+            table.insert(baits, child.Name)
+        end
+    end
+    return baits
+end
+
+local function GetBuyableRods()
+    local p = GetPlayerData()
+    if not p then return {} end
+    local rods = {}
+    local inv = p:FindFirstChild("FishingRodInventory")
+    if not inv then return {} end
+    for _, rodFolder in pairs(inv:GetChildren()) do
+        if rodFolder:IsA("Folder") then
+            local owned = rodFolder:FindFirstChild("Owned")
+            if owned and owned.Value == false then
+                local mod = Info.Inventory:FindFirstChild(rodFolder.Name)
+                if mod then
+                    table.insert(rods, rodFolder.Name)
+                end
+            end
+        end
+    end
+    return rods
+end
+
+local function GetLearnableSkills()
+    local p = GetPlayerData()
+    if not p then return {} end
+    local skills = {}
+    for _, skillFolder in pairs(p.Skill:GetChildren()) do
+        if skillFolder:IsA("Folder") then
+            local owned = skillFolder:FindFirstChild("Owned")
+            if owned and owned.Value == false then
+                local mod = GetModule(Info.Skill, skillFolder.Name)
+                if mod and mod.Price and mod.Price > 0 then
+                    table.insert(skills, skillFolder.Name)
+                end
+            end
+        end
+    end
+    return skills
+end
+
+-- ==========================================
 -- 🎨 UI TABS
 -- ==========================================
 local farmTab = Window:CreateTab({ name = "⚡ Auto Farm", icon = 93364949241311 })
@@ -1081,39 +1133,8 @@ farmTab:CreateDropdown({
 })
 
 -- ==========================================
--- 🛒 SECTION AUTO BUY (BAIT + ROD)
+-- 🛒 AUTO BUY SECTION (BAIT + ROD + LEARN SKILLS)
 -- ==========================================
-local function GetBuyableBaits()
-    local baits = {}
-    for _, child in pairs(Info.Bait:GetChildren()) do
-        local success, mod = pcall(require, child)
-        if success and type(mod) == "table" and mod.Price and mod.Price > 0 then
-            table.insert(baits, child.Name)
-        end
-    end
-    return baits
-end
-
-local function GetBuyableRods()
-    local p = GetPlayerData()
-    if not p then return {} end
-    local rods = {}
-    local inv = p:FindFirstChild("FishingRodInventory")
-    if not inv then return {} end
-    for _, rodFolder in pairs(inv:GetChildren()) do
-        if rodFolder:IsA("Folder") then
-            local owned = rodFolder:FindFirstChild("Owned")
-            if owned and owned.Value == false then
-                local mod = Info.Inventory:FindFirstChild(rodFolder.Name)
-                if mod then
-                    table.insert(rods, rodFolder.Name)
-                end
-            end
-        end
-    end
-    return rods
-end
-
 farmTab:CreateSection({ name = "🛒 Auto Buy" })
 
 -- Bait
@@ -1162,6 +1183,40 @@ farmTab:CreateButton({
             Events.BuyFishingRod:FireServer(rodName)
             Window:Notify({ title = "🛒", content = "Bought " .. rodName, duration = 2 })
         end)
+    end,
+})
+
+-- Learn Skills
+local learnableSkills = GetLearnableSkills()
+if #learnableSkills == 0 then learnableSkills = {"No skill available"} end
+farmTab:CreateDropdown({
+    name = "🎯 Select Skills to Learn",
+    flag = "LearnSkills",
+    options = learnableSkills,
+    value = {},
+    multiSelect = true,
+    callback = function(selected)
+        getgenv().SelectedLearnSkills = selected
+    end,
+})
+getgenv().SelectedLearnSkills = {}
+
+farmTab:CreateButton({
+    name = "📖 Learn Selected Skills",
+    callback = function()
+        local selected = getgenv().SelectedLearnSkills or {}
+        if #selected == 0 then
+            Window:Notify({ title = "⚠️", content = "No skills selected", duration = 2 })
+            return
+        end
+        for _, skillName in ipairs(selected) do
+            pcall(function()
+                Events.BuySkill:FireServer(skillName)
+                Window:Notify({ title = "📖", content = "Learned " .. skillName, duration = 2 })
+                task.wait(0.5)
+            end)
+        end
+        Window:Notify({ title = "✅", content = "All selected skills learned!", duration = 3 })
     end,
 })
 
@@ -1231,19 +1286,12 @@ localTab:CreateToggle({
     callback = function(v) getgenv().NoClip = v; ToggleNoClip(v); Window:Notify({ title = v and "🚪 NoClip ON" or "🚪 NoClip OFF", duration = 2 }) end,
 })
 
--- ===== NEW: Redeem All Codes Button =====
 localTab:CreateButton({
     name = "🎁 Redeem All Codes",
     callback = function()
         local codes = {
-            "41KLikes",
-            "Enzo",
-            "WaitForPeak",
-            "40KLikes",
-            "HWF",
-            "BetaPlayer",
-            "ThanksForNitroBoost",
-            "22MVisits"
+            "41KLikes", "Enzo", "WaitForPeak", "40KLikes",
+            "HWF", "BetaPlayer", "ThanksForNitroBoost", "22MVisits"
         }
         for _, code in ipairs(codes) do
             pcall(function()
@@ -1328,3 +1376,5 @@ else
         end
     end
 end
+
+print("🐟 Heavyweight Fishing Hub – FINAL with Learn Skills in Auto Buy loaded. Happy fishing!")
