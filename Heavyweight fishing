@@ -1,5 +1,5 @@
 --[[
-    🐟 HEAVYWEIGHT FISHING HUB – ULTIMATE FINAL (SYNTAX FIXED)
+    🐟 HEAVYWEIGHT FISHING HUB – FINAL (FIXED BEST SKILL)
 ]]
 
 -- ==========================================
@@ -85,7 +85,6 @@ local flyGyro = nil
 local function HookFishingMinigame()
     local FishingMinigame = Events:FindFirstChild("FishingMinigame")
     if not FishingMinigame then
-        print("[Hook] FishingMinigame not found, retrying...")
         task.wait(1)
         return HookFishingMinigame()
     end
@@ -97,22 +96,17 @@ local function HookFishingMinigame()
             table.insert(originalCallbacks, conn.Function)
             conn:Disconnect()
         end
-        print("[Hook] Disconnected", #connections, "existing connections")
-    else
-        print("[Hook] getconnections not available, adding new connection")
     end
 
     FishingMinigame.OnClientEvent:Connect(function(fishData, rodData, uuid)
         if type(rodData) == "table" then
             rodData.Power = 1000
             rodData.Luck = 1000
-            print("[Hook] Modified rod data: Power = 1000, Luck = 1000")
         end
         for _, cb in ipairs(originalCallbacks) do
             pcall(cb, fishData, rodData, uuid)
         end
     end)
-    print("[Hook] FishingMinigame hook installed successfully (Power/Luck -> 1000)")
 end
 
 spawn(function()
@@ -227,7 +221,7 @@ local function FormatTime(seconds)
 end
 
 -- ==========================================
--- 🎣 AUTO EQUIP HELPERS
+-- 🎣 AUTO EQUIP HELPERS (FIXED GET SKILL STATS)
 -- ==========================================
 local function GetModule(folder, name)
     local m = folder:FindFirstChild(name)
@@ -303,6 +297,16 @@ local function EquipBait(baitName)
     return pcall(function() Events.EquipBait:InvokeServer(baitName) end)
 end
 
+-- ===== FIXED: Get skill stats (Boost, Power, Luck) =====
+local function GetSkillStats(skillName)
+    local mod = GetModule(Info.Skill, skillName)
+    if mod then
+        local score = mod.Boost or mod.Power or mod.Luck or 0
+        return {Boost = score}
+    end
+    return {Boost = 0}
+end
+
 local function GetOwnedSkills()
     local p = GetPlayerData()
     if not p then return {} end
@@ -315,20 +319,17 @@ local function GetOwnedSkills()
     return skills
 end
 
-local function GetSkillStats(skillName)
-    local mod = GetModule(Info.Skill, skillName)
-    if mod then return {Boost = mod.Boost or 0} end
-    return {Boost = 0}
-end
-
 local function GetBestUnEquippedSkill(equippedSet)
     local owned = GetOwnedSkills()
     local best, bestBoost = nil, -1
+    local debugInfo = {}
     for _, name in ipairs(owned) do
         if not equippedSet[name] then
             local s = GetSkillStats(name)
-            if s.Boost > bestBoost then
-                bestBoost = s.Boost
+            local score = s.Boost or 0
+            debugInfo[name] = score
+            if score > bestBoost then
+                bestBoost = score
                 best = name
             end
         end
@@ -1152,6 +1153,9 @@ farmTab:CreateToggle({
     end,
 })
 
+-- ==========================================
+-- 🎣 AUTO EQUIP SECTION (FIXED)
+-- ==========================================
 farmTab:CreateSection({ name = "🎣 Auto Equip" })
 
 farmTab:CreateButton({
@@ -1159,7 +1163,11 @@ farmTab:CreateButton({
     callback = function()
         local best = GetBestRod()
         if best then
-            EquipRod(best)
+            if EquipRod(best) then
+                Window:Notify({ title = "🎣", content = "Best rod equipped: " .. best, duration = 2 })
+            else
+                Window:Notify({ title = "⚠️", content = "Failed to equip rod.", duration = 2 })
+            end
         else
             Window:Notify({ title = "⚠️", content = "No rod available", duration = 2 })
         end
@@ -1171,7 +1179,11 @@ farmTab:CreateButton({
     callback = function()
         local best = GetBestBait()
         if best then
-            EquipBait(best)
+            if EquipBait(best) then
+                Window:Notify({ title = "🎯", content = "Best bait equipped: " .. best, duration = 2 })
+            else
+                Window:Notify({ title = "⚠️", content = "Failed to equip bait.", duration = 2 })
+            end
         else
             Window:Notify({ title = "⚠️", content = "No bait available", duration = 2 })
         end
@@ -1202,7 +1214,11 @@ farmTab:CreateButton({
         end
         local best = GetBestUnEquippedSkill(equipped)
         if best then
-            EquipSkill(best)
+            if EquipSkill(best) then
+                Window:Notify({ title = "⚡", content = "Best skill equipped: " .. best, duration = 2 })
+            else
+                Window:Notify({ title = "⚠️", content = "Failed to equip skill.", duration = 2 })
+            end
         else
             Window:Notify({ title = "⚠️", content = "No skill available", duration = 2 })
         end
@@ -1214,13 +1230,20 @@ farmTab:CreateButton({
     callback = function()
         local best = GetBestOrb()
         if best then
-            EquipOrb(best)
+            if EquipOrb(best) then
+                Window:Notify({ title = "🔮", content = "Best orb equipped: " .. best, duration = 2 })
+            else
+                Window:Notify({ title = "⚠️", content = "Failed to equip orb.", duration = 2 })
+            end
         else
             Window:Notify({ title = "⚠️", content = "No orb available", duration = 2 })
         end
     end,
 })
 
+-- ==========================================
+-- 💰 AUTO SELL SECTION
+-- ==========================================
 farmTab:CreateSection({ name = "💰 Auto Sell" })
 
 farmTab:CreateToggle({
@@ -1645,5 +1668,3 @@ else
         end
     end
 end
-
-print("🐟 Heavyweight Fishing Hub – ULTIMATE FINAL (SYNTAX FIXED) loaded. Happy fishing!")
