@@ -1,5 +1,5 @@
 --[[
-    🐟 HEAVYWEIGHT FISHING HUB – ULTIMATE FINAL (WITH TRAIT REROLL)
+    🐟 HEAVYWEIGHT FISHING HUB – ULTIMATE FINAL (SYNTAX FIXED)
 ]]
 
 -- ==========================================
@@ -30,7 +30,6 @@ getgenv().RequireRod = false
 getgenv().AutoEquip = false
 getgenv().AutoSell = false
 getgenv().SellMode = "When Full"
-getgenv().ShowPlayerData = false
 getgenv().AutoSkills = false
 getgenv().SmartSkills = false
 getgenv().SelectedSkills = {"Z", "X", "C", "V"}
@@ -40,17 +39,16 @@ getgenv().FlySpeed = 50
 getgenv().InfiniteJump = false
 getgenv().Fullbright = false
 getgenv().NoClip = false
--- Auto Buy
 getgenv().AutoBuyBait = false
 getgenv().BuyBaitName = ""
 getgenv().BuyRodName = ""
 getgenv().SelectedLearnSkills = {}
--- Trait Reroll
 getgenv().TraitSkillName = ""
 getgenv().TargetTraitName = ""
 getgenv().IgnoreLocked = false
 
 local SLAM_CLICK_TIME = 1.75
+local SESSION_START = tick()
 
 local Player = game.Players.LocalPlayer
 local Events = game:GetService("ReplicatedStorage"):WaitForChild("Events")
@@ -82,7 +80,7 @@ local flyVelocity = nil
 local flyGyro = nil
 
 -- ==========================================
--- 🎣 HOOK FISHING MINIGAME – FORCE ROD POWER & LUCK = 1000
+-- 🎣 HOOK FISHING MINIGAME
 -- ==========================================
 local function HookFishingMinigame()
     local FishingMinigame = Events:FindFirstChild("FishingMinigame")
@@ -219,6 +217,13 @@ local function GetCoins()
     if not p then return 0 end
     local c = p:FindFirstChild("Coins")
     return c and c.Value or 0
+end
+
+local function FormatTime(seconds)
+    local h = math.floor(seconds / 3600)
+    local m = math.floor((seconds % 3600) / 60)
+    local s = math.floor(seconds % 60)
+    return string.format("%02d:%02d:%02d", h, m, s)
 end
 
 -- ==========================================
@@ -742,7 +747,7 @@ local function StartAntiAFKLoop()
 end
 
 -- ==========================================
--- 🛒 AUTO BUY (BAIT) – CHỈ MUA 1 LẦN KHI HẾT
+-- 🛒 AUTO BUY (BAIT)
 -- ==========================================
 local isBuying = false
 local function StartAutoBuyLoop()
@@ -918,61 +923,8 @@ local function ToggleNoClip(state)
 end
 
 -- ==========================================
--- 📊 PLAYER DATA DISPLAY
+-- 🔄 REFRESH THREADS
 -- ==========================================
-local DataDisplayRunning = false
-local DataDisplayThread = nil
-
-local function BuildDataMessage()
-    local totalFish = CountFish()
-    local fishList = GetFishBreakdown()
-    local level = GetLevel()
-    local coins = GetCoins()
-    local usage = GetInventoryUsage()
-    local limit = GetInventoryLimit()
-    local caught = FishCount
-
-    local msg = "📊 **Player Data**\n"
-    msg = msg .. "━━━━━━━━━━━━━━━━━━\n"
-    msg = msg .. "🎣 Fish caught: " .. caught .. "\n"
-    msg = msg .. "🐟 Total fish in inventory: " .. totalFish .. "\n"
-    msg = msg .. "📦 Inventory: " .. usage .. "/" .. limit .. "\n"
-    msg = msg .. "⭐ Level: " .. level .. "\n"
-    if coins > 0 then msg = msg .. "💰 Coins: " .. coins .. "\n" end
-    msg = msg .. "━━━━━━━━━━━━━━━━━━\n"
-    if #fishList > 0 then
-        msg = msg .. "📋 Top fish:\n"
-        local maxShow = math.min(#fishList, 8)
-        for i = 1, maxShow do
-            msg = msg .. "  • " .. fishList[i].Name .. " x" .. fishList[i].Count .. "\n"
-        end
-        if #fishList > 8 then
-            msg = msg .. "  ... and " .. (#fishList - 8) .. " more types.\n"
-        end
-    else
-        msg = msg .. "📭 No fish in inventory.\n"
-    end
-    return msg
-end
-
-local function StartDataDisplay()
-    if DataDisplayRunning then return end
-    DataDisplayRunning = true
-    DataDisplayThread = task.spawn(function()
-        while getgenv().ShowPlayerData do
-            local msg = BuildDataMessage()
-            Window:Notify({ title = "📊 Player Data", content = msg, duration = 8 })
-            task.wait(8)
-        end
-        DataDisplayRunning = false
-    end)
-end
-
-local function StopDataDisplay()
-    if DataDisplayThread then task.cancel(DataDisplayThread); DataDisplayThread = nil end
-    DataDisplayRunning = false
-end
-
 local function RefreshThreads()
     if getgenv().MasterFarm then
         if getgenv().AutoCast then StartCastLoop() end
@@ -986,7 +938,6 @@ local function RefreshThreads()
         SkillRunning = false; AntiAFKRunning = false; BuyRunning = false
         PauseCast = false
     end
-    if getgenv().ShowPlayerData then StartDataDisplay() else StopDataDisplay() end
 end
 
 -- ==========================================
@@ -1041,8 +992,70 @@ local function GetLearnableSkills()
     return skills
 end
 
+local function GetOwnedSkillNames()
+    local p = GetPlayerData()
+    if not p then return {} end
+    local skills = {}
+    for _, f in pairs(p.Skill:GetChildren()) do
+        if f:IsA("Folder") and f.Owned and f.Owned.Value == true then
+            table.insert(skills, f.Name)
+        end
+    end
+    return skills
+end
+
+local function GetTraitNames()
+    local traits = {}
+    for _, child in pairs(Info.Trait:GetChildren()) do
+        if child:IsA("ModuleScript") then
+            local ok, mod = pcall(require, child)
+            if ok and type(mod) == "table" and mod.Name then
+                table.insert(traits, mod.Name)
+            end
+        end
+    end
+    return traits
+end
+
 -- ==========================================
 -- 🎨 UI TABS
+-- ==========================================
+
+-- ===== STATS TAB =====
+local statsTab = Window:CreateTab({ name = "📊 Stats", icon = 93364949241311 })
+statsTab:CreateSection({ name = "📈 Live Statistics" })
+
+local fishCaughtStat = statsTab:CreateStat({
+    name = "🎣 Fish Caught",
+    value = 0,
+    prefix = "",
+})
+local sessionStat = statsTab:CreateStat({
+    name = "⏱️ Session Time",
+    value = 0,
+    suffix = "s",
+})
+local inventoryFishStat = statsTab:CreateStat({
+    name = "🐟 Fish in Inventory",
+    value = 0,
+})
+local levelStat = statsTab:CreateStat({
+    name = "⭐ Level",
+    value = 0,
+})
+
+spawn(function()
+    while true do
+        task.wait(2)
+        fishCaughtStat:Set(FishCount)
+        sessionStat:Set(math.floor(tick() - SESSION_START))
+        inventoryFishStat:Set(CountFish())
+        levelStat:Set(GetLevel())
+    end
+end)
+
+-- ==========================================
+-- ⚡ AUTO FARM TAB
 -- ==========================================
 local farmTab = Window:CreateTab({ name = "⚡ Auto Farm", icon = 93364949241311 })
 farmTab:CreateSection({ name = "🎣 Main Controls" })
@@ -1050,43 +1063,68 @@ farmTab:CreateSection({ name = "🎣 Main Controls" })
 farmTab:CreateToggle({
     name = "🔓 Master Auto-Farm",
     flag = "MasterFarm",
-    callback = function(v) getgenv().MasterFarm = v; Window:Notify({ title = v and "✅ Master ON" or "⏸️ Master OFF", duration = 2 }); RefreshThreads() end,
+    callback = function(v)
+        getgenv().MasterFarm = v
+        Window:Notify({ title = v and "✅ Master ON" or "⏸️ Master OFF", duration = 2 })
+        RefreshThreads()
+    end,
 })
 
 farmTab:CreateToggle({
     name = "🎣 Auto Cast",
     flag = "AutoCast",
-    callback = function(v) getgenv().AutoCast = v; RefreshThreads() end,
+    callback = function(v)
+        getgenv().AutoCast = v
+        RefreshThreads()
+    end,
 })
 
 farmTab:CreateToggle({
     name = "⚖️ Auto Balance (Freeze Bar)",
     flag = "AutoBalance",
-    callback = function(v) getgenv().AutoBalance = v; RefreshThreads() end,
+    callback = function(v)
+        getgenv().AutoBalance = v
+        RefreshThreads()
+    end,
 })
 
 farmTab:CreateToggle({
     name = "🎯 Require Fishing Rod",
     flag = "RequireRod",
-    callback = function(v) getgenv().RequireRod = v; Window:Notify({ title = v and "🎯 Rod Check ON" or "🎯 Rod Check OFF", duration = 2 }) end,
+    callback = function(v)
+        getgenv().RequireRod = v
+        Window:Notify({ title = v and "🎯 Rod Check ON" or "🎯 Rod Check OFF", duration = 2 })
+    end,
 })
 
 farmTab:CreateToggle({
     name = "🎣 Auto Equip Fishing Rod",
     flag = "AutoEquip",
-    callback = function(v) getgenv().AutoEquip = v; Window:Notify({ title = v and "🎣 Auto Equip ON" or "🎣 Auto Equip OFF", duration = 2 }); RefreshThreads() end,
+    callback = function(v)
+        getgenv().AutoEquip = v
+        Window:Notify({ title = v and "🎣 Auto Equip ON" or "🎣 Auto Equip OFF", duration = 2 })
+        RefreshThreads()
+    end,
 })
 
 farmTab:CreateToggle({
     name = "⚔️ Auto Use Skills",
     flag = "AutoSkills",
-    callback = function(v) getgenv().AutoSkills = v; Window:Notify({ title = v and "⚔️ Auto Skills ON" or "⚔️ Auto Skills OFF", duration = 2 }); RefreshThreads() end,
+    callback = function(v)
+        getgenv().AutoSkills = v
+        Window:Notify({ title = v and "⚔️ Auto Skills ON" or "⚔️ Auto Skills OFF", duration = 2 })
+        RefreshThreads()
+    end,
 })
 
 farmTab:CreateToggle({
     name = "🧠 Smart Skills Check",
     flag = "SmartSkills",
-    callback = function(v) getgenv().SmartSkills = v; Window:Notify({ title = v and "🧠 Smart Check ON" or "🧠 Smart Check OFF", duration = 2 }); RefreshThreads() end,
+    callback = function(v)
+        getgenv().SmartSkills = v
+        Window:Notify({ title = v and "🧠 Smart Check ON" or "🧠 Smart Check OFF", duration = 2 })
+        RefreshThreads()
+    end,
 })
 
 farmTab:CreateDropdown({
@@ -1107,7 +1145,11 @@ farmTab:CreateDropdown({
 farmTab:CreateToggle({
     name = "🛡️ Anti AFK",
     flag = "AntiAFK",
-    callback = function(v) getgenv().AntiAFK = v; Window:Notify({ title = v and "🛡️ Anti AFK ON" or "🛡️ Anti AFK OFF", duration = 2 }); RefreshThreads() end,
+    callback = function(v)
+        getgenv().AntiAFK = v
+        Window:Notify({ title = v and "🛡️ Anti AFK ON" or "🛡️ Anti AFK OFF", duration = 2 })
+        RefreshThreads()
+    end,
 })
 
 farmTab:CreateSection({ name = "🎣 Auto Equip" })
@@ -1116,8 +1158,11 @@ farmTab:CreateButton({
     name = "🎣 Equip Best Rod",
     callback = function()
         local best = GetBestRod()
-        if best then EquipRod(best); Window:Notify({ title = "🎣", content = "Best rod equipped: " .. best, duration = 2 })
-        else Window:Notify({ title = "⚠️", content = "No rod available", duration = 2 }) end
+        if best then
+            EquipRod(best)
+        else
+            Window:Notify({ title = "⚠️", content = "No rod available", duration = 2 })
+        end
     end,
 })
 
@@ -1125,8 +1170,11 @@ farmTab:CreateButton({
     name = "🎯 Equip Best Bait",
     callback = function()
         local best = GetBestBait()
-        if best then EquipBait(best); Window:Notify({ title = "🎯", content = "Best bait equipped: " .. best, duration = 2 })
-        else Window:Notify({ title = "⚠️", content = "No bait available", duration = 2 }) end
+        if best then
+            EquipBait(best)
+        else
+            Window:Notify({ title = "⚠️", content = "No bait available", duration = 2 })
+        end
     end,
 })
 
@@ -1134,18 +1182,30 @@ farmTab:CreateButton({
     name = "⚡ Equip Best Skill",
     callback = function()
         local p = GetPlayerData()
-        if not p then Window:Notify({ title = "⚠️", content = "No player data", duration = 2 }); return end
+        if not p then
+            Window:Notify({ title = "⚠️", content = "No player data", duration = 2 })
+            return
+        end
         local rod = p.FishingRod.Value
-        if rod == "" then Window:Notify({ title = "⚠️", content = "No rod equipped", duration = 2 }); return end
+        if rod == "" then
+            Window:Notify({ title = "⚠️", content = "No rod equipped", duration = 2 })
+            return
+        end
         local inv = p.FishingRodInventory:FindFirstChild(rod)
-        if not inv or not inv.Skill then Window:Notify({ title = "⚠️", content = "No skill slots", duration = 2 }); return end
+        if not inv or not inv.Skill then
+            Window:Notify({ title = "⚠️", content = "No skill slots", duration = 2 })
+            return
+        end
         local equipped = {}
         for _, slot in pairs(inv.Skill:GetChildren()) do
             if slot.Value ~= "" then equipped[slot.Value] = true end
         end
         local best = GetBestUnEquippedSkill(equipped)
-        if best then EquipSkill(best); Window:Notify({ title = "⚡", content = "Best skill equipped: " .. best, duration = 2 })
-        else Window:Notify({ title = "⚠️", content = "No skill available", duration = 2 }) end
+        if best then
+            EquipSkill(best)
+        else
+            Window:Notify({ title = "⚠️", content = "No skill available", duration = 2 })
+        end
     end,
 })
 
@@ -1153,8 +1213,11 @@ farmTab:CreateButton({
     name = "🔮 Equip Best Orb",
     callback = function()
         local best = GetBestOrb()
-        if best then EquipOrb(best); Window:Notify({ title = "🔮", content = "Best orb equipped: " .. best, duration = 2 })
-        else Window:Notify({ title = "⚠️", content = "No orb available", duration = 2 }) end
+        if best then
+            EquipOrb(best)
+        else
+            Window:Notify({ title = "⚠️", content = "No orb available", duration = 2 })
+        end
     end,
 })
 
@@ -1163,7 +1226,13 @@ farmTab:CreateSection({ name = "💰 Auto Sell" })
 farmTab:CreateToggle({
     name = "💲 Auto Sell",
     flag = "AutoSell",
-    callback = function(v) getgenv().AutoSell = v; if not v then PauseCast = false end; RefreshThreads() end,
+    callback = function(v)
+        getgenv().AutoSell = v
+        if not v then
+            PauseCast = false
+        end
+        RefreshThreads()
+    end,
 })
 
 farmTab:CreateDropdown({
@@ -1171,15 +1240,17 @@ farmTab:CreateDropdown({
     flag = "SellMode",
     options = { "When Full", "Spam" },
     current = "When Full",
-    callback = function(opt) getgenv().SellMode = opt; RefreshThreads() end,
+    callback = function(opt)
+        getgenv().SellMode = opt
+        RefreshThreads()
+    end,
 })
 
 -- ==========================================
--- 🛒 AUTO BUY SECTION (BAIT + ROD + LEARN SKILLS)
+-- 🛒 AUTO BUY SECTION
 -- ==========================================
 farmTab:CreateSection({ name = "🛒 Auto Buy" })
 
--- Bait
 local buyableBaits = GetBuyableBaits()
 if #buyableBaits == 0 then buyableBaits = {"No bait available"} end
 farmTab:CreateDropdown({
@@ -1187,7 +1258,9 @@ farmTab:CreateDropdown({
     flag = "BuyBait",
     options = buyableBaits,
     current = buyableBaits[1] or "No bait available",
-    callback = function(option) getgenv().BuyBaitName = option end,
+    callback = function(option)
+        getgenv().BuyBaitName = option
+    end,
 })
 getgenv().BuyBaitName = buyableBaits[1] or ""
 
@@ -1196,12 +1269,15 @@ farmTab:CreateToggle({
     flag = "AutoBuyBait",
     callback = function(v)
         getgenv().AutoBuyBait = v
-        Window:Notify({ title = v and "🔄 Auto Buy ON" or "🔄 Auto Buy OFF", content = v and "Will buy selected bait when stock < 1" or "Auto buy disabled", duration = 2 })
+        Window:Notify({
+            title = v and "🔄 Auto Buy ON" or "🔄 Auto Buy OFF",
+            content = v and "Will buy selected bait when stock < 1" or "Auto buy disabled",
+            duration = 2,
+        })
         RefreshThreads()
     end,
 })
 
--- Rod
 local buyableRods = GetBuyableRods()
 if #buyableRods == 0 then buyableRods = {"No rod available"} end
 farmTab:CreateDropdown({
@@ -1209,7 +1285,9 @@ farmTab:CreateDropdown({
     flag = "BuyRod",
     options = buyableRods,
     current = buyableRods[1] or "No rod available",
-    callback = function(option) getgenv().BuyRodName = option end,
+    callback = function(option)
+        getgenv().BuyRodName = option
+    end,
 })
 getgenv().BuyRodName = buyableRods[1] or ""
 
@@ -1228,7 +1306,6 @@ farmTab:CreateButton({
     end,
 })
 
--- Learn Skills
 local learnableSkills = GetLearnableSkills()
 if #learnableSkills == 0 then learnableSkills = {"No skill available"} end
 farmTab:CreateDropdown({
@@ -1263,49 +1340,22 @@ farmTab:CreateButton({
 })
 
 -- ==========================================
--- 🔄 TRAIT REROLL SECTION (THÊM MỚI)
+-- 🔄 TRAIT REROLL SECTION
 -- ==========================================
 farmTab:CreateSection({ name = "🔄 Trait Reroll" })
 
--- Lấy danh sách skill đã sở hữu
-local function GetOwnedSkillNames()
-    local p = GetPlayerData()
-    if not p then return {} end
-    local skills = {}
-    for _, f in pairs(p.Skill:GetChildren()) do
-        if f:IsA("Folder") and f.Owned and f.Owned.Value == true then
-            table.insert(skills, f.Name)
-        end
-    end
-    return skills
-end
-
--- Lấy danh sách trait từ Info.Trait
-local function GetTraitNames()
-    local traits = {}
-    for _, child in pairs(Info.Trait:GetChildren()) do
-        if child:IsA("ModuleScript") then
-            local ok, mod = pcall(require, child)
-            if ok and type(mod) == "table" and mod.Name then
-                table.insert(traits, mod.Name)
-            end
-        end
-    end
-    return traits
-end
-
-local ownedSkillsTrait = GetOwnedSkillNames()
-if #ownedSkillsTrait == 0 then ownedSkillsTrait = {"No skill owned"} end
+local ownedSkills = GetOwnedSkillNames()
+if #ownedSkills == 0 then ownedSkills = {"No skill owned"} end
 farmTab:CreateDropdown({
     name = "🎯 Select Skill",
     flag = "TraitSkill",
-    options = ownedSkillsTrait,
-    current = ownedSkillsTrait[1] or "No skill owned",
+    options = ownedSkills,
+    current = ownedSkills[1] or "No skill owned",
     callback = function(option)
         getgenv().TraitSkillName = option
     end,
 })
-getgenv().TraitSkillName = ownedSkillsTrait[1] or ""
+getgenv().TraitSkillName = ownedSkills[1] or ""
 
 local traitNames = GetTraitNames()
 if #traitNames == 0 then traitNames = {"No trait available"} end
@@ -1321,7 +1371,7 @@ farmTab:CreateDropdown({
 getgenv().TargetTraitName = traitNames[1] or ""
 
 farmTab:CreateToggle({
-    name = "🔓 Lock when it is Legendary/Mythical",
+    name = "🔓 Ignore Locked",
     flag = "IgnoreLocked",
     callback = function(v)
         getgenv().IgnoreLocked = v
@@ -1348,10 +1398,12 @@ farmTab:CreateButton({
 
         local skillName = getgenv().TraitSkillName
         local targetTrait = getgenv().TargetTraitName
+
         if not skillName or skillName == "" or skillName == "No skill owned" then
             Window:Notify({ title = "⚠️", content = "Select a valid skill.", duration = 2 })
             return
         end
+
         if not targetTrait or targetTrait == "" or targetTrait == "No trait available" then
             Window:Notify({ title = "⚠️", content = "Select a target trait.", duration = 2 })
             return
@@ -1408,95 +1460,7 @@ farmTab:CreateButton({
 })
 
 -- ==========================================
--- UTILITY TAB
--- ==========================================
-local utilTab = Window:CreateTab({ name = "📊 Utility", icon = 93364949241311 })
-utilTab:CreateToggle({
-    name = "📊 Player Data",
-    flag = "PlayerData",
-    callback = function(v) getgenv().ShowPlayerData = v; Window:Notify({ title = v and "📊 Player Data ON" or "📊 Player Data OFF", duration = 2 }); RefreshThreads() end,
-})
-
--- ==========================================
--- LOCALPLAYER TAB
--- ==========================================
-local localTab = Window:CreateTab({ name = "👤 LocalPlayer", icon = 93364949241311 })
-localTab:CreateSection({ name = "⚡ Movement" })
-
-localTab:CreateInput({
-    name = "🚶 Walkspeed",
-    numeric = true,
-    value = "16",
-    placeholder = "Enter speed...",
-    callback = function(text)
-        local num = tonumber(text)
-        if num then SetWalkspeed(num); Window:Notify({ title = "🚶 Walkspeed", content = "Set to " .. num, duration = 2 })
-        else Window:Notify({ title = "⚠️", content = "Invalid number", duration = 2 }) end
-    end,
-})
-
-localTab:CreateToggle({
-    name = "🕊️ Fly",
-    flag = "Fly",
-    callback = function(v)
-        getgenv().FlyEnabled = v
-        if v then StartFly()
-        else
-            if flyVelocity then flyVelocity:Destroy(); flyVelocity = nil end
-            if flyGyro then flyGyro:Destroy(); flyGyro = nil end
-            FlyRunning = false
-        end
-    end,
-})
-
-localTab:CreateSlider({
-    name = "✈️ Fly Speed",
-    flag = "FlySpeed",
-    range = {1, 100},
-    increment = 1,
-    suffix = " studs/s",
-    value = 50,
-    callback = function(v) getgenv().FlySpeed = v end,
-})
-
-localTab:CreateToggle({
-    name = "🦘 Infinite Jump",
-    flag = "InfiniteJump",
-    callback = function(v) getgenv().InfiniteJump = v; ToggleInfiniteJump(v); Window:Notify({ title = v and "🦘 Infinite Jump ON" or "🦘 Infinite Jump OFF", duration = 2 }) end,
-})
-
-localTab:CreateToggle({
-    name = "💡 Fullbright",
-    flag = "Fullbright",
-    callback = function(v) getgenv().Fullbright = v; ToggleFullbright(v); Window:Notify({ title = v and "💡 Fullbright ON" or "💡 Fullbright OFF", duration = 2 }) end,
-})
-
-localTab:CreateToggle({
-    name = "🚪 NoClip",
-    flag = "NoClip",
-    callback = function(v) getgenv().NoClip = v; ToggleNoClip(v); Window:Notify({ title = v and "🚪 NoClip ON" or "🚪 NoClip OFF", duration = 2 }) end,
-})
-
-localTab:CreateButton({
-    name = "🎁 Redeem All Codes",
-    callback = function()
-        local codes = {
-            "41KLikes", "Enzo", "WaitForPeak", "40KLikes",
-            "HWF", "BetaPlayer", "ThanksForNitroBoost", "22MVisits"
-        }
-        for _, code in ipairs(codes) do
-            pcall(function()
-                Events.RedeemCode:FireServer(code)
-                Window:Notify({ title = "🎁 Code Redeemed", content = code, duration = 2 })
-                task.wait(0.5)
-            end)
-        end
-        Window:Notify({ title = "✅ All codes redeemed", content = "Check your rewards!", duration = 3 })
-    end,
-})
-
--- ==========================================
--- TELEPORT TAB
+-- 🏝️ TELEPORT TAB
 -- ==========================================
 local teleTab = Window:CreateTab({ name = "🏝️ Teleport", icon = 93364949241311 })
 teleTab:CreateSection({ name = "📍 Islands" })
@@ -1515,13 +1479,25 @@ local function GetCFrame(obj)
 end
 
 local function TeleportTo(target)
-    if not target then Window:Notify({ title = "⚠️", content = "Target not found!", duration = 2 }); return end
+    if not target then
+        Window:Notify({ title = "⚠️", content = "Target not found!", duration = 2 })
+        return
+    end
     local char = Player.Character
-    if not char then Window:Notify({ title = "⚠️", content = "Character not found!", duration = 2 }); return end
+    if not char then
+        Window:Notify({ title = "⚠️", content = "Character not found!", duration = 2 })
+        return
+    end
     local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then Window:Notify({ title = "⚠️", content = "HumanoidRootPart not found!", duration = 2 }); return end
+    if not root then
+        Window:Notify({ title = "⚠️", content = "HumanoidRootPart not found!", duration = 2 })
+        return
+    end
     local cf = GetCFrame(target)
-    if not cf then Window:Notify({ title = "⚠️", content = "Target has no CFrame!", duration = 2 }); return end
+    if not cf then
+        Window:Notify({ title = "⚠️", content = "Target has no CFrame!", duration = 2 })
+        return
+    end
     root.CFrame = cf + Vector3.new(0, 30, 0)
     Window:Notify({ title = "📍", content = "Teleported!", duration = 1.5 })
 end
@@ -1556,6 +1532,102 @@ for _, island in ipairs(islands) do
 end
 
 -- ==========================================
+-- 👤 LOCALPLAYER TAB
+-- ==========================================
+local localTab = Window:CreateTab({ name = "👤 LocalPlayer", icon = 93364949241311 })
+localTab:CreateSection({ name = "⚡ Movement" })
+
+localTab:CreateInput({
+    name = "🚶 Walkspeed",
+    numeric = true,
+    value = "16",
+    placeholder = "Enter speed...",
+    callback = function(text)
+        local num = tonumber(text)
+        if num then
+            SetWalkspeed(num)
+        else
+            Window:Notify({ title = "⚠️", content = "Invalid number", duration = 2 })
+        end
+    end,
+})
+
+localTab:CreateToggle({
+    name = "🕊️ Fly",
+    flag = "Fly",
+    callback = function(v)
+        getgenv().FlyEnabled = v
+        if v then
+            StartFly()
+        else
+            if flyVelocity then flyVelocity:Destroy(); flyVelocity = nil end
+            if flyGyro then flyGyro:Destroy(); flyGyro = nil end
+            FlyRunning = false
+        end
+    end,
+})
+
+localTab:CreateSlider({
+    name = "✈️ Fly Speed",
+    flag = "FlySpeed",
+    range = {1, 100},
+    increment = 1,
+    suffix = " studs/s",
+    value = 50,
+    callback = function(v)
+        getgenv().FlySpeed = v
+    end,
+})
+
+localTab:CreateToggle({
+    name = "🦘 Infinite Jump",
+    flag = "InfiniteJump",
+    callback = function(v)
+        getgenv().InfiniteJump = v
+        ToggleInfiniteJump(v)
+        Window:Notify({ title = v and "🦘 Infinite Jump ON" or "🦘 Infinite Jump OFF", duration = 2 })
+    end,
+})
+
+localTab:CreateToggle({
+    name = "💡 Fullbright",
+    flag = "Fullbright",
+    callback = function(v)
+        getgenv().Fullbright = v
+        ToggleFullbright(v)
+        Window:Notify({ title = v and "💡 Fullbright ON" or "💡 Fullbright OFF", duration = 2 })
+    end,
+})
+
+localTab:CreateToggle({
+    name = "🚪 NoClip",
+    flag = "NoClip",
+    callback = function(v)
+        getgenv().NoClip = v
+        ToggleNoClip(v)
+        Window:Notify({ title = v and "🚪 NoClip ON" or "🚪 NoClip OFF", duration = 2 })
+    end,
+})
+
+localTab:CreateButton({
+    name = "🎁 Redeem All Codes",
+    callback = function()
+        local codes = {
+            "41KLikes", "Enzo", "WaitForPeak", "40KLikes",
+            "HWF", "BetaPlayer", "ThanksForNitroBoost", "22MVisits"
+        }
+        for _, code in ipairs(codes) do
+            pcall(function()
+                Events.RedeemCode:FireServer(code)
+                Window:Notify({ title = "🎁 Code Redeemed", content = code, duration = 2 })
+                task.wait(0.5)
+            end)
+        end
+        Window:Notify({ title = "✅ All codes redeemed", content = "Check your rewards!", duration = 3 })
+    end,
+})
+
+-- ==========================================
 -- 🐟 FISH COUNT HOOK
 -- ==========================================
 local fishEvent = Events:FindFirstChild("ReplicateFishCaught")
@@ -1573,3 +1645,5 @@ else
         end
     end
 end
+
+print("🐟 Heavyweight Fishing Hub – ULTIMATE FINAL (SYNTAX FIXED) loaded. Happy fishing!")
