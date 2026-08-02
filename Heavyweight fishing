@@ -1483,10 +1483,10 @@ farmTab:CreateButton({
 })
 
 -- ==========================================
--- 🏝️ TELEPORT TAB
+-- 🏝️ TELEPORT TAB (DROPDOWN)
 -- ==========================================
 local teleTab = Window:CreateTab({ name = "🏝️ Teleport", icon = 93364949241311 })
-teleTab:CreateSection({ name = "📍 Islands" })
+teleTab:CreateSection({ name = "📍 Choose island to teleport" })
 
 local function GetCFrame(obj)
     if not obj then return nil end
@@ -1503,26 +1503,26 @@ end
 
 local function TeleportTo(target)
     if not target then
-        Window:Notify({ title = "⚠️", content = "Target not found!", duration = 2 })
+        Window:Notify({ title = "⚠️", content = "Không tìm thấy điểm đến!", duration = 2 })
         return
     end
     local char = Player.Character
     if not char then
-        Window:Notify({ title = "⚠️", content = "Character not found!", duration = 2 })
+        Window:Notify({ title = "⚠️", content = "Không có nhân vật!", duration = 2 })
         return
     end
     local root = char:FindFirstChild("HumanoidRootPart")
     if not root then
-        Window:Notify({ title = "⚠️", content = "HumanoidRootPart not found!", duration = 2 })
+        Window:Notify({ title = "⚠️", content = "Không tìm thấy HumanoidRootPart!", duration = 2 })
         return
     end
     local cf = GetCFrame(target)
     if not cf then
-        Window:Notify({ title = "⚠️", content = "Target has no CFrame!", duration = 2 })
+        Window:Notify({ title = "⚠️", content = "Điểm đến không có CFrame!", duration = 2 })
         return
     end
     root.CFrame = cf + Vector3.new(0, 30, 0)
-    Window:Notify({ title = "📍", content = "Teleported!", duration = 1.5 })
+    Window:Notify({ title = "📍", content = "Đã teleport!", duration = 1.5 })
 end
 
 local function GetPart(pathFunc)
@@ -1531,7 +1531,8 @@ local function GetPart(pathFunc)
     return nil
 end
 
-local islands = {
+-- Định nghĩa các đảo (giữ nguyên)
+local islandData = {
     { name = "🏝️ Island 1", path = function() return workspace.Map["Map 1"].ground:GetChildren()[55] end },
     { name = "🏝️ Island 2", path = function() return workspace.Map["Map 2"].Folder:GetChildren()[211] end },
     { name = "🏝️ Island 3", path = function() return workspace.Map["Map 3"].Stuff["2"].ground end },
@@ -1544,15 +1545,28 @@ local islands = {
     { name = "🏝️ Island 10", path = function() return workspace.Map["Map 10"].Detail.ground end },
 }
 
-for _, island in ipairs(islands) do
-    teleTab:CreateButton({
-        name = island.name,
-        callback = function()
-            local target = GetPart(island.path)
-            TeleportTo(target)
-        end,
-    })
+-- Tạo danh sách tên để đưa vào dropdown
+local islandNames = {}
+for _, data in ipairs(islandData) do
+    table.insert(islandNames, data.name)
 end
+
+-- Tạo Dropdown
+teleTab:CreateDropdown({
+    name = "🌊 Choose island",
+    options = islandNames,
+    current = islandNames[1] or "",
+    callback = function(selected)
+        -- Tìm dữ liệu tương ứng
+        for _, data in ipairs(islandData) do
+            if data.name == selected then
+                local target = GetPart(data.path)
+                TeleportTo(target)
+                break
+            end
+        end
+    end,
+})
 
 -- ==========================================
 -- 👤 LOCALPLAYER TAB
