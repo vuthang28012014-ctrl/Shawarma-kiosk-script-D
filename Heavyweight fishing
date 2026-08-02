@@ -1,8 +1,9 @@
 --[[
-    🐟 HEAVYWEIGHT FISHING HUB – ULTIMATE FINAL
-    Tất cả tính năng: Auto Farm, Auto Equip Best, Auto Sell,
-    Auto Buy (Bait, Rod, Learn Skills), LocalPlayer, Teleport,
-    Anti AFK, Redeem Codes, Perfect Slam timing.
+    🐟 HEAVYWEIGHT FISHING HUB – ULTIMATE FINAL (ROD POWER/LUCK HOOK)
+    Hook FishingMinigame → force rod Power & Luck to 1000.
+    All features: Auto Farm, Auto Equip Best, Auto Sell, Auto Buy,
+    Learn Skills, LocalPlayer, Teleport, Anti AFK, Redeem Codes,
+    Perfect Slam timing.
 ]]
 
 -- ==========================================
@@ -79,6 +80,48 @@ local originalAmbient = Lighting.Ambient
 local originalOutdoorAmbient = Lighting.OutdoorAmbient
 local flyVelocity = nil
 local flyGyro = nil
+
+-- ==========================================
+-- 🎣 HOOK FISHING MINIGAME – FORCE ROD POWER & LUCK = 1000
+-- ==========================================
+local function HookFishingMinigame()
+    local FishingMinigame = Events:FindFirstChild("FishingMinigame")
+    if not FishingMinigame then
+        print("[Hook] FishingMinigame not found, retrying...")
+        task.wait(1)
+        return HookFishingMinigame()
+    end
+
+    local connections = getconnections(FishingMinigame.OnClientEvent)
+    local originalCallbacks = {}
+    if connections and #connections > 0 then
+        for _, conn in ipairs(connections) do
+            table.insert(originalCallbacks, conn.Function)
+            conn:Disconnect()
+        end
+        print("[Hook] Disconnected", #connections, "existing connections")
+    else
+        print("[Hook] getconnections not available, adding new connection")
+    end
+
+    FishingMinigame.OnClientEvent:Connect(function(fishData, rodData, uuid)
+        if type(rodData) == "table" then
+            -- Set Power và Luck lên 1000
+            rodData.Power = 1000
+            rodData.Luck = 1000
+            print("[Hook] Modified rod data: Power = 1000, Luck = 1000")
+        end
+        for _, cb in ipairs(originalCallbacks) do
+            pcall(cb, fishData, rodData, uuid)
+        end
+    end)
+    print("[Hook] FishingMinigame hook installed successfully (Power/Luck -> 1000)")
+end
+
+spawn(function()
+    task.wait(0.5)
+    HookFishingMinigame()
+end)
 
 -- ==========================================
 -- 📊 HELPERS
@@ -1367,14 +1410,16 @@ end
 -- ==========================================
 local fishEvent = Events:FindFirstChild("ReplicateFishCaught")
 if fishEvent then
-    fishEvent.OnClientEvent:Connect(function() FishCount = FishCount + 1 end)
+    fishEvent.OnClientEvent:Connect(function()
+        FishCount = FishCount + 1
+    end)
 else
     for _, child in pairs(Events:GetChildren()) do
         if child:IsA("RemoteEvent") and string.find(child.Name, "Fish") then
-            child.OnClientEvent:Connect(function() FishCount = FishCount + 1 end)
+            child.OnClientEvent:Connect(function()
+                FishCount = FishCount + 1
+            end)
             break
         end
     end
 end
-
-print("🐟 Heavyweight Fishing Hub – FINAL with Learn Skills in Auto Buy loaded. Happy fishing!")
