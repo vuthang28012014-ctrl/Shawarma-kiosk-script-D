@@ -1,9 +1,5 @@
 --[[
-    🐟 HEAVYWEIGHT FISHING HUB – ULTIMATE FINAL (ROD POWER/LUCK HOOK)
-    Hook FishingMinigame → force rod Power & Luck to 1000.
-    All features: Auto Farm, Auto Equip Best, Auto Sell, Auto Buy,
-    Learn Skills, LocalPlayer, Teleport, Anti AFK, Redeem Codes,
-    Perfect Slam timing.
+    🐟 HEAVYWEIGHT FISHING HUB – ULTIMATE FINAL (WITH TRAIT REROLL)
 ]]
 
 -- ==========================================
@@ -49,6 +45,10 @@ getgenv().AutoBuyBait = false
 getgenv().BuyBaitName = ""
 getgenv().BuyRodName = ""
 getgenv().SelectedLearnSkills = {}
+-- Trait Reroll
+getgenv().TraitSkillName = ""
+getgenv().TargetTraitName = ""
+getgenv().IgnoreLocked = false
 
 local SLAM_CLICK_TIME = 1.75
 
@@ -106,7 +106,6 @@ local function HookFishingMinigame()
 
     FishingMinigame.OnClientEvent:Connect(function(fishData, rodData, uuid)
         if type(rodData) == "table" then
-            -- Set Power và Luck lên 1000
             rodData.Power = 1000
             rodData.Luck = 1000
             print("[Hook] Modified rod data: Power = 1000, Luck = 1000")
@@ -459,7 +458,7 @@ local function EquipFishingRod()
 end
 
 -- ==========================================
--- 🧵 THREADS (Cast, Balance, Sell, Skills, Anti AFK, Auto Buy)
+-- 🧵 THREADS
 -- ==========================================
 local function StartCastLoop()
     if CastRunning then return end
@@ -991,7 +990,7 @@ local function RefreshThreads()
 end
 
 -- ==========================================
--- 🛠️ HÀM LẤY DANH SÁCH CÓ THỂ MUA/HỌC
+-- 🛠️ HÀM LẤY DANH SÁCH
 -- ==========================================
 local function GetBuyableBaits()
     local baits = {}
@@ -1263,7 +1262,154 @@ farmTab:CreateButton({
     end,
 })
 
+-- ==========================================
+-- 🔄 TRAIT REROLL SECTION (THÊM MỚI)
+-- ==========================================
+farmTab:CreateSection({ name = "🔄 Trait Reroll" })
+
+-- Lấy danh sách skill đã sở hữu
+local function GetOwnedSkillNames()
+    local p = GetPlayerData()
+    if not p then return {} end
+    local skills = {}
+    for _, f in pairs(p.Skill:GetChildren()) do
+        if f:IsA("Folder") and f.Owned and f.Owned.Value == true then
+            table.insert(skills, f.Name)
+        end
+    end
+    return skills
+end
+
+-- Lấy danh sách trait từ Info.Trait
+local function GetTraitNames()
+    local traits = {}
+    for _, child in pairs(Info.Trait:GetChildren()) do
+        if child:IsA("ModuleScript") then
+            local ok, mod = pcall(require, child)
+            if ok and type(mod) == "table" and mod.Name then
+                table.insert(traits, mod.Name)
+            end
+        end
+    end
+    return traits
+end
+
+local ownedSkillsTrait = GetOwnedSkillNames()
+if #ownedSkillsTrait == 0 then ownedSkillsTrait = {"No skill owned"} end
+farmTab:CreateDropdown({
+    name = "🎯 Select Skill",
+    flag = "TraitSkill",
+    options = ownedSkillsTrait,
+    current = ownedSkillsTrait[1] or "No skill owned",
+    callback = function(option)
+        getgenv().TraitSkillName = option
+    end,
+})
+getgenv().TraitSkillName = ownedSkillsTrait[1] or ""
+
+local traitNames = GetTraitNames()
+if #traitNames == 0 then traitNames = {"No trait available"} end
+farmTab:CreateDropdown({
+    name = "🎯 Target Trait",
+    flag = "TargetTrait",
+    options = traitNames,
+    current = traitNames[1] or "No trait available",
+    callback = function(option)
+        getgenv().TargetTraitName = option
+    end,
+})
+getgenv().TargetTraitName = traitNames[1] or ""
+
+farmTab:CreateToggle({
+    name = "🔓 Lock when it is Legendary/Mythical",
+    flag = "IgnoreLocked",
+    callback = function(v)
+        getgenv().IgnoreLocked = v
+    end,
+})
+getgenv().IgnoreLocked = false
+
+local rerollRunning = false
+local rerollThread = nil
+local RerollTrait = Events:FindFirstChild("RerollTrait")
+
+farmTab:CreateButton({
+    name = "🔄 Reroll Until Trait",
+    callback = function()
+        if rerollRunning then
+            rerollRunning = false
+            if rerollThread then
+                task.cancel(rerollThread)
+                rerollThread = nil
+            end
+            Window:Notify({ title = "⏹️", content = "Reroll stopped.", duration = 2 })
+            return
+        end
+
+        local skillName = getgenv().TraitSkillName
+        local targetTrait = getgenv().TargetTraitName
+        if not skillName or skillName == "" or skillName == "No skill owned" then
+            Window:Notify({ title = "⚠️", content = "Select a valid skill.", duration = 2 })
+            return
+        end
+        if not targetTrait or targetTrait == "" or targetTrait == "No trait available" then
+            Window:Notify({ title = "⚠️", content = "Select a target trait.", duration = 2 })
+            return
+        end
+
+        if not RerollTrait then
+            Window:Notify({ title = "⚠️", content = "RerollTrait event not found!", duration = 2 })
+            return
+        end
+
+        local p = GetPlayerData()
+        local rerollCount = p and p:FindFirstChild("Trait Reroll")
+        if rerollCount and rerollCount.Value <= 0 then
+            Window:Notify({ title = "❌", content = "No rerolls left!", duration = 2 })
+            return
+        end
+
+        rerollRunning = true
+        Window:Notify({ title = "🔄", content = "Reroll started... Target: " .. targetTrait, duration = 2 })
+
+        rerollThread = task.spawn(function()
+            local ignoreLocked = getgenv().IgnoreLocked or false
+            while rerollRunning do
+                local p2 = GetPlayerData()
+                local count = p2 and p2:FindFirstChild("Trait Reroll")
+                if count and count.Value <= 0 then
+                    Window:Notify({ title = "❌", content = "No rerolls left, stopping.", duration = 2 })
+                    break
+                end
+
+                local success, result = pcall(function()
+                    return RerollTrait:InvokeServer(skillName, ignoreLocked)
+                end)
+
+                if not success or not result then
+                    Window:Notify({ title = "⚠️", content = "Reroll failed, stopping.", duration = 2 })
+                    break
+                end
+
+                local traitName = result.Name
+                if traitName == targetTrait then
+                    Window:Notify({ title = "🎉", content = "Got " .. targetTrait .. " on " .. skillName .. "!", duration = 3 })
+                    break
+                end
+
+                task.wait(0.2)
+            end
+
+            rerollRunning = false
+            rerollThread = nil
+            Window:Notify({ title = "⏹️", content = "Reroll stopped.", duration = 2 })
+        end)
+    end,
+})
+
+-- ==========================================
 -- UTILITY TAB
+-- ==========================================
 local utilTab = Window:CreateTab({ name = "📊 Utility", icon = 93364949241311 })
 utilTab:CreateToggle({
     name = "📊 Player Data",
@@ -1271,7 +1417,9 @@ utilTab:CreateToggle({
     callback = function(v) getgenv().ShowPlayerData = v; Window:Notify({ title = v and "📊 Player Data ON" or "📊 Player Data OFF", duration = 2 }); RefreshThreads() end,
 })
 
+-- ==========================================
 -- LOCALPLAYER TAB
+-- ==========================================
 local localTab = Window:CreateTab({ name = "👤 LocalPlayer", icon = 93364949241311 })
 localTab:CreateSection({ name = "⚡ Movement" })
 
@@ -1347,7 +1495,9 @@ localTab:CreateButton({
     end,
 })
 
+-- ==========================================
 -- TELEPORT TAB
+-- ==========================================
 local teleTab = Window:CreateTab({ name = "🏝️ Teleport", icon = 93364949241311 })
 teleTab:CreateSection({ name = "📍 Islands" })
 
