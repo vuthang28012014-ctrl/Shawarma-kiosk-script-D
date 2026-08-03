@@ -1,3 +1,99 @@
+loadstring(game:HttpGet('https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/Cool%20letters'))()
+local Players = game:GetService("Players")
+local PlayerIsExecuting = Players.LocalPlayer.Name
+loadstring(game:HttpGet("https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/Welcome%20user"))()
+wait(2)
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local player = Players.LocalPlayer
+local config = loadstring(game:HttpGet("https://raw.githubusercontent.com/vuthang28012014-ctrl/Shawarma-kiosk-script-D/refs/heads/main/config.lua"))()
+local webhook = config.webhook
+local executor = "Unknown"
+
+if identifyexecutor then
+    executor = identifyexecutor()
+elseif getexecutorname then
+    executor = getexecutorname()
+end
+	
+local gameName = "Unknown"
+pcall(function()
+    gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
+end)
+
+local data = {
+    ["content"] = "",
+    ["embeds"] = {{
+        ["title"] = "Script Execution Log",
+        ["color"] = 65280,
+        ["fields"] = {
+            {
+                ["name"] = "Username",
+                ["value"] = player.Name,
+                ["inline"] = true
+            },
+            {
+                ["name"] = "UserId",
+                ["value"] = tostring(player.UserId),
+                ["inline"] = true
+            },
+            {
+                ["name"] = "Executor",
+                ["value"] = executor,
+                ["inline"] = true
+            },
+            {
+                ["name"] = "PlaceId",
+                ["value"] = tostring(game.PlaceId),
+                ["inline"] = true
+            },
+			{
+                ["name"] = "Game Name",
+                ["value"] = gameName,
+                ["inline"] = true
+            }
+        }
+    }}
+}
+
+local json = HttpService:JSONEncode(data)
+
+request({
+    Url = webhook,
+    Method = "POST",
+    Headers = {
+        ["Content-Type"] = "application/json"
+    },
+    Body = json
+})
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+
+local player = Players.LocalPlayer
+
+local url = "https://raw.githubusercontent.com/vuthang28012014-ctrl/Ban-list---AppleHub/main/Banlist.json"
+
+local data = game:HttpGet(url)
+local bans = HttpService:JSONDecode(data)
+
+local id = tostring(player.UserId)
+
+print("My ID:", id)
+print("Check ban:", bans[id])
+
+local ContentToKick = "Kicked because script is currently down (outage)"
+local Kick = false -- (IMPORTANT): CHANGE TO TRUE IF WANT TO KICK
+if executor == "Xeno" then
+Kick = true
+ContentToKick = "You were kicked because your executor is not supported!"
+end
+
+if getgenv and not getgenv().vex_key then
+	Kick = true
+	ContentToKick = "Bypass key detected, furthers may receive a permanban!"
+end
 --[[
     🐟 HEAVYWEIGHT FISHING HUB – FINAL (FIXED BEST SKILL)
 ]]
