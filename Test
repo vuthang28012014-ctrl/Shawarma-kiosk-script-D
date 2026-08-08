@@ -77,12 +77,14 @@ local function padding(parent, left, right, top, bottom)
 end
 
 local function tween(object, info, properties)
+    if not object then return end
     local animation = TweenService:Create(object, info, properties)
     animation:Play()
     return animation
 end
 
 local function animate(object, channel, info, properties)
+    if not object then return end
     local channels = interactionTweens[object]
     if not channels then
         channels = {}
@@ -592,11 +594,6 @@ function NexusLib:CreateWindow(config)
     table.insert(window._connections, workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(bindCamera))
     table.insert(window._connections, { Disconnect = function() if cameraConnection then cameraConnection:Disconnect() end end })
 
-    launcher.Visible = false
-    tween(shell, Motion.enter, { Position = UDim2.new(0.5, 0, 0.5, 0) })
-    tween(panelScale, Motion.enter, { Scale = 1 })
-    tween(shadow, Motion.enter, { BackgroundTransparency = 1, Position = UDim2.new(0.5, 0, 0.5, 5) })
-
     -- Launcher drag logic (independent)
     local launcherDragging = false
     local launcherMoved = false
@@ -650,11 +647,22 @@ function NexusLib:CreateWindow(config)
     bindActivation(launcher, function()
         if not launcherMoved then window:Open() end
     end)
+
+    -- Keybind toggle
     table.insert(window._connections, UserInputService.InputBegan:Connect(function(input)
         if input.KeyCode == window._keybind and not UserInputService:GetFocusedTextBox() then
             window:Toggle()
         end
     end))
+
+    -- Minimize and Close buttons
+    bindActivation(close, function() window:Destroy() end)
+    bindActivation(minimize, function() window:Minimize() end)
+
+    launcher.Visible = false
+    tween(shell, Motion.enter, { Position = UDim2.new(0.5, 0, 0.5, 0) })
+    tween(panelScale, Motion.enter, { Scale = 1 })
+    tween(shadow, Motion.enter, { BackgroundTransparency = 1, Position = UDim2.new(0.5, 0, 0.5, 5) })
 
     return window
 end
@@ -763,24 +771,30 @@ function Window:_select(tab, instant)
     end
 end
 
+-- ===== FIXED MINIMIZE / OPEN / TOGGLE =====
 function Window:Minimize()
     if not self._open then return end
     resetHoverLayers(self._shell)
     self._open = false
     self._visibilityId = self._visibilityId + 1
     local visibilityId = self._visibilityId
-    local launcher = self._gui:FindFirstChild("NexusLauncher")
-    if launcher then
-        local newSize = self._launcherSize * self._scale.Scale
-        launcher.Size = UDim2.fromOffset(newSize, newSize)
-    end
+
+    -- Tween out
     tween(self._shell, Motion.exit, { Position = self._openPosition + UDim2.fromOffset(0, 12), GroupTransparency = 1 })
     tween(self._panelScale, Motion.exit, { Scale = 0.975 })
     tween(self._shadow, Motion.exit, { BackgroundTransparency = 1 })
+
+    -- After tween, hide shell and show launcher
     task.delay(0.21, function()
         if self._visibilityId ~= visibilityId or self._open then return end
-        if self._shell then self._shell.Visible = false end
+        if self._shell then
+            self._shell.Visible = false
+            self._shell.GroupTransparency = 1
+        end
+        local launcher = self._launcher
         if launcher then
+            local newSize = self._launcherSize * (self._scale and self._scale.Scale or 1)
+            launcher.Size = UDim2.fromOffset(newSize, newSize)
             launcher.Visible = true
             local visual = launcher:FindFirstChild("LauncherVisual")
             if visual then
@@ -795,24 +809,41 @@ function Window:Open()
     if self._open then return end
     self._open = true
     self._visibilityId = self._visibilityId + 1
-    local launcher = self._gui:FindFirstChild("NexusLauncher")
+
+    -- Hide launcher
+    local launcher = self._launcher
     if launcher then
         resetHoverLayers(launcher)
         launcher.Visible = false
-        local newSize = self._launcherSize * self._scale.Scale
-        launcher.Size = UDim2.fromOffset(newSize, newSize)
+        local visual = launcher:FindFirstChild("LauncherVisual")
+        if visual then
+            visual.BackgroundTransparency = 1
+        end
     end
-    self._shell.Visible = true
-    self._shell.GroupTransparency = 1
-    tween(self._shell, Motion.enter, { Position = self._openPosition, GroupTransparency = 0 })
+
+    -- Show shell and tween in
+    if self._shell then
+        self._shell.Visible = true
+        self._shell.GroupTransparency = 1
+        tween(self._shell, Motion.enter, { Position = self._openPosition, GroupTransparency = 0 })
+    end
     tween(self._panelScale, Motion.enter, { Scale = 1 })
-    tween(self._shadow, Motion.enter, { BackgroundTransparency = 1 })
+    tween(self._shadow, Motion.enter, { BackgroundTransparency = 1, Position = self._openPosition + UDim2.fromOffset(0, 5) })
 end
 
-function Window:Toggle() if self._open then self:Minimize() else self:Open() end end
+function Window:Toggle()
+    if self._open then
+        self:Minimize()
+    else
+        self:Open()
+    end
+end
+-- ===== END FIXED MINIMIZE/OPEN =====
 
 function Window:Destroy()
-    for _, connection in ipairs(self._connections) do pcall(function() connection:Disconnect() end) end
+    for _, connection in ipairs(self._connections) do
+        pcall(function() connection:Disconnect() end)
+    end
     if self._gui then self._gui:Destroy() end
 end
 
