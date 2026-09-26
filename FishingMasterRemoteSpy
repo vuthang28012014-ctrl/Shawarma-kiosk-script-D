@@ -1,6 +1,13 @@
 -- ============================================================
 -- Stardust Packet Decoder + Modify Remote
 -- ============================================================
+-- Features:
+--   • Hook Packet:Fire — script path CHÍNH XÁC
+--   • Modify Remote panel: Decoded / Encoded
+--   • Change Form / Play / Copy Code
+--   • 7 nút log: IGNORE BLOCK COPY REPLAY ANALYZE CODE PATH
+--   • FIFO log — không lag khi log đầy
+-- ============================================================
 
 local Players = game:GetService("Players")
 local RS      = game:GetService("ReplicatedStorage")
@@ -62,6 +69,7 @@ end)
 -- 3. SCHEMA CAPTURE
 -- ============================================================
 local Schema = {}
+local PacketMetaRef = nil  -- ⭐ lưu metatable của packet để hook Fire
 
 local function registerPacket(packetObj)
     if type(packetObj) ~= "table" then return false end
@@ -85,6 +93,14 @@ local function registerPacket(packetObj)
     return false
 end
 
+local function captureMeta(packetObj)
+    if PacketMetaRef then return end
+    local ok, mt = pcall(getrawmetatable, packetObj)
+    if ok and type(mt) == "table" and type(mt.Fire) == "function" then
+        PacketMetaRef = mt
+    end
+end
+
 local function scanGC()
     if not getgc then return 0 end
     local count = 0
@@ -95,12 +111,13 @@ local function scanGC()
                     local name  = rawget(obj, "Name")
                     local reads = rawget(obj, "Reads")
                     if type(name) == "string" and type(reads) == "table" then
+                        captureMeta(obj)
                         if registerPacket(obj) then count += 1 end
                     end
                 end
             end
         end)
-        if count > 0 then break end
+        if count > 0 and PacketMetaRef then break end
     end
     return count
 end
@@ -117,6 +134,7 @@ local function hookConstructor()
     local hookOk = pcall(function()
         mt.__call = newcclosure(function(self, ...)
             local result = oldCall(self, ...)
+            captureMeta(result)
             pcall(registerPacket, result)
             return result
         end)
@@ -137,6 +155,7 @@ local function scanUpvalues()
         if not ok2 or name == nil then break end
         if type(val) == "table" then
             for _, v in pairs(val) do
+                captureMeta(v)
                 if registerPacket(v) then count += 1 end
             end
         end
@@ -150,8 +169,8 @@ local method3 = scanUpvalues()
 
 local schemaCount0 = 0
 for _ in pairs(Schema) do schemaCount0 += 1 end
-print(string.format("[Decoder] Schema — GC: %d, Hook: %s, Upvalue: %d, Total: %d",
-    method1, tostring(method2), method3, schemaCount0))
+print(string.format("[Decoder] Schema — GC: %d, Hook: %s, Upvalue: %d, Total: %d, Meta: %s",
+    method1, tostring(method2), method3, schemaCount0, tostring(PacketMetaRef ~= nil)))
 
 -- ============================================================
 -- 4. PACKET TYPES
@@ -250,7 +269,7 @@ local function bytesToLuaArray(bytes)
     return "{ " .. table.concat(p, ", ") .. " }"
 end
 
--- ⭐ Analyze code (dùng cho nút ANALYZE)
+-- ⭐ Build ANALYZED code
 local function buildAnalyzedCode(log)
     if not log.DecodedArgs or log.Direction ~= "OUT" then return nil end
     local lines = {}
@@ -646,9 +665,7 @@ StatusLbl.Font = Enum.Font.Code
 StatusLbl.TextSize = 11
 StatusLbl.Parent = Main
 
--- ============================================================
--- Log container (0.48 width)
--- ============================================================
+-- Log container
 local LogContainer = Instance.new("Frame")
 LogContainer.Size = UDim2.new(0.48, -15, 1, -190)
 LogContainer.Position = UDim2.new(0, 10, 0, 96)
@@ -698,9 +715,7 @@ local LogLayout = Instance.new("UIListLayout", Scroll)
 LogLayout.SortOrder = Enum.SortOrder.LayoutOrder
 LogLayout.Padding = UDim.new(0, 1)
 
--- ============================================================
--- Details panel (0.18 width)
--- ============================================================
+-- Details panel
 local DetailFrame = Instance.new("Frame")
 DetailFrame.Size = UDim2.new(0.18, -10, 1, -190)
 DetailFrame.Position = UDim2.new(0.48, 5, 0, 96)
@@ -806,7 +821,7 @@ local function showDetail(log)
 end
 
 -- ============================================================
--- ⭐ Modify Remote panel (0.32 width) — 2 cột Decoded / Encoded
+-- Modify Remote panel
 -- ============================================================
 local ModifyFrame = Instance.new("Frame")
 ModifyFrame.Size = UDim2.new(0.34, -10, 1, -190)
@@ -828,12 +843,9 @@ ModifyTitle.TextSize = 11
 ModifyTitle.Parent = ModifyFrame
 Instance.new("UICorner", ModifyTitle).CornerRadius = UDim.new(0, 6)
 
--- Split into 2 columns
-local HalfW = 0.5
-
--- Left: Decoded/Modified
+-- Left: Decoded
 local DecodedCol = Instance.new("Frame")
-DecodedCol.Size = UDim2.new(HalfW, -5, 1, -60)
+DecodedCol.Size = UDim2.new(0.5, -5, 1, -60)
 DecodedCol.Position = UDim2.new(0, 5, 0, 26)
 DecodedCol.BackgroundTransparency = 1
 DecodedCol.Parent = ModifyFrame
@@ -874,8 +886,8 @@ decPad.PaddingBottom = UDim.new(0, 4)
 
 -- Right: Encoded
 local EncodedCol = Instance.new("Frame")
-EncodedCol.Size = UDim2.new(HalfW, -5, 1, -60)
-EncodedCol.Position = UDim2.new(HalfW, 0, 0, 26)
+EncodedCol.Size = UDim2.new(0.5, -5, 1, -60)
+EncodedCol.Position = UDim2.new(0.5, 0, 0, 26)
 EncodedCol.BackgroundTransparency = 1
 EncodedCol.Parent = ModifyFrame
 
@@ -913,7 +925,7 @@ encPad.PaddingLeft = UDim.new(0, 6)
 encPad.PaddingRight = UDim.new(0, 6)
 encPad.PaddingBottom = UDim.new(0, 4)
 
--- Buttons at bottom (3 nút, chia đều)
+-- Buttons
 local function makeModifyBtn(text, xScale, xOffset, widthScale, widthOffset, color, cb)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(widthScale, widthOffset, 0, 28)
@@ -932,7 +944,6 @@ end
 
 local ChangeFormBtn = makeModifyBtn("🔄 Change Form", 0, 5, 0.34, -6, Color3.fromRGB(80, 120, 180))
 
--- ⭐ Nút mới: Copy Encoded Code
 local CopyEncodedBtn = makeModifyBtn("📋 Copy Code", 0.34, 0, 0.32, -3, Color3.fromRGB(100, 80, 160), function()
     local bytes, err = parseEncodedBytes(EncodedBox.Text)
     if not bytes then
@@ -1037,7 +1048,7 @@ local function loadModifyPanel(log)
     end
 end
 
--- Change Form button: parse decoded → encode → update EncodedBox
+-- Change Form: parse decoded → encode → update EncodedBox
 ChangeFormBtn.MouseButton1Click:Connect(function()
     local log = ModifyState.CurrentLog
     if not log then
@@ -1083,7 +1094,7 @@ ChangeFormBtn.MouseButton1Click:Connect(function()
     end)
 end)
 
--- Play Encoded button
+-- Play Encoded
 PlayEncodedBtn.MouseButton1Click:Connect(function()
     local log = ModifyState.CurrentLog
     if not log then
@@ -1140,13 +1151,15 @@ local function matchesFilter(log)
     return false
 end
 
+-- ⭐ FrameToLog PHẢI khai báo TRƯỚC refreshLogVisuals
+local FrameToLog = {}
+
 local function refreshLogVisuals()
     for _, entry in ipairs(Scroll:GetChildren()) do
         if entry:IsA("Frame") and entry.Name == "LogEntry" then
-            local logRef = entry:GetAttribute("LogIndex")
-            if logRef then
-                local log = State.Logs[logRef]
-                if log then entry.Visible = matchesFilter(log) end
+            local log = FrameToLog[entry]
+            if log then
+                entry.Visible = matchesFilter(log)
             end
         end
     end
@@ -1185,7 +1198,6 @@ createLogEntry = function(log, logIndex)
     entry.BackgroundTransparency = 0.3
     entry.BorderSizePixel = 0
     entry.Parent = Scroll
-    entry:SetAttribute("LogIndex", logIndex)
 
     local dirColor = log.Direction == "IN" and Color3.fromRGB(100, 220, 120) or Color3.fromRGB(255, 180, 100)
 
@@ -1255,6 +1267,19 @@ createLogEntry = function(log, logIndex)
     argsLbl.Font = Enum.Font.Code
     argsLbl.TextSize = 10
     argsLbl.Parent = entry
+
+    -- Path preview
+    local pathLbl = Instance.new("TextLabel")
+    pathLbl.Size = UDim2.new(0, 200, 1, 0)
+    pathLbl.Position = UDim2.new(0, 328, 0, 0)
+    pathLbl.BackgroundTransparency = 1
+    pathLbl.Text = log.ScriptPath or "unknown"
+    pathLbl.TextColor3 = Color3.fromRGB(180, 160, 220)
+    pathLbl.TextXAlignment = Enum.TextXAlignment.Left
+    pathLbl.TextTruncate = Enum.TextTruncate.AtEnd
+    pathLbl.Font = Enum.Font.Code
+    pathLbl.TextSize = 10
+    pathLbl.Parent = entry
 
     local actionHolder = Instance.new("Frame")
     actionHolder.Size = UDim2.new(0, 320, 1, 0)
@@ -1354,7 +1379,7 @@ createLogEntry = function(log, logIndex)
     clickBtn.Parent = entry
     clickBtn.MouseButton1Click:Connect(function()
         showDetail(log)
-        loadModifyPanel(log)  -- ⭐ load vào Modify panel
+        loadModifyPanel(log)
         for _, c in ipairs(Scroll:GetChildren()) do
             if c:IsA("Frame") and c.Name == "LogEntry" then
                 c.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
@@ -1367,32 +1392,39 @@ createLogEntry = function(log, logIndex)
 end
 
 -- ============================================================
--- 12. PUSH LOG
+-- 12. PUSH LOG (FIFO — không lag)
 -- ============================================================
 pushLog = function(log)
     table.insert(State.Logs, log)
-    while #State.Logs > State.MaxLogs do table.remove(State.Logs, 1) end
+    if #State.Logs > State.MaxLogs then
+        table.remove(State.Logs, 1)
+    end
 
+    local entry = createLogEntry(log, #State.Logs)
+    entry.Visible = matchesFilter(log)
+    FrameToLog[entry] = log
+
+    -- Destroy entry cũ nhất nếu vượt max
     if #State.Logs >= State.MaxLogs then
-        for _, c in ipairs(Scroll:GetChildren()) do
-            if c:IsA("Frame") and c.Name == "LogEntry" then c:Destroy() end
+        local oldLog = State.Logs[1]
+        for f, l in pairs(FrameToLog) do
+            if l == oldLog then
+                FrameToLog[f] = nil
+                f:Destroy()
+                break
+            end
         end
-        for i, l in ipairs(State.Logs) do
-            local e = createLogEntry(l, i)
-            e.Visible = matchesFilter(l)
-        end
-    else
-        local entry = createLogEntry(log, #State.Logs)
-        entry.Visible = matchesFilter(log)
     end
 
     if State.AutoScroll then
-        task.defer(function() Scroll.CanvasPosition = Vector2.new(0, math.huge) end)
+        task.defer(function()
+            Scroll.CanvasPosition = Vector2.new(0, math.huge)
+        end)
     end
 end
 
 -- ============================================================
--- 13. HOOKS
+-- 13. HOOKS (Packet:Fire — path chính xác)
 -- ============================================================
 local LogQueue = {}
 
@@ -1405,17 +1437,22 @@ end
 local function getCaller()
     if getcallingscript then
         local ok, s = pcall(getcallingscript)
-        if ok and s then return s:GetFullName() end
+        if ok and s and typeof(s) == "Instance" then
+            return s:GetFullName()
+        end
     end
     if debug and debug.info then
-        for lvl = 2, 8 do
+        for lvl = 2, 12 do
             local ok, s = pcall(function() return debug.info(lvl, "s") end)
-            if ok and s and type(s) == "Instance" then return s:GetFullName() end
+            if ok and s and typeof(s) == "Instance" then
+                return s:GetFullName()
+            end
         end
     end
     return "unknown"
 end
 
+-- IN: OnClientEvent
 pcall(function()
     PacketRemote.OnClientEvent:Connect(function(buf, instances)
         if type(buf) == "buffer" then
@@ -1424,30 +1461,93 @@ pcall(function()
     end)
 end)
 
-pcall(function()
-    local mt = getrawmetatable(game)
-    local oldNamecall = mt.__namecall
-    setreadonly(mt, false)
-    mt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        if method == "FireServer" and self == PacketRemote and State.Enabled then
-            local args = { ... }
-            local buf = args[1]
-            local instances = args[2]
-            if type(buf) == "buffer" then
-                local caller = getCaller()
-                local log = parseBuffer(buf, "OUT", instances, caller)
-                if log then
-                    if isBlocked(log.PacketName) then return end
-                    handleParsedLog(log)
+-- OUT: Hook Packet:Fire — bắt caller THẬT
+if PacketMetaRef then
+    local oldFire = PacketMetaRef.Fire
+    pcall(setreadonly, PacketMetaRef, false)
+    pcall(function()
+        PacketMetaRef.Fire = newcclosure(function(self, ...)
+            if not State.Enabled then
+                return oldFire(self, ...)
+            end
+
+            local caller = getCaller()
+            local id     = rawget(self, "Id")
+            local name   = rawget(self, "Name")
+            local args   = { ... }
+
+            if isBlocked(name) then
+                return
+            end
+
+            local buf, instList = encodeArgsWithSchema(id, args, nil)
+
+            local log = {
+                Direction   = "OUT",
+                PacketId    = id,
+                PacketName  = name,
+                Timestamp   = toTimeStr(),
+                Time        = os.clock(),
+                DecodedArgs = args,
+                ScriptPath  = caller,
+                RawBuffer   = buf,
+                Instances   = instList,
+            }
+
+            if buf then
+                log.Size     = buffer.len(buf)
+                log.RawHex   = toHex(buf, 0, buffer.len(buf))
+                log.RawAscii = toAscii(buf, 0, buffer.len(buf))
+            else
+                log.Size     = 0
+                log.RawHex   = ""
+                log.RawAscii = ""
+            end
+
+            local lines = {}
+            for i, v in ipairs(args) do
+                lines[#lines+1] = string.format("[%d] %s", i, formatArg(v))
+            end
+            log.Decoded  = table.concat(lines, "\n")
+            log.ArgCount = #args
+
+            handleParsedLog(log)
+
+            return oldFire(self, ...)
+        end)
+    end)
+    pcall(setreadonly, PacketMetaRef, true)
+
+    print("[Decoder] ✅ Hooked Packet:Fire — script path chính xác")
+else
+    warn("[Decoder] ⚠️ Không tìm được Packet metatable — fallback hook FireServer")
+
+    -- Fallback hook FireServer
+    pcall(function()
+        local mt = getrawmetatable(game)
+        local oldNamecall = mt.__namecall
+        setreadonly(mt, false)
+        mt.__namecall = newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            if method == "FireServer" and self == PacketRemote and State.Enabled then
+                local args = { ... }
+                local buf = args[1]
+                local instances = args[2]
+                if type(buf) == "buffer" then
+                    local log = parseBuffer(buf, "OUT", instances, getCaller())
+                    if log then
+                        if isBlocked(log.PacketName) then return end
+                        handleParsedLog(log)
+                    end
                 end
             end
-        end
-        return oldNamecall(self, ...)
+            return oldNamecall(self, ...)
+        end)
+        setreadonly(mt, true)
     end)
-    setreadonly(mt, true)
-end)
+end
 
+-- Background drain queue
 task.spawn(function()
     while task.wait(0.1) do
         if not ScreenGui.Parent then break end
@@ -1471,6 +1571,7 @@ _G.__clearLogs = function()
     for _, c in ipairs(Scroll:GetChildren()) do
         if c:IsA("Frame") and c.Name == "LogEntry" then c:Destroy() end
     end
+    table.clear(FrameToLog)
     State.StatIN = 0
     State.StatOUT = 0
     for _, c in ipairs(DetailScroll:GetChildren()) do
@@ -1636,9 +1737,12 @@ local schemaCount = 0 for _ in pairs(Schema) do schemaCount += 1 end
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Packet Decoder",
-        Text = string.format("Ready. %d packets, %d schemas.", regCount, schemaCount),
+        Text = string.format("Ready. %d packets, %d schemas. Hook: %s",
+            regCount, schemaCount, PacketMetaRef and "Fire" or "FireServer"),
         Duration = 3,
     })
 end)
 
-print("[Packet Decoder] Ready. Registry:", regCount, "Schema:", schemaCount)
+print("[Packet Decoder] Ready.")
+print("  Registry:", regCount, "| Schema:", schemaCount)
+print("  Hook mode:", PacketMetaRef and "Packet:Fire (path chính xác)" or "FireServer (fallback)")
