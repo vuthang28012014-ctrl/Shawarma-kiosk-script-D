@@ -1434,13 +1434,81 @@ local function handleParsedLog(log)
     if #LogQueue < 5000 then table.insert(LogQueue, log) end
 end
 
+-- ⭐ Normalize source string từ debug.info
+local function normalizeSource(source)
+    if type(source) ~= "string" or #source == 0 then return nil end
+
+    local path = source
+    -- Strip prefix @ hoặc =
+    if path:sub(1, 1) == "@" or path:sub(1, 1) == "=" then
+        path = path:sub(2)
+    end
+
+    -- Skip C functions, loadstring, string literal, executor code
+    if path:find("^%[") then return nil end          -- [C], [string "..."]
+    if path:find("^string") then return nil end       -- string literal
+    if path:find("^loadstring") then return nil end
+    if path:find("NNVN") then return nil end          -- our decoder
+
+    -- Convert / to . for display
+    path = path:gsub("/", ".")
+
+    return path
+end
+
+-- ⭐ Walk call stack để tìm module gọi Fire
+local function getCallerModuleFromStack()
+    if not debug or not debug.info then return nil end
+
+    for lvl = 2, 15 do
+        -- Ưu tiên getscriptfromfunction nếu có
+        local okFn, fn = pcall(debug.info, lvl, "f")
+        if okFn and type(fn) == "function" then
+            if getscriptfromfunction then
+                local okS, script = pcall(getscriptfromfunction, fn)
+                if okS and script and typeof(script) == "Instance" then
+                    local name = script:GetFullName()
+                    if name and not name:find("NNVN") then
+                        return name
+                    end
+                end
+            end
+            if getfunctionhash then
+                -- một số executor có thể dùng cái này để trace
+            end
+        end
+
+        -- Fallback: dùng source string
+        local ok, source = pcall(debug.info, lvl, "s")
+        if not ok then break end
+        if type(source) == "string" and #source > 0 then
+            local path = normalizeSource(source)
+            if path and #path > 0 then
+                return path
+            end
+        end
+    end
+    return nil
+end
+
+-- ⭐ getCaller tổng hợp — 3 tầng fallback
 local function getCaller()
+    -- 1. Stack walk (chính xác nhất)
+    local fromStack = getCallerModuleFromStack()
+    if fromStack then return fromStack end
+
+    -- 2. getcallingscript
     if getcallingscript then
         local ok, s = pcall(getcallingscript)
         if ok and s and typeof(s) == "Instance" then
-            return s:GetFullName()
+            local name = s:GetFullName()
+            if name and not name:find("NNVN") then
+                return name
+            end
         end
     end
+
+    -- 3. debug.info dạng Instance
     if debug and debug.info then
         for lvl = 2, 12 do
             local ok, s = pcall(function() return debug.info(lvl, "s") end)
@@ -1449,6 +1517,7 @@ local function getCaller()
             end
         end
     end
+
     return "unknown"
 end
 
