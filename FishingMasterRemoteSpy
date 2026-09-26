@@ -327,32 +327,44 @@ end
 --       arg2,
 --       ...
 --   )
+-- ⭐ Build ANALYZED code
+-- Format output:
+--   -- Decoded args: 1 => args = 1
+--   Local Event = game:GetService("ReplicatedStorage").Stardust.Packages.Packet.RemoteEvent
+--   Event:FireServer(
+--       1
+--   )
 local function buildAnalyzedCode(log)
     if not log.DecodedArgs then return nil end
     if log.Direction ~= "OUT" then return nil end
 
     local lines = {}
-    table.insert(lines, "-- Analyzed packet: " .. log.PacketName .. " (#" .. log.PacketId .. ")")
-    table.insert(lines, "-- Direction: " .. log.Direction)
-    table.insert(lines, "-- Size: " .. log.Size .. " bytes")
-    table.insert(lines, "-- Timestamp: " .. log.Timestamp)
-    table.insert(lines, "-- Script Path: " .. (log.ScriptPath or "unknown"))
+
+    -- Comment header: list decoded args
+    local argStr = {}
+    for i, arg in ipairs(log.DecodedArgs) do
+        table.insert(argStr, tostring(i) .. " => " .. valueToLua(arg))
+    end
+
+    if #argStr > 0 then
+        table.insert(lines, "-- Decoded args: " .. table.concat(argStr, ", "))
+    else
+        table.insert(lines, "-- Decoded args: (empty)")
+    end
+
+    table.insert(lines, "-- Packet: " .. log.PacketName .. " (#" .. log.PacketId .. ") | Script: " .. (log.ScriptPath or "unknown"))
     table.insert(lines, "")
 
-    table.insert(lines, 'local EventPath = game:GetService("ReplicatedStorage").Stardust.Packages.Packet.RemoteEvent')
-    table.insert(lines, "EventPath:FireServer(")
+    -- Code body
+    table.insert(lines, 'local Event = game:GetService("ReplicatedStorage").Stardust.Packages.Packet.RemoteEvent')
+    table.insert(lines, "Event:FireServer(")
 
-    local argStrings = {}
     for i, arg in ipairs(log.DecodedArgs) do
-        table.insert(argStrings, "    " .. valueToLua(arg))
+        local suffix = (i < #log.DecodedArgs) and "," or ""
+        table.insert(lines, "    " .. valueToLua(arg) .. suffix)
     end
 
-    if #argStrings == 0 then
-        table.insert(lines, ")")
-    else
-        table.insert(lines, table.concat(argStrings, ",\n"))
-        table.insert(lines, ")")
-    end
+    table.insert(lines, ")")
 
     return table.concat(lines, "\n")
 end
