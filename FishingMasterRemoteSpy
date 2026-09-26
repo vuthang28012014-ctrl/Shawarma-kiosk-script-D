@@ -1,13 +1,5 @@
 -- ============================================================
--- Stardust Packet Decoder — RemoteSpy Style + FULL DECODE
--- ============================================================
--- Features:
---   • 3 cách capture schema: getgc / hook __call / debug.getupvalue
---   • Decode args bằng chính Reads functions của framework
---   • 7 nút: IGNORE, BLOCK, COPY, REPLAY, ANALYZE, CODE, PATH
---   • ANALYZE — copy code dạng "EventPath:FireServer(args...)"
---   • CODE    — copy code với raw buffer bytes
---   • PATH    — copy script path gọi packet
+-- Stardust Packet Decoder + Modify Remote
 -- ============================================================
 
 local Players = game:GetService("Players")
@@ -77,9 +69,7 @@ local function registerPacket(packetObj)
     local name   = rawget(packetObj, "Name")
     local reads  = rawget(packetObj, "Reads")
     local writes = rawget(packetObj, "Writes")
-    if type(id) ~= "number" then return false end
-    if type(name) ~= "string" then return false end
-    if type(reads) ~= "table" then return false end
+    if type(id) ~= "number" or type(name) ~= "string" or type(reads) ~= "table" then return false end
 
     local hasResp = rawget(packetObj, "ResponseReads") ~= nil
     local existing = Schema[id]
@@ -117,9 +107,7 @@ end
 
 local PacketModule
 local function hookConstructor()
-    local ok = pcall(function()
-        PacketModule = require(RS.Stardust.Packages.Packet)
-    end)
+    local ok = pcall(function() PacketModule = require(RS.Stardust.Packages.Packet) end)
     if not ok or type(PacketModule) ~= "table" then return false end
     local ok2, mt = pcall(getrawmetatable, PacketModule)
     if not ok2 or not mt or type(mt.__call) ~= "function" then return false end
@@ -139,15 +127,13 @@ end
 
 local function scanUpvalues()
     if not PacketModule then return 0 end
-    local debug_getupvalue = debug and debug.getupvalue
-    if not debug_getupvalue then return 0 end
+    local dbg = debug and debug.getupvalue
+    if not dbg then return 0 end
     local ok, mt = pcall(getrawmetatable, PacketModule)
     if not ok or not mt or type(mt.__call) ~= "function" then return 0 end
-
-    local constructor = mt.__call
     local count = 0
     for i = 1, 40 do
-        local ok2, name, val = pcall(debug_getupvalue, constructor, i)
+        local ok2, name, val = pcall(dbg, mt.__call, i)
         if not ok2 or name == nil then break end
         if type(val) == "table" then
             for _, v in pairs(val) do
@@ -171,9 +157,7 @@ print(string.format("[Decoder] Schema — GC: %d, Hook: %s, Upvalue: %d, Total: 
 -- 4. PACKET TYPES
 -- ============================================================
 local PacketTypes
-pcall(function()
-    PacketTypes = require(RS.Stardust.Packages.Packet.Types)
-end)
+pcall(function() PacketTypes = require(RS.Stardust.Packages.Packet.Types) end)
 
 -- ============================================================
 -- 5. HELPERS
@@ -181,11 +165,9 @@ end)
 local function toHex(buf, from, to)
     from = from or 0
     to   = to   or buffer.len(buf)
-    local parts = {}
-    for i = from, to - 1 do
-        table.insert(parts, string.format("%02X", buffer.readu8(buf, i)))
-    end
-    return table.concat(parts, " ")
+    local p = {}
+    for i = from, to - 1 do p[#p+1] = string.format("%02X", buffer.readu8(buf, i)) end
+    return table.concat(p, " ")
 end
 
 local function toAscii(buf, from, to)
@@ -194,7 +176,7 @@ local function toAscii(buf, from, to)
     local s = ""
     for i = from, to - 1 do
         local b = buffer.readu8(buf, i)
-        if b >= 32 and b < 127 then s = s .. string.char(b) else s = s .. "." end
+        s = s .. (b >= 32 and b < 127 and string.char(b) or ".")
     end
     return s
 end
@@ -211,162 +193,153 @@ end
 
 local function formatArg(v)
     local t = typeof(v)
-    if t == "Instance" then
-        return string.format("Instance(%s: %s)", v.ClassName, v.Name)
-    elseif t == "CFrame" then
-        local p = v.Position
-        return string.format("CFrame(%.2f, %.2f, %.2f)", p.X, p.Y, p.Z)
-    elseif t == "Vector3" then
-        return string.format("Vector3(%.2f, %.2f, %.2f)", v.X, v.Y, v.Z)
-    elseif t == "Vector2" then
-        return string.format("Vector2(%.2f, %.2f)", v.X, v.Y)
-    elseif t == "Color3" then
-        return string.format("Color3(%d, %d, %d)", v.R * 255, v.G * 255, v.B * 255)
+    if t == "Instance" then return string.format("Instance(%s: %s)", v.ClassName, v.Name)
+    elseif t == "CFrame" then local p = v.Position return string.format("CFrame(%.2f, %.2f, %.2f)", p.X, p.Y, p.Z)
+    elseif t == "Vector3" then return string.format("Vector3(%.2f, %.2f, %.2f)", v.X, v.Y, v.Z)
+    elseif t == "Vector2" then return string.format("Vector2(%.2f, %.2f)", v.X, v.Y)
+    elseif t == "Color3" then return string.format("Color3(%d, %d, %d)", v.R*255, v.G*255, v.B*255)
     elseif t == "string" then
-        if #v > 60 then v = v:sub(1, 57) .. "..." end
-        return string.format("%q", v)
+        local s = #v > 60 and v:sub(1,57).."..." or v
+        return string.format("%q", s)
     elseif t == "number" then
-        if math.floor(v) == v then return tostring(v) else return string.format("%.4f", v) end
-    elseif t == "boolean" then
-        return tostring(v)
-    elseif t == "table" then
-        return "{table}"
-    elseif t == "nil" then
-        return "nil"
-    else
-        return tostring(v)
-    end
+        if math.floor(v) == v then return tostring(v) end
+        return string.format("%.4f", v)
+    elseif t == "boolean" then return tostring(v)
+    elseif t == "table" then return "{table}"
+    elseif t == "nil" then return "nil"
+    else return tostring(v) end
 end
 
--- ⭐ Convert value thành Lua literal cho code output
 local function valueToLua(v)
     local t = typeof(v)
-
     if t == "nil" then return "nil" end
     if t == "boolean" then return tostring(v) end
-
     if t == "number" then
-        if math.floor(v) == v and math.abs(v) < 1e15 then
-            return tostring(v)
-        end
+        if math.floor(v) == v and math.abs(v) < 1e15 then return tostring(v) end
         return string.format("%.6f", v)
     end
-
     if t == "string" then
-        local escaped = v:gsub("\\", "\\\\"):gsub("\"", "\\\""):gsub("\n", "\\n"):gsub("\r", "\\r"):gsub("\t", "\\t"):gsub("%z", "\\0")
-        return '"' .. escaped .. '"'
+        local esc = v:gsub("\\","\\\\"):gsub("\"","\\\""):gsub("\n","\\n"):gsub("\r","\\r"):gsub("\t","\\t"):gsub("%z","\\0")
+        return '"' .. esc .. '"'
     end
-
     if t == "Instance" then
-        if not v.Parent then
-            return 'nil --[[Instance(' .. v.ClassName .. ': ' .. v.Name .. ') đã bị xóa]]'
-        end
-        local ok, fullName = pcall(function() return v:GetFullName() end)
-        if ok and fullName then
-            return "game." .. fullName
-        end
-        return 'nil --[[Instance(' .. v.ClassName .. ': ' .. v.Name .. ')]]'
+        if not v.Parent then return 'nil --[[Instance('..v.ClassName..': '..v.Name..') đã xóa]]' end
+        local ok, full = pcall(function() return v:GetFullName() end)
+        if ok and full then return "game." .. full end
+        return 'nil --[[Instance('..v.ClassName..': '..v.Name..')]]'
     end
-
-    if t == "Vector3" then
-        return string.format("Vector3.new(%.6f, %.6f, %.6f)", v.X, v.Y, v.Z)
-    end
-
-    if t == "Vector2" then
-        return string.format("Vector2.new(%.6f, %.6f)", v.X, v.Y)
-    end
-
+    if t == "Vector3" then return string.format("Vector3.new(%.6f, %.6f, %.6f)", v.X, v.Y, v.Z) end
+    if t == "Vector2" then return string.format("Vector2.new(%.6f, %.6f)", v.X, v.Y) end
     if t == "CFrame" then
-        local x, y, z, R00, R01, R02, R10, R11, R12, R20, R21, R22 = v:GetComponents()
-        return string.format(
-            "CFrame.new(%.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f)",
-            x, y, z, R00, R01, R02, R10, R11, R12, R20, R21, R22
-        )
+        local x,y,z,R00,R01,R02,R10,R11,R12,R20,R21,R22 = v:GetComponents()
+        return string.format("CFrame.new(%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f)",
+            x,y,z,R00,R01,R02,R10,R11,R12,R20,R21,R22)
     end
-
-    if t == "Color3" then
-        return string.format("Color3.fromRGB(%d, %d, %d)", v.R * 255, v.G * 255, v.B * 255)
-    end
-
-    if t == "UDim2" then
-        return string.format("UDim2.new(%f, %d, %f, %d)", v.X.Scale, v.X.Offset, v.Y.Scale, v.Y.Offset)
-    end
-
-    if t == "UDim" then
-        return string.format("UDim.new(%f, %d)", v.Scale, v.Offset)
-    end
-
-    if t == "Rect" then
-        return string.format("Rect.new(%d, %d, %d, %d)", v.Min.X, v.Min.Y, v.Max.X, v.Max.Y)
-    end
-
-    if t == "BrickColor" then
-        return string.format("BrickColor.new(%d)", v.Number)
-    end
-
-    if t == "EnumItem" then
-        return string.format("Enum.%s.%s", tostring(v.EnumType), v.Name)
-    end
-
-    return "nil --[[unsupported type: " .. t .. "]]"
+    if t == "Color3" then return string.format("Color3.fromRGB(%d,%d,%d)", v.R*255, v.G*255, v.B*255) end
+    if t == "UDim2" then return string.format("UDim2.new(%f,%d,%f,%d)", v.X.Scale, v.X.Offset, v.Y.Scale, v.Y.Offset) end
+    if t == "UDim" then return string.format("UDim.new(%f,%d)", v.Scale, v.Offset) end
+    if t == "Rect" then return string.format("Rect.new(%d,%d,%d,%d)", v.Min.X, v.Min.Y, v.Max.X, v.Max.Y) end
+    if t == "BrickColor" then return string.format("BrickColor.new(%d)", v.Number) end
+    if t == "EnumItem" then return string.format("Enum.%s.%s", tostring(v.EnumType), v.Name) end
+    return "nil --[[unsupported: " .. t .. "]]"
 end
 
 local function bytesToLuaArray(bytes)
-    local parts = {}
-    for i = 1, #bytes do
-        table.insert(parts, tostring(bytes[i]))
-    end
-    return "{ " .. table.concat(parts, ", ") .. " }"
+    local p = {}
+    for i = 1, #bytes do p[#p+1] = tostring(bytes[i]) end
+    return "{ " .. table.concat(p, ", ") .. " }"
 end
 
--- ⭐ Build ANALYZED code dạng user yêu cầu
--- Format:
---   local EventPath = game:GetService("ReplicatedStorage").Stardust.Packages.Packet.RemoteEvent
---   EventPath:FireServer(
---       arg1,
---       arg2,
---       ...
---   )
--- ⭐ Build ANALYZED code
--- Format output:
---   -- Decoded args: 1 => args = 1
---   Local Event = game:GetService("ReplicatedStorage").Stardust.Packages.Packet.RemoteEvent
---   Event:FireServer(
---       1
---   )
+-- ⭐ Analyze code (dùng cho nút ANALYZE)
 local function buildAnalyzedCode(log)
-    if not log.DecodedArgs then return nil end
-    if log.Direction ~= "OUT" then return nil end
-
+    if not log.DecodedArgs or log.Direction ~= "OUT" then return nil end
     local lines = {}
-
-    -- Comment header: list decoded args
     local argStr = {}
     for i, arg in ipairs(log.DecodedArgs) do
-        table.insert(argStr, tostring(i) .. " => " .. valueToLua(arg))
+        argStr[#argStr+1] = i .. " => " .. valueToLua(arg)
     end
-
-    if #argStr > 0 then
-        table.insert(lines, "-- Decoded args: " .. table.concat(argStr, ", "))
-    else
-        table.insert(lines, "-- Decoded args: (empty)")
-    end
-
-    table.insert(lines, "-- Packet: " .. log.PacketName .. " (#" .. log.PacketId .. ") | Script: " .. (log.ScriptPath or "unknown"))
-    table.insert(lines, "")
-
-    -- Code body
-    table.insert(lines, 'local Event = game:GetService("ReplicatedStorage").Stardust.Packages.Packet.RemoteEvent')
-    table.insert(lines, "Event:FireServer(")
-
+    lines[#lines+1] = "-- Decoded args: " .. table.concat(argStr, ", ")
+    lines[#lines+1] = "-- Packet: " .. log.PacketName .. " (#" .. log.PacketId .. ") | Script: " .. (log.ScriptPath or "unknown")
+    lines[#lines+1] = ""
+    lines[#lines+1] = 'local Event = game:GetService("ReplicatedStorage").Stardust.Packages.Packet.RemoteEvent'
+    lines[#lines+1] = "Event:FireServer("
     for i, arg in ipairs(log.DecodedArgs) do
-        local suffix = (i < #log.DecodedArgs) and "," or ""
-        table.insert(lines, "    " .. valueToLua(arg) .. suffix)
+        lines[#lines+1] = "    " .. valueToLua(arg) .. (i < #log.DecodedArgs and "," or "")
+    end
+    lines[#lines+1] = ")"
+    return table.concat(lines, "\n")
+end
+
+-- ⭐ Encode args với schema.writes
+local function encodeArgsWithSchema(packetId, args, origInstances)
+    local schema = Schema[packetId]
+    if not schema or not schema.writes then return nil, "No writes schema" end
+    if not PacketTypes or not PacketTypes.Import or not PacketTypes.Writes or not PacketTypes.Export then
+        return nil, "PacketTypes missing"
     end
 
-    table.insert(lines, ")")
+    local ok, res = pcall(function()
+        local state = {
+            Buffer          = buffer.create(512),
+            BufferLength    = 512,
+            BufferOffset    = 0,
+            Instances       = {},
+            InstancesOffset = 0,
+        }
+        PacketTypes.Import(state)
+        PacketTypes.Writes.NumberU8(packetId)
 
-    return table.concat(lines, "\n")
+        for i, writeFn in ipairs(schema.writes) do
+            writeFn(args[i])
+        end
+
+        local exported = PacketTypes.Export()
+        local finalBuf
+        if PacketTypes.Truncate then
+            finalBuf = PacketTypes.Truncate()
+        else
+            local len = exported.BufferOffset or 0
+            finalBuf = buffer.create(len)
+            buffer.copy(finalBuf, 0, exported.Buffer, 0, len)
+        end
+
+        local instList = {}
+        local io = exported.InstancesOffset or 0
+        for i = 1, io do
+            instList[i] = exported.Instances[i]
+        end
+        return { buffer = finalBuf, instances = instList }
+    end)
+
+    if ok and res then return res.buffer, res.instances end
+    return nil, tostring(res)
+end
+
+-- ⭐ Parse decoded Lua code để lấy args
+local function parseDecodedArgs(code)
+    local startPos = code:find("FireServer%s*%(")
+    if not startPos then return nil, "No FireServer call" end
+    local openParen = code:find("%(", startPos)
+    if not openParen then return nil, "No open paren" end
+    local closeParen = code:match("()%s*%)%s*$")
+    if not closeParen or closeParen <= openParen then return nil, "No close paren" end
+
+    local argsStr = code:sub(openParen + 1, closeParen - 1)
+    local loader, err = loadstring("return { " .. argsStr .. " }")
+    if not loader then return nil, "Syntax: " .. tostring(err) end
+    local ok, args = pcall(loader)
+    if not ok then return nil, "Runtime: " .. tostring(args) end
+    return args
+end
+
+-- ⭐ Parse encoded byte text
+local function parseEncodedBytes(text)
+    local bytes = {}
+    for num in text:gmatch("%d+") do
+        bytes[#bytes+1] = tonumber(num)
+    end
+    if #bytes == 0 then return nil, "No bytes found" end
+    return bytes
 end
 
 -- ============================================================
@@ -387,9 +360,7 @@ local function decodeArgs(packetId, buf, instances)
         }
         PacketTypes.Import(state)
         PacketTypes.Reads.NumberU8()
-        if schema.hasResponse then
-            pcall(PacketTypes.Reads.NumberU8)
-        end
+        if schema.hasResponse then pcall(PacketTypes.Reads.NumberU8) end
 
         local args = {}
         for i, readFn in ipairs(schema.reads) do
@@ -427,9 +398,7 @@ local function parseBuffer(buf, direction, instances, scriptPath)
     local instClone = nil
     if type(instances) == "table" then
         instClone = {}
-        for i, v in ipairs(instances) do
-            instClone[i] = v
-        end
+        for i, v in ipairs(instances) do instClone[i] = v end
     end
 
     local log = {
@@ -454,7 +423,7 @@ local function parseBuffer(buf, direction, instances, scriptPath)
         log.DecodedArgs = args
         local lines = {}
         for i, v in ipairs(args) do
-            table.insert(lines, string.format("[%d] %s", i, formatArg(v)))
+            lines[#lines+1] = string.format("[%d] %s", i, formatArg(v))
         end
         log.Decoded = table.concat(lines, "\n")
         log.ArgCount = #args
@@ -479,13 +448,17 @@ local State = {
     Expanded   = false,
 }
 
+local ModifyState = {
+    CurrentLog  = nil,
+    CurrentArgs = nil,
+}
+
 -- ============================================================
 -- 9. GUI
 -- ============================================================
 local GUI_NAME = "NNVN_PacketDecoder"
 local oldGui = (gethui and gethui() or game:GetService("CoreGui")):FindFirstChild(GUI_NAME)
 if oldGui then oldGui:Destroy() end
-
 local parentGui = gethui and gethui() or game:GetService("CoreGui")
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -495,8 +468,8 @@ ScreenGui.IgnoreGuiInset = true
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent         = parentGui
 
-local NORMAL_SIZE   = UDim2.new(0, 1000, 0, 500)
-local NORMAL_POS    = UDim2.new(0.5, -500, 0.5, -250)
+local NORMAL_SIZE   = UDim2.new(0, 1300, 0, 700)
+local NORMAL_POS    = UDim2.new(0.5, -650, 0.5, -350)
 local EXPANDED_SIZE = UDim2.new(1, -20, 1, -20)
 local EXPANDED_POS  = UDim2.new(0, 10, 0, 10)
 
@@ -526,7 +499,7 @@ local TitleLbl = Instance.new("TextLabel")
 TitleLbl.Size                   = UDim2.new(1, -120, 1, 0)
 TitleLbl.Position               = UDim2.new(0, 10, 0, 0)
 TitleLbl.BackgroundTransparency = 1
-TitleLbl.Text                   = "📦 Stardust Packet Decoder"
+TitleLbl.Text                   = "📦 Stardust Packet Decoder + Modify"
 TitleLbl.TextColor3             = Color3.fromRGB(200, 220, 255)
 TitleLbl.TextXAlignment         = Enum.TextXAlignment.Left
 TitleLbl.Font                   = Enum.Font.GothamBold
@@ -573,16 +546,16 @@ Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 6)
 ExpandBtn.MouseButton1Click:Connect(function()
     State.Expanded = not State.Expanded
     if State.Expanded then
-        Main.Size              = EXPANDED_SIZE
-        Main.Position          = EXPANDED_POS
-        Main.Draggable         = false
-        ExpandBtn.Text         = "🗗"
+        Main.Size = EXPANDED_SIZE
+        Main.Position = EXPANDED_POS
+        Main.Draggable = false
+        ExpandBtn.Text = "🗗"
         ExpandBtn.BackgroundColor3 = Color3.fromRGB(100, 60, 140)
     else
-        Main.Size              = NORMAL_SIZE
-        Main.Position          = NORMAL_POS
-        Main.Draggable         = true
-        ExpandBtn.Text         = "⛶"
+        Main.Size = NORMAL_SIZE
+        Main.Position = NORMAL_POS
+        Main.Draggable = true
+        ExpandBtn.Text = "⛶"
         ExpandBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 140)
     end
 end)
@@ -594,28 +567,26 @@ Toolbar.Position               = UDim2.new(0, 10, 0, 38)
 Toolbar.BackgroundTransparency = 1
 Toolbar.Parent                 = Main
 
-local function makeToolBtn(text, x, width, color, callback)
+local function makeToolBtn(text, x, width, color, cb)
     local b = Instance.new("TextButton")
-    b.Size                   = UDim2.new(0, width, 1, 0)
-    b.Position               = UDim2.new(0, x, 0, 0)
-    b.BackgroundColor3       = color
-    b.BorderSizePixel        = 0
-    b.Text                   = text
-    b.TextColor3             = Color3.fromRGB(255, 255, 255)
-    b.Font                   = Enum.Font.GothamBold
-    b.TextSize               = 11
-    b.Parent                 = Toolbar
+    b.Size = UDim2.new(0, width, 1, 0)
+    b.Position = UDim2.new(0, x, 0, 0)
+    b.BackgroundColor3 = color
+    b.BorderSizePixel = 0
+    b.Text = text
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 11
+    b.Parent = Toolbar
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-    if callback then b.MouseButton1Click:Connect(callback) end
+    if cb then b.MouseButton1Click:Connect(cb) end
     return b
 end
 
 local enabledBtn = makeToolBtn("🟢 ENABLED", 0, 90, Color3.fromRGB(40, 120, 60), function()
     State.Enabled = not State.Enabled
     enabledBtn.Text = State.Enabled and "🟢 ENABLED" or "🔴 DISABLED"
-    enabledBtn.BackgroundColor3 = State.Enabled
-        and Color3.fromRGB(40, 120, 60)
-        or  Color3.fromRGB(120, 40, 40)
+    enabledBtn.BackgroundColor3 = State.Enabled and Color3.fromRGB(40, 120, 60) or Color3.fromRGB(120, 40, 40)
 end)
 
 makeToolBtn("🗑️ CLEAR", 96, 70, Color3.fromRGB(120, 40, 40), function()
@@ -630,16 +601,13 @@ end)
 makeToolBtn("📋 EXPORT", 258, 80, Color3.fromRGB(60, 100, 120), function()
     local lines = {}
     for _, log in ipairs(State.Logs) do
-        table.insert(lines, string.format("[%s][%s] #%d %s | %d bytes",
-            log.Timestamp, log.Direction, log.PacketId, log.PacketName, log.Size))
+        lines[#lines+1] = string.format("[%s][%s] #%d %s | %d bytes", log.Timestamp, log.Direction, log.PacketId, log.PacketName, log.Size)
         if log.Decoded then
-            table.insert(lines, "  ARGS:")
-            for line in log.Decoded:gmatch("[^\n]+") do
-                table.insert(lines, "    " .. line)
-            end
+            lines[#lines+1] = "  ARGS:"
+            for line in log.Decoded:gmatch("[^\n]+") do lines[#lines+1] = "    " .. line end
         end
-        table.insert(lines, "  HEX: " .. log.RawHex)
-        table.insert(lines, "  PATH: " .. (log.ScriptPath or "unknown"))
+        lines[#lines+1] = "  HEX: " .. log.RawHex
+        lines[#lines+1] = "  PATH: " .. (log.ScriptPath or "unknown")
     end
     if setclipboard then setclipboard(table.concat(lines, "\n")) end
 end)
@@ -653,57 +621,60 @@ makeToolBtn("🚫 BLOCK", 440, 90, Color3.fromRGB(140, 60, 60), function()
 end)
 
 local SearchBox = Instance.new("TextBox")
-SearchBox.Size                   = UDim2.new(0, 270, 1, 0)
-SearchBox.Position               = UDim2.new(1, -270, 0, 0)
-SearchBox.BackgroundColor3       = Color3.fromRGB(30, 30, 45)
-SearchBox.BorderSizePixel        = 0
-SearchBox.Text                   = ""
-SearchBox.PlaceholderText        = "🔍 Search..."
-SearchBox.TextColor3             = Color3.fromRGB(220, 220, 220)
-SearchBox.PlaceholderColor3      = Color3.fromRGB(100, 100, 120)
-SearchBox.Font                   = Enum.Font.Gotham
-SearchBox.TextSize               = 12
-SearchBox.ClearTextOnFocus       = false
-SearchBox.Parent                 = Toolbar
+SearchBox.Size = UDim2.new(0, 270, 1, 0)
+SearchBox.Position = UDim2.new(1, -270, 0, 0)
+SearchBox.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+SearchBox.BorderSizePixel = 0
+SearchBox.Text = ""
+SearchBox.PlaceholderText = "🔍 Search..."
+SearchBox.TextColor3 = Color3.fromRGB(220, 220, 220)
+SearchBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 120)
+SearchBox.Font = Enum.Font.Gotham
+SearchBox.TextSize = 12
+SearchBox.ClearTextOnFocus = false
+SearchBox.Parent = Toolbar
 Instance.new("UICorner", SearchBox).CornerRadius = UDim.new(0, 6)
 
 local StatusLbl = Instance.new("TextLabel")
-StatusLbl.Size                   = UDim2.new(1, -20, 0, 18)
-StatusLbl.Position               = UDim2.new(0, 10, 0, 74)
+StatusLbl.Size = UDim2.new(1, -20, 0, 18)
+StatusLbl.Position = UDim2.new(0, 10, 0, 74)
 StatusLbl.BackgroundTransparency = 1
-StatusLbl.Text                   = ""
-StatusLbl.TextColor3             = Color3.fromRGB(180, 180, 180)
-StatusLbl.TextXAlignment         = Enum.TextXAlignment.Left
-StatusLbl.Font                   = Enum.Font.Code
-StatusLbl.TextSize               = 11
-StatusLbl.Parent                 = Main
+StatusLbl.Text = ""
+StatusLbl.TextColor3 = Color3.fromRGB(180, 180, 180)
+StatusLbl.TextXAlignment = Enum.TextXAlignment.Left
+StatusLbl.Font = Enum.Font.Code
+StatusLbl.TextSize = 11
+StatusLbl.Parent = Main
 
+-- ============================================================
+-- Log container (0.48 width)
+-- ============================================================
 local LogContainer = Instance.new("Frame")
-LogContainer.Size                   = UDim2.new(0.7, -15, 1, -190)
-LogContainer.Position               = UDim2.new(0, 10, 0, 96)
-LogContainer.BackgroundColor3       = Color3.fromRGB(5, 5, 10)
-LogContainer.BorderSizePixel        = 0
-LogContainer.Parent                 = Main
+LogContainer.Size = UDim2.new(0.48, -15, 1, -190)
+LogContainer.Position = UDim2.new(0, 10, 0, 96)
+LogContainer.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
+LogContainer.BorderSizePixel = 0
+LogContainer.Parent = Main
 Instance.new("UICorner", LogContainer).CornerRadius = UDim.new(0, 6)
 
 local Header = Instance.new("Frame")
-Header.Size                   = UDim2.new(1, 0, 0, 22)
-Header.BackgroundColor3       = Color3.fromRGB(25, 25, 38)
-Header.BorderSizePixel        = 0
-Header.Parent                 = LogContainer
+Header.Size = UDim2.new(1, 0, 0, 22)
+Header.BackgroundColor3 = Color3.fromRGB(25, 25, 38)
+Header.BorderSizePixel = 0
+Header.Parent = LogContainer
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 6)
 
 local function makeHeader(text, x, width)
     local l = Instance.new("TextLabel")
-    l.Size                   = UDim2.new(0, width, 1, 0)
-    l.Position               = UDim2.new(0, x, 0, 0)
+    l.Size = UDim2.new(0, width, 1, 0)
+    l.Position = UDim2.new(0, x, 0, 0)
     l.BackgroundTransparency = 1
-    l.Text                   = text
-    l.TextColor3             = Color3.fromRGB(150, 170, 220)
-    l.TextXAlignment         = Enum.TextXAlignment.Left
-    l.Font                   = Enum.Font.GothamBold
-    l.TextSize               = 11
-    l.Parent                 = Header
+    l.Text = text
+    l.TextColor3 = Color3.fromRGB(150, 170, 220)
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Font = Enum.Font.GothamBold
+    l.TextSize = 11
+    l.Parent = Header
 end
 
 makeHeader("TIME",  8,   55)
@@ -711,102 +682,104 @@ makeHeader("DIR",   66,  32)
 makeHeader("ID",    100, 32)
 makeHeader("NAME",  134, 130)
 makeHeader("ARGS",  266, 60)
-makeHeader("PATH",  328, 170)
 
 local Scroll = Instance.new("ScrollingFrame")
-Scroll.Size                   = UDim2.new(1, 0, 1, -22)
-Scroll.Position               = UDim2.new(0, 0, 0, 22)
+Scroll.Size = UDim2.new(1, 0, 1, -22)
+Scroll.Position = UDim2.new(0, 0, 0, 22)
 Scroll.BackgroundTransparency = 1
-Scroll.BorderSizePixel        = 0
-Scroll.ScrollBarThickness     = 6
-Scroll.ScrollBarImageColor3   = Color3.fromRGB(80, 130, 255)
-Scroll.CanvasSize             = UDim2.new(0, 0, 0, 0)
-Scroll.AutomaticCanvasSize    = Enum.AutomaticSize.Y
-Scroll.Parent                 = LogContainer
+Scroll.BorderSizePixel = 0
+Scroll.ScrollBarThickness = 6
+Scroll.ScrollBarImageColor3 = Color3.fromRGB(80, 130, 255)
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Scroll.Parent = LogContainer
 
 local LogLayout = Instance.new("UIListLayout", Scroll)
 LogLayout.SortOrder = Enum.SortOrder.LayoutOrder
-LogLayout.Padding   = UDim.new(0, 1)
+LogLayout.Padding = UDim.new(0, 1)
 
+-- ============================================================
+-- Details panel (0.18 width)
+-- ============================================================
 local DetailFrame = Instance.new("Frame")
-DetailFrame.Size                   = UDim2.new(0.3, -15, 1, -190)
-DetailFrame.Position               = UDim2.new(0.7, 5, 0, 96)
-DetailFrame.BackgroundColor3       = Color3.fromRGB(5, 5, 10)
-DetailFrame.BorderSizePixel        = 0
-DetailFrame.Parent                 = Main
+DetailFrame.Size = UDim2.new(0.18, -10, 1, -190)
+DetailFrame.Position = UDim2.new(0.48, 5, 0, 96)
+DetailFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
+DetailFrame.BorderSizePixel = 0
+DetailFrame.Parent = Main
 Instance.new("UICorner", DetailFrame).CornerRadius = UDim.new(0, 6)
 
 local DetailTitle = Instance.new("TextLabel")
-DetailTitle.Size                   = UDim2.new(1, 0, 0, 22)
-DetailTitle.BackgroundColor3       = Color3.fromRGB(25, 25, 38)
-DetailTitle.BorderSizePixel        = 0
-DetailTitle.Text                   = "  📄 Details"
-DetailTitle.TextColor3             = Color3.fromRGB(150, 170, 220)
-DetailTitle.TextXAlignment         = Enum.TextXAlignment.Left
-DetailTitle.Font                   = Enum.Font.GothamBold
-DetailTitle.TextSize               = 11
-DetailTitle.Parent                 = DetailFrame
+DetailTitle.Size = UDim2.new(1, 0, 0, 22)
+DetailTitle.BackgroundColor3 = Color3.fromRGB(25, 25, 38)
+DetailTitle.BorderSizePixel = 0
+DetailTitle.Text = "  📄 Details"
+DetailTitle.TextColor3 = Color3.fromRGB(150, 170, 220)
+DetailTitle.TextXAlignment = Enum.TextXAlignment.Left
+DetailTitle.Font = Enum.Font.GothamBold
+DetailTitle.TextSize = 11
+DetailTitle.Parent = DetailFrame
 Instance.new("UICorner", DetailTitle).CornerRadius = UDim.new(0, 6)
 
 local DetailScroll = Instance.new("ScrollingFrame")
-DetailScroll.Size                   = UDim2.new(1, 0, 1, -22)
-DetailScroll.Position               = UDim2.new(0, 0, 0, 22)
+DetailScroll.Size = UDim2.new(1, 0, 1, -22)
+DetailScroll.Position = UDim2.new(0, 0, 0, 22)
 DetailScroll.BackgroundTransparency = 1
-DetailScroll.BorderSizePixel        = 0
-DetailScroll.ScrollBarThickness     = 6
-DetailScroll.CanvasSize             = UDim2.new(0, 0, 0, 0)
-DetailScroll.AutomaticCanvasSize    = Enum.AutomaticSize.Y
-DetailScroll.Parent                 = DetailFrame
+DetailScroll.BorderSizePixel = 0
+DetailScroll.ScrollBarThickness = 6
+DetailScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+DetailScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+DetailScroll.Parent = DetailFrame
 
 local DetailLayout = Instance.new("UIListLayout", DetailScroll)
 DetailLayout.SortOrder = Enum.SortOrder.LayoutOrder
-DetailLayout.Padding   = UDim.new(0, 6)
+DetailLayout.Padding = UDim.new(0, 6)
 
 local DetailPad = Instance.new("UIPadding", DetailScroll)
-DetailPad.PaddingTop    = UDim.new(0, 8)
-DetailPad.PaddingLeft   = UDim.new(0, 10)
-DetailPad.PaddingRight  = UDim.new(0, 10)
+DetailPad.PaddingTop = UDim.new(0, 8)
+DetailPad.PaddingLeft = UDim.new(0, 10)
+DetailPad.PaddingRight = UDim.new(0, 10)
 DetailPad.PaddingBottom = UDim.new(0, 8)
 
 local function addDetailRow(label, value, color)
     local holder = Instance.new("Frame")
-    holder.Size                   = UDim2.new(1, 0, 0, 0)
-    holder.AutomaticSize          = Enum.AutomaticSize.Y
+    holder.Size = UDim2.new(1, 0, 0, 0)
+    holder.AutomaticSize = Enum.AutomaticSize.Y
     holder.BackgroundTransparency = 1
-    holder.Parent                 = DetailScroll
+    holder.Parent = DetailScroll
 
     local lbl = Instance.new("TextLabel")
-    lbl.Size                   = UDim2.new(1, 0, 0, 14)
+    lbl.Size = UDim2.new(1, 0, 0, 14)
     lbl.BackgroundTransparency = 1
-    lbl.Text                   = label
-    lbl.TextColor3             = Color3.fromRGB(150, 170, 220)
-    lbl.TextXAlignment         = Enum.TextXAlignment.Left
-    lbl.Font                   = Enum.Font.GothamBold
-    lbl.TextSize               = 11
-    lbl.LayoutOrder            = 0
-    lbl.Parent                 = holder
+    lbl.Text = label
+    lbl.TextColor3 = Color3.fromRGB(150, 170, 220)
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 11
+    lbl.LayoutOrder = 0
+    lbl.Parent = holder
 
     local val = Instance.new("TextLabel")
-    val.Size                   = UDim2.new(1, 0, 0, 0)
-    val.AutomaticSize          = Enum.AutomaticSize.Y
-    val.BackgroundColor3       = Color3.fromRGB(20, 20, 30)
-    val.BorderSizePixel        = 0
-    val.Text                   = tostring(value)
-    val.TextColor3             = color or Color3.fromRGB(220, 220, 220)
-    val.TextXAlignment         = Enum.TextXAlignment.Left
-    val.TextWrapped            = true
-    val.Font                   = Enum.Font.Code
-    val.TextSize               = 11
-    val.LayoutOrder            = 1
-    val.Position               = UDim2.new(0, 0, 0, 16)
-    val.Parent                 = holder
+    val.Size = UDim2.new(1, 0, 0, 0)
+    val.AutomaticSize = Enum.AutomaticSize.Y
+    val.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    val.BorderSizePixel = 0
+    val.Text = tostring(value)
+    val.TextColor3 = color or Color3.fromRGB(220, 220, 220)
+    val.TextXAlignment = Enum.TextXAlignment.Left
+    val.TextWrapped = true
+    val.Font = Enum.Font.Code
+    val.TextSize = 11
+    val.LayoutOrder = 1
+    val.Position = UDim2.new(0, 0, 0, 16)
+    val.Parent = holder
     Instance.new("UICorner", val).CornerRadius = UDim.new(0, 4)
 
     local vpad = Instance.new("UIPadding", val)
-    vpad.PaddingTop    = UDim.new(0, 4)
+    vpad.PaddingTop = UDim.new(0, 4)
     vpad.PaddingBottom = UDim.new(0, 4)
-    vpad.PaddingLeft   = UDim.new(0, 6)
-    vpad.PaddingRight  = UDim.new(0, 6)
+    vpad.PaddingLeft = UDim.new(0, 6)
+    vpad.PaddingRight = UDim.new(0, 6)
 end
 
 local function showDetail(log)
@@ -815,8 +788,7 @@ local function showDetail(log)
     end
 
     addDetailRow("Packet Name", log.PacketName, Color3.fromRGB(120, 220, 180))
-    addDetailRow("Direction", log.Direction,
-        log.Direction == "IN" and Color3.fromRGB(100, 220, 120) or Color3.fromRGB(255, 180, 100))
+    addDetailRow("Direction", log.Direction, log.Direction == "IN" and Color3.fromRGB(100, 220, 120) or Color3.fromRGB(255, 180, 100))
     addDetailRow("Packet ID", "#" .. log.PacketId)
     addDetailRow("Size", log.Size .. " bytes")
     addDetailRow("Timestamp", log.Timestamp)
@@ -824,11 +796,9 @@ local function showDetail(log)
     addDetailRow("Script Path", log.ScriptPath or "unknown", Color3.fromRGB(200, 180, 255))
 
     if log.Decoded then
-        addDetailRow("⭐ Decoded Arguments (" .. (log.ArgCount or 0) .. ")", log.Decoded,
-            Color3.fromRGB(255, 220, 130))
+        addDetailRow("⭐ Decoded Args (" .. (log.ArgCount or 0) .. ")", log.Decoded, Color3.fromRGB(255, 220, 130))
     else
-        addDetailRow("Decoded Arguments", "(không có schema)",
-            Color3.fromRGB(140, 140, 140))
+        addDetailRow("Decoded Args", "(no schema)", Color3.fromRGB(140, 140, 140))
     end
 
     addDetailRow("HEX", log.RawHex, Color3.fromRGB(180, 200, 220))
@@ -836,15 +806,263 @@ local function showDetail(log)
 end
 
 -- ============================================================
--- 10. IGNORE / BLOCK / FILTER
+-- ⭐ Modify Remote panel (0.32 width) — 2 cột Decoded / Encoded
 -- ============================================================
-local function shouldIgnore(packetName)
-    return State.IgnoreList[packetName] == true
+local ModifyFrame = Instance.new("Frame")
+ModifyFrame.Size = UDim2.new(0.34, -10, 1, -190)
+ModifyFrame.Position = UDim2.new(0.66, 5, 0, 96)
+ModifyFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
+ModifyFrame.BorderSizePixel = 0
+ModifyFrame.Parent = Main
+Instance.new("UICorner", ModifyFrame).CornerRadius = UDim.new(0, 6)
+
+local ModifyTitle = Instance.new("TextLabel")
+ModifyTitle.Size = UDim2.new(1, 0, 0, 22)
+ModifyTitle.BackgroundColor3 = Color3.fromRGB(25, 25, 38)
+ModifyTitle.BorderSizePixel = 0
+ModifyTitle.Text = "  🔧 Modify Remote"
+ModifyTitle.TextColor3 = Color3.fromRGB(150, 170, 220)
+ModifyTitle.TextXAlignment = Enum.TextXAlignment.Left
+ModifyTitle.Font = Enum.Font.GothamBold
+ModifyTitle.TextSize = 11
+ModifyTitle.Parent = ModifyFrame
+Instance.new("UICorner", ModifyTitle).CornerRadius = UDim.new(0, 6)
+
+-- Split into 2 columns
+local HalfW = 0.5
+
+-- Left: Decoded/Modified
+local DecodedCol = Instance.new("Frame")
+DecodedCol.Size = UDim2.new(HalfW, -5, 1, -60)
+DecodedCol.Position = UDim2.new(0, 5, 0, 26)
+DecodedCol.BackgroundTransparency = 1
+DecodedCol.Parent = ModifyFrame
+
+local DecodedLabel = Instance.new("TextLabel")
+DecodedLabel.Size = UDim2.new(1, 0, 0, 16)
+DecodedLabel.BackgroundTransparency = 1
+DecodedLabel.Text = "Decoded / Modified Remote"
+DecodedLabel.TextColor3 = Color3.fromRGB(120, 220, 180)
+DecodedLabel.TextXAlignment = Enum.TextXAlignment.Left
+DecodedLabel.Font = Enum.Font.GothamBold
+DecodedLabel.TextSize = 10
+DecodedLabel.Parent = DecodedCol
+
+local DecodedBox = Instance.new("TextBox")
+DecodedBox.Size = UDim2.new(1, 0, 1, -20)
+DecodedBox.Position = UDim2.new(0, 0, 0, 20)
+DecodedBox.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
+DecodedBox.BorderSizePixel = 0
+DecodedBox.Text = ""
+DecodedBox.TextColor3 = Color3.fromRGB(220, 220, 220)
+DecodedBox.PlaceholderText = "Click log entry..."
+DecodedBox.Font = Enum.Font.Code
+DecodedBox.TextSize = 10
+DecodedBox.TextWrapped = true
+DecodedBox.MultiLine = true
+DecodedBox.ClearTextOnFocus = false
+DecodedBox.TextXAlignment = Enum.TextXAlignment.Left
+DecodedBox.TextYAlignment = Enum.TextYAlignment.Top
+DecodedBox.Parent = DecodedCol
+Instance.new("UICorner", DecodedBox).CornerRadius = UDim.new(0, 4)
+
+local decPad = Instance.new("UIPadding", DecodedBox)
+decPad.PaddingTop = UDim.new(0, 4)
+decPad.PaddingLeft = UDim.new(0, 6)
+decPad.PaddingRight = UDim.new(0, 6)
+decPad.PaddingBottom = UDim.new(0, 4)
+
+-- Right: Encoded
+local EncodedCol = Instance.new("Frame")
+EncodedCol.Size = UDim2.new(HalfW, -5, 1, -60)
+EncodedCol.Position = UDim2.new(HalfW, 0, 0, 26)
+EncodedCol.BackgroundTransparency = 1
+EncodedCol.Parent = ModifyFrame
+
+local EncodedLabel = Instance.new("TextLabel")
+EncodedLabel.Size = UDim2.new(1, 0, 0, 16)
+EncodedLabel.BackgroundTransparency = 1
+EncodedLabel.Text = "Encoded Remote"
+EncodedLabel.TextColor3 = Color3.fromRGB(255, 180, 100)
+EncodedLabel.TextXAlignment = Enum.TextXAlignment.Left
+EncodedLabel.Font = Enum.Font.GothamBold
+EncodedLabel.TextSize = 10
+EncodedLabel.Parent = EncodedCol
+
+local EncodedBox = Instance.new("TextBox")
+EncodedBox.Size = UDim2.new(1, 0, 1, -20)
+EncodedBox.Position = UDim2.new(0, 0, 0, 20)
+EncodedBox.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
+EncodedBox.BorderSizePixel = 0
+EncodedBox.Text = ""
+EncodedBox.TextColor3 = Color3.fromRGB(255, 200, 140)
+EncodedBox.PlaceholderText = "Bytes..."
+EncodedBox.Font = Enum.Font.Code
+EncodedBox.TextSize = 10
+EncodedBox.TextWrapped = true
+EncodedBox.MultiLine = true
+EncodedBox.ClearTextOnFocus = false
+EncodedBox.TextXAlignment = Enum.TextXAlignment.Left
+EncodedBox.TextYAlignment = Enum.TextYAlignment.Top
+EncodedBox.Parent = EncodedCol
+Instance.new("UICorner", EncodedBox).CornerRadius = UDim.new(0, 4)
+
+local encPad = Instance.new("UIPadding", EncodedBox)
+encPad.PaddingTop = UDim.new(0, 4)
+encPad.PaddingLeft = UDim.new(0, 6)
+encPad.PaddingRight = UDim.new(0, 6)
+encPad.PaddingBottom = UDim.new(0, 4)
+
+-- Buttons at bottom
+local ChangeFormBtn = Instance.new("TextButton")
+ChangeFormBtn.Size = UDim2.new(0.5, -8, 0, 28)
+ChangeFormBtn.Position = UDim2.new(0, 5, 1, -34)
+ChangeFormBtn.BackgroundColor3 = Color3.fromRGB(80, 120, 180)
+ChangeFormBtn.BorderSizePixel = 0
+ChangeFormBtn.Text = "🔄 Change Remote Form"
+ChangeFormBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ChangeFormBtn.Font = Enum.Font.GothamBold
+ChangeFormBtn.TextSize = 11
+ChangeFormBtn.Parent = ModifyFrame
+Instance.new("UICorner", ChangeFormBtn).CornerRadius = UDim.new(0, 4)
+
+local PlayEncodedBtn = Instance.new("TextButton")
+PlayEncodedBtn.Size = UDim2.new(0.5, -8, 0, 28)
+PlayEncodedBtn.Position = UDim2.new(0.5, 3, 1, -34)
+PlayEncodedBtn.BackgroundColor3 = Color3.fromRGB(60, 140, 60)
+PlayEncodedBtn.BorderSizePixel = 0
+PlayEncodedBtn.Text = "▶ Play Encoded Remote"
+PlayEncodedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlayEncodedBtn.Font = Enum.Font.GothamBold
+PlayEncodedBtn.TextSize = 11
+PlayEncodedBtn.Parent = ModifyFrame
+Instance.new("UICorner", PlayEncodedBtn).CornerRadius = UDim.new(0, 4)
+
+-- ============================================================
+-- Load modify panel
+-- ============================================================
+local function loadModifyPanel(log)
+    ModifyState.CurrentLog = log
+    ModifyState.CurrentArgs = log.DecodedArgs
+
+    if log.DecodedArgs then
+        local lines = {}
+        lines[#lines+1] = "-- " .. log.PacketName .. " (#" .. log.PacketId .. ")"
+        lines[#lines+1] = "-- Script: " .. (log.ScriptPath or "unknown")
+        lines[#lines+1] = ""
+        lines[#lines+1] = 'local Event = game:GetService("ReplicatedStorage").Stardust.Packages.Packet.RemoteEvent'
+        lines[#lines+1] = "Event:FireServer("
+        for i, arg in ipairs(log.DecodedArgs) do
+            lines[#lines+1] = "    " .. valueToLua(arg) .. (i < #log.DecodedArgs and "," or "")
+        end
+        lines[#lines+1] = ")"
+        DecodedBox.Text = table.concat(lines, "\n")
+    else
+        DecodedBox.Text = "-- No decoded args (packet chưa có schema)"
+    end
+
+    if log.RawHex then
+        local bytes = {}
+        for byteStr in log.RawHex:gmatch("%x%x") do
+            bytes[#bytes+1] = tostring(tonumber(byteStr, 16))
+        end
+        EncodedBox.Text = "{ " .. table.concat(bytes, ", ") .. " }"
+    else
+        EncodedBox.Text = ""
+    end
 end
 
-local function isBlocked(packetName)
-    return State.BlockList[packetName] == true
-end
+-- Change Form button: parse decoded → encode → update EncodedBox
+ChangeFormBtn.MouseButton1Click:Connect(function()
+    local log = ModifyState.CurrentLog
+    if not log then
+        warn("[Modify] Chưa chọn packet nào")
+        return
+    end
+
+    local args, err = parseDecodedArgs(DecodedBox.Text)
+    if not args then
+        warn("[Modify] Parse error:", err)
+        pcall(function()
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Modify Error", Text = tostring(err), Duration = 2,
+            })
+        end)
+        return
+    end
+
+    local buf, instList = encodeArgsWithSchema(log.PacketId, args, log.Instances)
+    if not buf then
+        warn("[Modify] Encode failed:", instList)
+        pcall(function()
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Encode Error", Text = tostring(instList), Duration = 2,
+            })
+        end)
+        return
+    end
+
+    local bytes = {}
+    for i = 0, buffer.len(buf) - 1 do
+        bytes[#bytes+1] = tostring(buffer.readu8(buf, i))
+    end
+    EncodedBox.Text = "{ " .. table.concat(bytes, ", ") .. " }"
+    ModifyState.CurrentArgs = args
+
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Modify Remote",
+            Text = "Encoded " .. #bytes .. " bytes từ " .. #args .. " args",
+            Duration = 2,
+        })
+    end)
+end)
+
+-- Play Encoded button
+PlayEncodedBtn.MouseButton1Click:Connect(function()
+    local log = ModifyState.CurrentLog
+    if not log then
+        warn("[Modify] Chưa chọn packet nào")
+        return
+    end
+
+    local bytes, err = parseEncodedBytes(EncodedBox.Text)
+    if not bytes then
+        warn("[Modify] Parse error:", err)
+        return
+    end
+
+    local buf = buffer.create(#bytes)
+    for i, b in ipairs(bytes) do
+        buffer.writeu8(buf, i - 1, b)
+    end
+
+    local ok, err2 = pcall(function()
+        if log.Instances and #log.Instances > 0 then
+            PacketRemote:FireServer(buf, log.Instances)
+        else
+            PacketRemote:FireServer(buf)
+        end
+    end)
+
+    if ok then
+        pcall(function()
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Play Encoded",
+                Text = "Fired " .. log.PacketName .. " (" .. #bytes .. "b)",
+                Duration = 2,
+            })
+        end)
+    else
+        warn("[Modify] Fire error:", err2)
+    end
+end)
+
+-- ============================================================
+-- 10. IGNORE / BLOCK / FILTER
+-- ============================================================
+local function shouldIgnore(n) return State.IgnoreList[n] == true end
+local function isBlocked(n) return State.BlockList[n] == true end
 
 local function matchesFilter(log)
     if shouldIgnore(log.PacketName) then return false end
@@ -863,9 +1081,7 @@ local function refreshLogVisuals()
             local logRef = entry:GetAttribute("LogIndex")
             if logRef then
                 local log = State.Logs[logRef]
-                if log then
-                    entry.Visible = matchesFilter(log)
-                end
+                if log then entry.Visible = matchesFilter(log) end
             end
         end
     end
@@ -875,131 +1091,116 @@ local createLogEntry
 local pushLog
 
 -- ============================================================
--- 11. LOG ENTRY (7 nút)
+-- 11. LOG ENTRY
 -- ============================================================
 local LOG_ENTRY_HEIGHT = 46
 
-local function makeMiniBtn(parent, text, x, y, width, height, color, callback)
+local function makeMiniBtn(parent, text, x, y, width, height, color, cb)
     local b = Instance.new("TextButton")
-    b.Size                   = UDim2.new(0, width, 0, height)
-    b.Position               = UDim2.new(0, x, 0, y)
-    b.BackgroundColor3       = color
-    b.BorderSizePixel        = 0
-    b.Text                   = text
-    b.TextColor3             = Color3.fromRGB(255, 255, 255)
-    b.Font                   = Enum.Font.GothamBold
-    b.TextSize               = 9
-    b.ZIndex                 = 3
-    b.Parent                 = parent
+    b.Size = UDim2.new(0, width, 0, height)
+    b.Position = UDim2.new(0, x, 0, y)
+    b.BackgroundColor3 = color
+    b.BorderSizePixel = 0
+    b.Text = text
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 9
+    b.ZIndex = 3
+    b.Parent = parent
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
-    b.MouseButton1Click:Connect(callback)
+    b.MouseButton1Click:Connect(cb)
     return b
 end
 
 createLogEntry = function(log, logIndex)
     local entry = Instance.new("Frame")
-    entry.Name                   = "LogEntry"
-    entry.Size                   = UDim2.new(1, 0, 0, LOG_ENTRY_HEIGHT)
-    entry.BackgroundColor3       = Color3.fromRGB(18, 18, 26)
+    entry.Name = "LogEntry"
+    entry.Size = UDim2.new(1, 0, 0, LOG_ENTRY_HEIGHT)
+    entry.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
     entry.BackgroundTransparency = 0.3
-    entry.BorderSizePixel        = 0
-    entry.Parent                 = Scroll
+    entry.BorderSizePixel = 0
+    entry.Parent = Scroll
     entry:SetAttribute("LogIndex", logIndex)
 
-    local dirColor = log.Direction == "IN"
-        and Color3.fromRGB(100, 220, 120)
-        or  Color3.fromRGB(255, 180, 100)
+    local dirColor = log.Direction == "IN" and Color3.fromRGB(100, 220, 120) or Color3.fromRGB(255, 180, 100)
 
     local strip = Instance.new("Frame")
-    strip.Size             = UDim2.new(0, 3, 1, 0)
+    strip.Size = UDim2.new(0, 3, 1, 0)
     strip.BackgroundColor3 = dirColor
-    strip.BorderSizePixel  = 0
-    strip.Parent           = entry
+    strip.BorderSizePixel = 0
+    strip.Parent = entry
 
     local timeLbl = Instance.new("TextLabel")
-    timeLbl.Size                   = UDim2.new(0, 55, 1, 0)
-    timeLbl.Position               = UDim2.new(0, 8, 0, 0)
+    timeLbl.Size = UDim2.new(0, 55, 1, 0)
+    timeLbl.Position = UDim2.new(0, 8, 0, 0)
     timeLbl.BackgroundTransparency = 1
-    timeLbl.Text                   = log.Timestamp
-    timeLbl.TextColor3             = Color3.fromRGB(120, 120, 140)
-    timeLbl.TextXAlignment         = Enum.TextXAlignment.Left
-    timeLbl.Font                   = Enum.Font.Code
-    timeLbl.TextSize               = 10
-    timeLbl.Parent                 = entry
+    timeLbl.Text = log.Timestamp
+    timeLbl.TextColor3 = Color3.fromRGB(120, 120, 140)
+    timeLbl.TextXAlignment = Enum.TextXAlignment.Left
+    timeLbl.Font = Enum.Font.Code
+    timeLbl.TextSize = 10
+    timeLbl.Parent = entry
 
     local dirLbl = Instance.new("TextLabel")
-    dirLbl.Size                   = UDim2.new(0, 32, 1, 0)
-    dirLbl.Position               = UDim2.new(0, 66, 0, 0)
+    dirLbl.Size = UDim2.new(0, 32, 1, 0)
+    dirLbl.Position = UDim2.new(0, 66, 0, 0)
     dirLbl.BackgroundTransparency = 1
-    dirLbl.Text                   = log.Direction
-    dirLbl.TextColor3             = dirColor
-    dirLbl.TextXAlignment         = Enum.TextXAlignment.Left
-    dirLbl.Font                   = Enum.Font.GothamBold
-    dirLbl.TextSize               = 10
-    dirLbl.Parent                 = entry
+    dirLbl.Text = log.Direction
+    dirLbl.TextColor3 = dirColor
+    dirLbl.TextXAlignment = Enum.TextXAlignment.Left
+    dirLbl.Font = Enum.Font.GothamBold
+    dirLbl.TextSize = 10
+    dirLbl.Parent = entry
 
     local idLbl = Instance.new("TextLabel")
-    idLbl.Size                   = UDim2.new(0, 32, 1, 0)
-    idLbl.Position               = UDim2.new(0, 100, 0, 0)
+    idLbl.Size = UDim2.new(0, 32, 1, 0)
+    idLbl.Position = UDim2.new(0, 100, 0, 0)
     idLbl.BackgroundTransparency = 1
-    idLbl.Text                   = "#" .. log.PacketId
-    idLbl.TextColor3             = Color3.fromRGB(180, 180, 200)
-    idLbl.TextXAlignment         = Enum.TextXAlignment.Left
-    idLbl.Font                   = Enum.Font.Code
-    idLbl.TextSize               = 10
-    idLbl.Parent                 = entry
+    idLbl.Text = "#" .. log.PacketId
+    idLbl.TextColor3 = Color3.fromRGB(180, 180, 200)
+    idLbl.TextXAlignment = Enum.TextXAlignment.Left
+    idLbl.Font = Enum.Font.Code
+    idLbl.TextSize = 10
+    idLbl.Parent = entry
 
     local nameLbl = Instance.new("TextLabel")
-    nameLbl.Size                   = UDim2.new(0, 130, 1, 0)
-    nameLbl.Position               = UDim2.new(0, 134, 0, 0)
+    nameLbl.Size = UDim2.new(0, 130, 1, 0)
+    nameLbl.Position = UDim2.new(0, 134, 0, 0)
     nameLbl.BackgroundTransparency = 1
-    nameLbl.Text                   = log.PacketName
-    nameLbl.TextColor3             = Color3.fromRGB(200, 220, 255)
-    nameLbl.TextXAlignment         = Enum.TextXAlignment.Left
-    nameLbl.TextTruncate           = Enum.TextTruncate.AtEnd
-    nameLbl.Font                   = Enum.Font.Code
-    nameLbl.TextSize               = 11
-    nameLbl.Parent                 = entry
+    nameLbl.Text = log.PacketName
+    nameLbl.TextColor3 = Color3.fromRGB(200, 220, 255)
+    nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+    nameLbl.TextTruncate = Enum.TextTruncate.AtEnd
+    nameLbl.Font = Enum.Font.Code
+    nameLbl.TextSize = 11
+    nameLbl.Parent = entry
 
     local argsLbl = Instance.new("TextLabel")
-    argsLbl.Size                   = UDim2.new(0, 60, 1, 0)
-    argsLbl.Position               = UDim2.new(0, 266, 0, 0)
+    argsLbl.Size = UDim2.new(0, 60, 1, 0)
+    argsLbl.Position = UDim2.new(0, 266, 0, 0)
     argsLbl.BackgroundTransparency = 1
     if log.Decoded then
-        argsLbl.Text        = "✅ " .. (log.ArgCount or 0)
-        argsLbl.TextColor3  = Color3.fromRGB(120, 220, 180)
+        argsLbl.Text = "✅ " .. (log.ArgCount or 0)
+        argsLbl.TextColor3 = Color3.fromRGB(120, 220, 180)
     else
-        argsLbl.Text        = "—"
-        argsLbl.TextColor3  = Color3.fromRGB(100, 100, 120)
+        argsLbl.Text = "—"
+        argsLbl.TextColor3 = Color3.fromRGB(100, 100, 120)
     end
     argsLbl.TextXAlignment = Enum.TextXAlignment.Left
-    argsLbl.Font           = Enum.Font.Code
-    argsLbl.TextSize       = 10
-    argsLbl.Parent         = entry
-
-    local pathLbl = Instance.new("TextLabel")
-    pathLbl.Size                   = UDim2.new(0, 170, 1, 0)
-    pathLbl.Position               = UDim2.new(0, 328, 0, 0)
-    pathLbl.BackgroundTransparency = 1
-    pathLbl.Text                   = log.ScriptPath or "unknown"
-    pathLbl.TextColor3             = Color3.fromRGB(180, 160, 220)
-    pathLbl.TextXAlignment         = Enum.TextXAlignment.Left
-    pathLbl.TextTruncate           = Enum.TextTruncate.AtEnd
-    pathLbl.Font                   = Enum.Font.Code
-    pathLbl.TextSize               = 10
-    pathLbl.Parent                 = entry
+    argsLbl.Font = Enum.Font.Code
+    argsLbl.TextSize = 10
+    argsLbl.Parent = entry
 
     local actionHolder = Instance.new("Frame")
-    actionHolder.Size                   = UDim2.new(0, 320, 1, 0)
-    actionHolder.Position               = UDim2.new(1, -320, 0, 0)
+    actionHolder.Size = UDim2.new(0, 320, 1, 0)
+    actionHolder.Position = UDim2.new(1, -320, 0, 0)
     actionHolder.BackgroundTransparency = 1
-    actionHolder.ZIndex                 = 2
-    actionHolder.Parent                 = entry
+    actionHolder.ZIndex = 2
+    actionHolder.Parent = entry
 
     local ROW_H = 18
-    local PAD   = 2
+    local PAD = 2
 
-    -- ROW 1: IGNORE, BLOCK, COPY, REPLAY
     makeMiniBtn(actionHolder, "IGNORE", 0, PAD, 76, ROW_H, Color3.fromRGB(100, 60, 130), function()
         State.IgnoreList[log.PacketName] = true
         refreshLogVisuals()
@@ -1012,20 +1213,17 @@ createLogEntry = function(log, logIndex)
     makeMiniBtn(actionHolder, "COPY", 150, PAD, 64, ROW_H, Color3.fromRGB(60, 100, 120), function()
         if setclipboard then
             local text = log.RawHex
-            if log.Decoded then
-                text = log.Decoded .. "\n\nHEX: " .. log.RawHex
-            end
+            if log.Decoded then text = log.Decoded .. "\n\nHEX: " .. log.RawHex end
             setclipboard(text)
         end
     end)
 
     makeMiniBtn(actionHolder, "REPLAY", 216, PAD, 76, ROW_H, Color3.fromRGB(80, 140, 80), function()
-        if not log.RawBuffer then return end
-        if log.Direction ~= "OUT" then return end
+        if not log.RawBuffer or log.Direction ~= "OUT" then return end
         local ok, clone = pcall(function()
-            local newBuf = buffer.create(buffer.len(log.RawBuffer))
-            buffer.copy(newBuf, 0, log.RawBuffer, 0, buffer.len(log.RawBuffer))
-            return newBuf
+            local nb = buffer.create(buffer.len(log.RawBuffer))
+            buffer.copy(nb, 0, log.RawBuffer, 0, buffer.len(log.RawBuffer))
+            return nb
         end)
         if not ok or not clone then return end
         pcall(function()
@@ -1035,86 +1233,40 @@ createLogEntry = function(log, logIndex)
                 PacketRemote:FireServer(clone)
             end
         end)
+    end)
+
+    local ROW2_Y = PAD + ROW_H + 2
+
+    makeMiniBtn(actionHolder, "ANALYZE", 0, ROW2_Y, 86, ROW_H, Color3.fromRGB(180, 130, 60), function()
+        local code = buildAnalyzedCode(log)
+        if not code then warn("[Decoder] Không build được analyzed code") return end
+        if setclipboard then setclipboard(code) end
         pcall(function()
             game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "Replay", Text = "Đã replay: " .. log.PacketName, Duration = 1.5,
+                Title = "Analyzed Code", Text = "Đã copy: " .. log.PacketName, Duration = 2,
             })
         end)
     end)
 
-    -- ROW 2: ANALYZE, CODE, PATH
-    local ROW2_Y = PAD + ROW_H + 2
-
-    -- ⭐ Nút ANALYZE — copy code dạng EventPath:FireServer(args)
-    makeMiniBtn(actionHolder, "ANALYZE", 0, ROW2_Y, 86, ROW_H, Color3.fromRGB(180, 130, 60), function()
-        local code = buildAnalyzedCode(log)
-        if not code then
-            warn("[Decoder] Không thể build analyzed code (thiếu schema)")
-            return
-        end
-
-        if setclipboard then
-            setclipboard(code)
-            pcall(function()
-                game:GetService("StarterGui"):SetCore("SendNotification", {
-                    Title = "Analyzed Code",
-                    Text = "Đã copy: " .. log.PacketName,
-                    Duration = 2,
-                })
-            end)
-        end
-    end)
-
     makeMiniBtn(actionHolder, "CODE", 88, ROW2_Y, 66, ROW_H, Color3.fromRGB(100, 80, 160), function()
         if not log.RawBuffer then return end
-
         local bytes = {}
-        for byteStr in log.RawHex:gmatch("%x%x") do
-            table.insert(bytes, tonumber(byteStr, 16))
-        end
-
+        for bs in log.RawHex:gmatch("%x%x") do bytes[#bytes+1] = tonumber(bs, 16) end
         local lines = {}
-        table.insert(lines, "-- " .. log.PacketName .. " | " .. log.Direction .. " | " .. log.Size .. " bytes | " .. log.Timestamp)
-        table.insert(lines, "-- Script Path: " .. (log.ScriptPath or "unknown"))
-        if log.Decoded then
-            for line in log.Decoded:gmatch("[^\n]+") do
-                table.insert(lines, "--   " .. line)
-            end
-        end
-        table.insert(lines, "")
-
-        if log.Direction == "OUT" then
-            table.insert(lines, 'local Event = game:GetService("ReplicatedStorage").Stardust.Packages.Packet.RemoteEvent')
-            table.insert(lines, "Event:FireServer(")
-            table.insert(lines, "    (function(bytes) --[[Type: buffer]]")
-            table.insert(lines, "        local b = buffer.create(#bytes)")
-            table.insert(lines, "        for i = 1, #bytes do")
-            table.insert(lines, "            buffer.writeu8(b, i - 1, bytes[i])")
-            table.insert(lines, "        end")
-            table.insert(lines, "        return b")
-            table.insert(lines, "    end)(" .. bytesToLuaArray(bytes) .. ")")
-            table.insert(lines, ")")
-        else
-            table.insert(lines, 'local Event = game:GetService("ReplicatedStorage").Stardust.Packages.Packet.RemoteEvent')
-            table.insert(lines, "Event.OnClientEvent:Fire(")
-            table.insert(lines, "    (function(bytes) --[[Type: buffer]]")
-            table.insert(lines, "        local b = buffer.create(#bytes)")
-            table.insert(lines, "        for i = 1, #bytes do")
-            table.insert(lines, "            buffer.writeu8(b, i - 1, bytes[i])")
-            table.insert(lines, "        end")
-            table.insert(lines, "        return b")
-            table.insert(lines, "    end)(" .. bytesToLuaArray(bytes) .. ")")
-            table.insert(lines, ")")
-        end
-
-        if setclipboard then
-            setclipboard(table.concat(lines, "\n"))
-            pcall(function()
-                game:GetService("StarterGui"):SetCore("SendNotification", {
-                    Title = "Copy Code", Text = "Đã copy: " .. log.PacketName, Duration = 2,
-                })
-            end)
-        end
+        lines[#lines+1] = "-- " .. log.PacketName .. " | " .. log.Direction .. " | " .. log.Size .. " bytes"
+        lines[#lines+1] = "-- Script Path: " .. (log.ScriptPath or "unknown")
+        lines[#lines+1] = ""
+        lines[#lines+1] = 'local Event = game:GetService("ReplicatedStorage").Stardust.Packages.Packet.RemoteEvent'
+        lines[#lines+1] = "Event:FireServer("
+        lines[#lines+1] = "    (function(bytes) --[[Type: buffer]]"
+        lines[#lines+1] = "        local b = buffer.create(#bytes)"
+        lines[#lines+1] = "        for i = 1, #bytes do"
+        lines[#lines+1] = "            buffer.writeu8(b, i - 1, bytes[i])"
+        lines[#lines+1] = "        end"
+        lines[#lines+1] = "        return b"
+        lines[#lines+1] = "    end)(" .. bytesToLuaArray(bytes) .. ")"
+        lines[#lines+1] = ")"
+        if setclipboard then setclipboard(table.concat(lines, "\n")) end
     end)
 
     makeMiniBtn(actionHolder, "PATH", 156, ROW2_Y, 66, ROW_H, Color3.fromRGB(140, 100, 180), function()
@@ -1129,14 +1281,15 @@ createLogEntry = function(log, logIndex)
     end)
 
     local clickBtn = Instance.new("TextButton")
-    clickBtn.Size                   = UDim2.new(1, -330, 1, 0)
-    clickBtn.Position               = UDim2.new(0, 0, 0, 0)
+    clickBtn.Size = UDim2.new(1, -330, 1, 0)
+    clickBtn.Position = UDim2.new(0, 0, 0, 0)
     clickBtn.BackgroundTransparency = 1
-    clickBtn.Text                   = ""
-    clickBtn.ZIndex                 = 0
-    clickBtn.Parent                 = entry
+    clickBtn.Text = ""
+    clickBtn.ZIndex = 0
+    clickBtn.Parent = entry
     clickBtn.MouseButton1Click:Connect(function()
         showDetail(log)
+        loadModifyPanel(log)  -- ⭐ load vào Modify panel
         for _, c in ipairs(Scroll:GetChildren()) do
             if c:IsA("Frame") and c.Name == "LogEntry" then
                 c.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
@@ -1153,16 +1306,11 @@ end
 -- ============================================================
 pushLog = function(log)
     table.insert(State.Logs, log)
-
-    while #State.Logs > State.MaxLogs do
-        table.remove(State.Logs, 1)
-    end
+    while #State.Logs > State.MaxLogs do table.remove(State.Logs, 1) end
 
     if #State.Logs >= State.MaxLogs then
         for _, c in ipairs(Scroll:GetChildren()) do
-            if c:IsA("Frame") and c.Name == "LogEntry" then
-                c:Destroy()
-            end
+            if c:IsA("Frame") and c.Name == "LogEntry" then c:Destroy() end
         end
         for i, l in ipairs(State.Logs) do
             local e = createLogEntry(l, i)
@@ -1174,9 +1322,7 @@ pushLog = function(log)
     end
 
     if State.AutoScroll then
-        task.defer(function()
-            Scroll.CanvasPosition = Vector2.new(0, math.huge)
-        end)
+        task.defer(function() Scroll.CanvasPosition = Vector2.new(0, math.huge) end)
     end
 end
 
@@ -1186,18 +1332,9 @@ end
 local LogQueue = {}
 
 local function handleParsedLog(log)
-    if not State.Enabled then return end
-    if not log then return end
-
-    if log.Direction == "IN" then
-        State.StatIN += 1
-    else
-        State.StatOUT += 1
-    end
-
-    if #LogQueue < 5000 then
-        table.insert(LogQueue, log)
-    end
+    if not State.Enabled or not log then return end
+    if log.Direction == "IN" then State.StatIN += 1 else State.StatOUT += 1 end
+    if #LogQueue < 5000 then table.insert(LogQueue, log) end
 end
 
 local function getCaller()
@@ -1208,9 +1345,7 @@ local function getCaller()
     if debug and debug.info then
         for lvl = 2, 8 do
             local ok, s = pcall(function() return debug.info(lvl, "s") end)
-            if ok and s and type(s) == "Instance" then
-                return s:GetFullName()
-            end
+            if ok and s and type(s) == "Instance" then return s:GetFullName() end
         end
     end
     return "unknown"
@@ -1227,11 +1362,9 @@ end)
 pcall(function()
     local mt = getrawmetatable(game)
     local oldNamecall = mt.__namecall
-
     setreadonly(mt, false)
     mt.__namecall = newcclosure(function(self, ...)
         local method = getnamecallmethod()
-
         if method == "FireServer" and self == PacketRemote and State.Enabled then
             local args = { ... }
             local buf = args[1]
@@ -1240,14 +1373,11 @@ pcall(function()
                 local caller = getCaller()
                 local log = parseBuffer(buf, "OUT", instances, caller)
                 if log then
-                    if isBlocked(log.PacketName) then
-                        return
-                    end
+                    if isBlocked(log.PacketName) then return end
                     handleParsedLog(log)
                 end
             end
         end
-
         return oldNamecall(self, ...)
     end)
     setreadonly(mt, true)
@@ -1257,13 +1387,9 @@ task.spawn(function()
     while task.wait(0.1) do
         if not ScreenGui.Parent then break end
         if #LogQueue == 0 then continue end
-
         local batch = LogQueue
         LogQueue = {}
-
-        for _, log in ipairs(batch) do
-            pcall(pushLog, log)
-        end
+        for _, log in ipairs(batch) do pcall(pushLog, log) end
     end
 end)
 
@@ -1285,16 +1411,19 @@ _G.__clearLogs = function()
     for _, c in ipairs(DetailScroll:GetChildren()) do
         if c:IsA("Frame") then c:Destroy() end
     end
+    DecodedBox.Text = ""
+    EncodedBox.Text = ""
+    ModifyState.CurrentLog = nil
 end
 
 local function showListPopup(title, list, onRemove)
     local popup = Instance.new("Frame")
-    popup.Size                   = UDim2.new(0, 260, 0, 300)
-    popup.Position               = UDim2.new(0.5, -130, 0.5, -150)
-    popup.BackgroundColor3       = Color3.fromRGB(20, 20, 30)
-    popup.BorderSizePixel        = 0
-    popup.ZIndex                 = 10
-    popup.Parent                 = ScreenGui
+    popup.Size = UDim2.new(0, 260, 0, 300)
+    popup.Position = UDim2.new(0.5, -130, 0.5, -150)
+    popup.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    popup.BorderSizePixel = 0
+    popup.ZIndex = 10
+    popup.Parent = ScreenGui
     Instance.new("UICorner", popup).CornerRadius = UDim.new(0, 8)
 
     local ps = Instance.new("UIStroke", popup)
@@ -1302,74 +1431,73 @@ local function showListPopup(title, list, onRemove)
     ps.Thickness = 1.5
 
     local ptitle = Instance.new("TextLabel")
-    ptitle.Size                   = UDim2.new(1, 0, 0, 30)
-    ptitle.BackgroundColor3       = Color3.fromRGB(30, 25, 45)
-    ptitle.BorderSizePixel        = 0
-    ptitle.Text                   = title
-    ptitle.TextColor3             = Color3.fromRGB(220, 200, 255)
-    ptitle.Font                   = Enum.Font.GothamBold
-    ptitle.TextSize               = 13
-    ptitle.Parent                 = popup
+    ptitle.Size = UDim2.new(1, 0, 0, 30)
+    ptitle.BackgroundColor3 = Color3.fromRGB(30, 25, 45)
+    ptitle.BorderSizePixel = 0
+    ptitle.Text = title
+    ptitle.TextColor3 = Color3.fromRGB(220, 200, 255)
+    ptitle.Font = Enum.Font.GothamBold
+    ptitle.TextSize = 13
+    ptitle.Parent = popup
     Instance.new("UICorner", ptitle).CornerRadius = UDim.new(0, 8)
 
     local pclose = Instance.new("TextButton")
-    pclose.Size                   = UDim2.new(0, 22, 0, 22)
-    pclose.Position               = UDim2.new(1, -26, 0, 4)
-    pclose.BackgroundColor3       = Color3.fromRGB(120, 40, 40)
-    pclose.BorderSizePixel        = 0
-    pclose.Text                   = "X"
-    pclose.TextColor3             = Color3.fromRGB(255, 255, 255)
-    pclose.Font                   = Enum.Font.GothamBold
-    pclose.TextSize               = 11
-    pclose.Parent                 = ptitle
+    pclose.Size = UDim2.new(0, 22, 0, 22)
+    pclose.Position = UDim2.new(1, -26, 0, 4)
+    pclose.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+    pclose.BorderSizePixel = 0
+    pclose.Text = "X"
+    pclose.TextColor3 = Color3.fromRGB(255, 255, 255)
+    pclose.Font = Enum.Font.GothamBold
+    pclose.TextSize = 11
+    pclose.Parent = ptitle
     Instance.new("UICorner", pclose).CornerRadius = UDim.new(0, 4)
     pclose.MouseButton1Click:Connect(function() popup:Destroy() end)
 
     local pscroll = Instance.new("ScrollingFrame")
-    pscroll.Size                   = UDim2.new(1, -10, 1, -40)
-    pscroll.Position               = UDim2.new(0, 5, 0, 35)
+    pscroll.Size = UDim2.new(1, -10, 1, -40)
+    pscroll.Position = UDim2.new(0, 5, 0, 35)
     pscroll.BackgroundTransparency = 1
-    pscroll.BorderSizePixel        = 0
-    pscroll.ScrollBarThickness     = 6
-    pscroll.CanvasSize             = UDim2.new(0, 0, 0, 0)
-    pscroll.AutomaticCanvasSize    = Enum.AutomaticSize.Y
-    pscroll.Parent                 = popup
+    pscroll.BorderSizePixel = 0
+    pscroll.ScrollBarThickness = 6
+    pscroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    pscroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    pscroll.Parent = popup
 
     local plyt = Instance.new("UIListLayout", pscroll)
     plyt.Padding = UDim.new(0, 4)
-    plyt.SortOrder = Enum.SortOrder.LayoutOrder
 
     local count = 0
     for name in pairs(list) do
         count += 1
         local row = Instance.new("Frame")
-        row.Size                   = UDim2.new(1, 0, 0, 28)
-        row.BackgroundColor3       = Color3.fromRGB(28, 28, 40)
-        row.BorderSizePixel        = 0
-        row.Parent                 = pscroll
+        row.Size = UDim2.new(1, 0, 0, 28)
+        row.BackgroundColor3 = Color3.fromRGB(28, 28, 40)
+        row.BorderSizePixel = 0
+        row.Parent = pscroll
         Instance.new("UICorner", row).CornerRadius = UDim.new(0, 4)
 
         local lbl = Instance.new("TextLabel")
-        lbl.Size                   = UDim2.new(1, -60, 1, 0)
-        lbl.Position               = UDim2.new(0, 8, 0, 0)
+        lbl.Size = UDim2.new(1, -60, 1, 0)
+        lbl.Position = UDim2.new(0, 8, 0, 0)
         lbl.BackgroundTransparency = 1
-        lbl.Text                   = name
-        lbl.TextColor3             = Color3.fromRGB(220, 220, 220)
-        lbl.TextXAlignment         = Enum.TextXAlignment.Left
-        lbl.Font                   = Enum.Font.Code
-        lbl.TextSize               = 11
-        lbl.Parent                 = row
+        lbl.Text = name
+        lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.Font = Enum.Font.Code
+        lbl.TextSize = 11
+        lbl.Parent = row
 
         local rmBtn = Instance.new("TextButton")
-        rmBtn.Size                   = UDim2.new(0, 50, 1, -4)
-        rmBtn.Position               = UDim2.new(1, -54, 0, 2)
-        rmBtn.BackgroundColor3       = Color3.fromRGB(140, 60, 60)
-        rmBtn.BorderSizePixel        = 0
-        rmBtn.Text                   = "REMOVE"
-        rmBtn.TextColor3             = Color3.fromRGB(255, 255, 255)
-        rmBtn.Font                   = Enum.Font.GothamBold
-        rmBtn.TextSize               = 9
-        rmBtn.Parent                 = row
+        rmBtn.Size = UDim2.new(0, 50, 1, -4)
+        rmBtn.Position = UDim2.new(1, -54, 0, 2)
+        rmBtn.BackgroundColor3 = Color3.fromRGB(140, 60, 60)
+        rmBtn.BorderSizePixel = 0
+        rmBtn.Text = "REMOVE"
+        rmBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        rmBtn.Font = Enum.Font.GothamBold
+        rmBtn.TextSize = 9
+        rmBtn.Parent = row
         Instance.new("UICorner", rmBtn).CornerRadius = UDim.new(0, 4)
         rmBtn.MouseButton1Click:Connect(function()
             list[name] = nil
@@ -1381,23 +1509,18 @@ local function showListPopup(title, list, onRemove)
 
     if count == 0 then
         local empty = Instance.new("TextLabel")
-        empty.Size                   = UDim2.new(1, 0, 0, 40)
+        empty.Size = UDim2.new(1, 0, 0, 40)
         empty.BackgroundTransparency = 1
-        empty.Text                   = "(empty)"
-        empty.TextColor3             = Color3.fromRGB(120, 120, 140)
-        empty.Font                   = Enum.Font.Gotham
-        empty.TextSize               = 12
-        empty.Parent                 = pscroll
+        empty.Text = "(empty)"
+        empty.TextColor3 = Color3.fromRGB(120, 120, 140)
+        empty.Font = Enum.Font.Gotham
+        empty.TextSize = 12
+        empty.Parent = pscroll
     end
 end
 
-_G.__showIgnoreList = function()
-    showListPopup("⛔ Ignore List", State.IgnoreList, refreshLogVisuals)
-end
-
-_G.__showBlockList = function()
-    showListPopup("🚫 Block List", State.BlockList, nil)
-end
+_G.__showIgnoreList = function() showListPopup("⛔ Ignore List", State.IgnoreList, refreshLogVisuals) end
+_G.__showBlockList = function() showListPopup("🚫 Block List", State.BlockList, nil) end
 
 -- ============================================================
 -- 15. STATUS LOOP
@@ -1405,23 +1528,16 @@ end
 task.spawn(function()
     while task.wait(0.5) do
         if not ScreenGui.Parent then break end
-
-        local regCount = 0
-        for _ in pairs(IdToName) do regCount += 1 end
-        local schemaCount = 0
-        for _ in pairs(Schema) do schemaCount += 1 end
-        local ignoredCount = 0
-        for _ in pairs(State.IgnoreList) do ignoredCount += 1 end
-        local blockedCount = 0
-        for _ in pairs(State.BlockList) do blockedCount += 1 end
+        local regCount = 0 for _ in pairs(IdToName) do regCount += 1 end
+        local schemaCount = 0 for _ in pairs(Schema) do schemaCount += 1 end
+        local ignoredCount = 0 for _ in pairs(State.IgnoreList) do ignoredCount += 1 end
+        local blockedCount = 0 for _ in pairs(State.BlockList) do blockedCount += 1 end
 
         StatusLbl.Text = string.format(
             "  Registry: %d | Schema: %d | Logs: %d/%d | IN: %d | OUT: %d | Ignore: %d | Block: %d | %s",
             regCount, schemaCount, #State.Logs, State.MaxLogs,
-            State.StatIN, State.StatOUT,
-            ignoredCount, blockedCount,
-            State.Enabled and "🟢 ON" or "🔴 OFF"
-        )
+            State.StatIN, State.StatOUT, ignoredCount, blockedCount,
+            State.Enabled and "🟢 ON" or "🔴 OFF")
     end
 end)
 
@@ -1431,27 +1547,26 @@ end)
 local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
-    Toolbar.Visible      = not minimized
-    StatusLbl.Visible    = not minimized
+    Toolbar.Visible = not minimized
+    StatusLbl.Visible = not minimized
     LogContainer.Visible = not minimized
-    DetailFrame.Visible  = not minimized
+    DetailFrame.Visible = not minimized
+    ModifyFrame.Visible = not minimized
 
     if minimized then
         Main.Size = UDim2.new(Main.Size.X.Scale, Main.Size.X.Offset, 0, 32)
         MinBtn.Text = "□"
     else
-        if State.Expanded then Main.Size = EXPANDED_SIZE else Main.Size = NORMAL_SIZE end
+        Main.Size = State.Expanded and EXPANDED_SIZE or NORMAL_SIZE
         MinBtn.Text = "_"
     end
 end)
 
 -- ============================================================
--- 17. INIT NOTIFY
+-- 17. INIT
 -- ============================================================
-local regCount = 0
-for _ in pairs(IdToName) do regCount += 1 end
-local schemaCount = 0
-for _ in pairs(Schema) do schemaCount += 1 end
+local regCount = 0 for _ in pairs(IdToName) do regCount += 1 end
+local schemaCount = 0 for _ in pairs(Schema) do schemaCount += 1 end
 
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
@@ -1461,6 +1576,4 @@ pcall(function()
     })
 end)
 
-print("[Packet Decoder] Ready.")
-print("  Registry (ID→Name):", regCount)
-print("  Schema (decodable):", schemaCount)
+print("[Packet Decoder] Ready. Registry:", regCount, "Schema:", schemaCount)
